@@ -1,0 +1,7 @@
+{
+	"name":"RestBridge",
+	"description":"The BBj REST Bridge Plugin",
+	"version":"1.00",
+	"author":"Basis",
+	"bbj_dependency"     : "17.00"
+}
