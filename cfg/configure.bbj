@@ -130,12 +130,10 @@ endif
 selectedContext! = window!.getContext()
 selectedMapping! = window!.getMapping()
 
-if(!contextNames!.isEmpty()) then
-    if(contextMap!.containsKey(selectedContext!)) then
-        if(cast(BBjVector,contextMap!.get(selectedContext!)).contains(selectedMapping!)) then
-            a = msgbox("There is already a BBJSP Servlet defined for this context and mapping, please change")
-            goto displayConfigurationWindow
-        endif
+if(!editMode) then
+    if(configurator!.getBBjspServlet(selectedContext!, selectedMapping!) <> null()) then
+        a = msgbox("There is already a BBJSP Servlet defined for this context and mapping, please change")
+        goto displayConfigurationWindow
     endif
 endif
 
