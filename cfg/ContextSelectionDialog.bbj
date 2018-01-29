@@ -1,0 +1,198 @@
+use java.util.HashMap
+use java.util.Iterator
+
+class public ContextSelectionDialog
+
+    field private BBjSysGui sysGui!
+    field private BBjTopLevelWindow window!
+
+    field private Boolean cancel!
+
+    field private BBjListButton lbtMappings!
+    field private BBjListButton lbtContextNames!
+
+    field private BBjButton btnOK!
+    field private BBjButton btnCancel!
+
+    field private String selectedMapping! 
+    field private String selectedContextName!
+    
+    field private HashMap contextMap!
+
+    method public ContextSelectionDialog(BBjNumber deleteMode)
+        #init(deleteMode)
+    methodend
+
+    method private void init(BBjNumber deleteMode)
+        #sysGui! = BBjAPI().getSysGui(err=*next)
+        if(#sysGui! = null()) then
+            #sysGui! = BBjAPI().openSysGui("X0")
+        endif
+
+        windowWidth = 300
+        windowHeight = 150
+        contextID = #sysGui!.getAvailableContext()
+        #window! = #sysGui!.addWindow(contextID, 300, 300, windowWidth, windowHeight, "Context Selection Dialog", $00080012$)
+
+        x = 20
+        y = 20
+        controlWidth = 250
+        controlHeight = 30
+        controlID = #window!.getAvailableControlID()
+        if(deleteMode) then
+            text! = "Select the context and the mapping of the Rest Bridge configuration you want to remove:"
+        else
+            text! = "Select the context and the mapping of the Rest Bridge configuration you want to edit:"
+        endif
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, text!)
+        
+        REM New Row
+        y = y + controlHeight + 10
+        x = 20
+
+        controlWidth = 80
+        controlHeight = 25
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Context: ")
+        x = x + controlWidth
+
+        controlWidth = 190
+        controlID = #window!.getAvailableControlID()
+        #lbtContextNames! = #window!.addListButton(controlID, x, y-5, controlWidth, controlHeight, "")
+        #lbtContextNames!.setSize(controlWidth, controlHeight*3)
+        #lbtContextNames!.setCallback(BBjAPI.ON_LIST_SELECT, #this!, "contextSelected")
+
+        REM New Row
+        y = y + controlHeight
+        x = 20
+
+        controlWidth = 80
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Mapping: ")
+        x = x + controlWidth
+
+        controlWidth = 190
+        controlID = #window!.getAvailableControlID()
+        #lbtMappings! = #window!.addListButton(controlID, x, y-5, controlWidth, controlHeight, "")
+        #lbtMappings!.setSize(controlWidth, controlHeight*3)
+
+        controlWidth = 75
+        y = windowHeight - controlHeight - 10
+        x = windowWidth - (controlWidth*2) - 10 -10
+        controlID = #window!.getAvailableControlID()
+        #btnCancel! = #window!.addButton(controlID, x, y, controlWidth, controlHeight, "Cancel")
+        #btnCancel!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "cancelButtonPush")
+
+        x = windowWidth - controlWidth - 10
+        controlID = #window!.getAvailableControlID()
+        #btnOK! = #window!.addButton(controlID, x, y, controlWidth, controlHeight, "OK")
+        #btnOK!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "okButtonPush")
+
+        #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "closeWindow")
+    methodend
+
+    method public void show()
+        #cancel! = Boolean.FALSE
+        BBjAPI().setCustomEventCallback("ContextSelectionDialogCloseEvent", "close")
+
+        #window!.setVisible(Boolean.TRUE)
+
+        process_events
+
+        close:
+            #window!.destroy()
+    methodend
+
+    rem /**
+    rem  *  
+    rem  */
+    method public void setContextMap(HashMap contextMap!)
+        declare Iterator it!
+        declare BBjVector contextNames!
+        
+        #contextMap! = contextMap!
+        
+        contextNames! = new BBjVector()
+        it! = contextMap!.entrySet().iterator()
+        while(it!.hasNext())
+            entry! = it!.next()
+            contextName! = entry!.getKey()
+            contextNames!.addItem(contextName!)
+        wend
+        
+        #lbtContextNames!.insertItems(0, contextNames!)
+        #lbtContextNames!.selectIndex(0)
+        
+        if(contextNames!.size() = 1) then
+            #lbtContextNames!.setEnabled(0)
+        else
+            #lbtContextNames!.setEnabled(1)
+        endif
+        
+        #contextSelected(null())
+    methodend
+
+    method public void closeWindow(BBjCloseEvent event!)
+        #cancel! = Boolean.TRUE
+        BBjAPI().postCustomEvent("ContextSelectionDialogCloseEvent", "")
+    methodend
+    
+    method public void contextSelected(BBjListSelectEvent event!)
+        if(event! <> null()) then
+            contextName! = cast(BBjListButton, event!.getControl()).getSelectedItem()
+        else
+            contextName! = #lbtContextNames!.getSelectedItem()
+        endif
+   
+        mappings! = #contextMap!.get(contextName!)
+        
+        #lbtMappings!.removeAllItems()
+        #lbtMappings!.insertItems(0, mappings!)
+        #lbtMappings!.selectIndex(0)
+        
+        if(mappings!.size() = 1) then
+            #lbtMappings!.setEnabled(0)
+        else
+            #lbtMappings!.setEnabled(1)
+        endif
+    methodend
+
+    rem /**
+    rem  * Returns true if the dialog was cancelled, false otherwise.
+    rem  * 
+    rem  * @return true if the dialog was cancelled, false otherwise.
+    rem  */
+    method public Boolean cancelled()
+        methodret #cancel!
+    methodend
+
+    method public void okButtonPush(BBjButtonPushEvent event!)
+        #selectedContextName! = #lbtContextNames!.getSelectedItem()
+        #selectedMapping! = #lbtMappings!.getSelectedItem()
+        BBjAPI().postCustomEvent("ContextSelectionDialogCloseEvent", "")
+    methodend
+
+    method public void cancelButtonPush(BBjButtonPushEvent event!)
+        #cancel! = Boolean.TRUE
+        BBjAPI().postCustomEvent("ContextSelectionDialogCloseEvent", "")
+    methodend
+
+    rem /**
+    rem  * Returns the selected context name.
+    rem  * 
+    rem  * @return the context name the user has selected
+    rem  */
+    method public String getSelectedContextName()
+        methodret #selectedContextName!
+    methodend
+    
+    rem /**
+    rem  * Returns the Mapping the user has selected.
+    rem  * 
+    rem  * @return the mapping the user has selected.
+    rem  */
+    method public String getSelectedMapping()
+        methodret #selectedMapping!
+    methodend
+
+classend

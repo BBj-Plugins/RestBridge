@@ -1,0 +1,244 @@
+use java.io.File
+use java.util.HashMap
+use java.util.Iterator
+
+class public RestBridgeConfigurator
+
+    field private File pluginDirectory!
+    field private BBjAdmin admin!
+    field private BBjJettyServerConfiguration serverConfig!
+
+    method public RestBridgeConfigurator(BBjAdmin admin!)
+        declare File directory!
+        directory! = new File(dsk("") + dir(""))
+        #pluginDirectory! = directory!.getParentFile()
+        
+        #admin! = admin!
+
+        #serverConfig! = #admin!.getJettyServerConfig()
+    methodend
+
+    method public BBjVector getRestBridgeContextConfigurations()
+        declare File restBridgeFile!
+        declare BBjVector contextNames!
+        declare Iterator contextNameIterator!
+        declare Iterator bbjspConfigurationIterator!
+        declare BBjVector bbjspServletConfigurations!
+        declare BBjJettyContextConfiguration contextConfiguration!
+        declare BBjspServletConfiguration bbjspServletConfiguration!
+
+        declare BBjVector restBridgeConfigurations!
+        restBridgeConfigurations! = new BBjVector()
+
+        rem the vector with all context names
+        contextNames! = #serverConfig!.getContextNames()
+
+        restBridgeFile! = new File(#pluginDirectory!, "RestBridge.bbj")
+
+        contextNameIterator! = contextNames!.iterator()
+        while(contextNameIterator!.hasNext())
+            contextName! = str(contextNameIterator!.next())
+            contextConfiguration! = #serverConfig!.getCustomContext(contextName!)
+
+            bbjspServletConfigurations! = contextConfiguration!.getBBjspServlets()
+            if(bbjspServletConfigurations! <> null() AND !bbjspServletConfigurations!.isEmpty()) then
+
+                bbjspConfigurationIterator! = bbjspServletConfigurations!.iterator()
+                while(bbjspConfigurationIterator!.hasNext())
+                    bbjspServletConfiguration! = cast(BBjspServletConfiguration ,bbjspConfigurationIterator!.next())
+
+                    className! = bbjspServletConfiguration!.getClassName()
+                    sourceName! = bbjspServletConfiguration!.getSourceName()
+
+                    if(className! = "RestBridge" AND sourceName! = restBridgeFile!.getAbsolutePath()) then
+                        restBridgeConfigurations!.add(contextName!)
+                    endif
+                wend
+            endif
+        wend
+
+        methodret restBridgeConfigurations!
+    methodend
+    
+    rem /**
+    rem  * Returns the path to the default authentication program(authenticate.bbj)
+    rem  * 
+    rem  * @return the default authentication program path
+    rem  */
+    method public String getDefaultAuthProgramPath()
+        declare File authenticationProgramFile! 
+        authenticationProgramFile! = new File(#pluginDirectory!, "authenticate.bbj")
+        methodret authenticationProgramFile!.getAbsolutePath()
+    methodend
+    
+    method public BBjspServletConfiguration getBBjspServlet(String contextName!, String mapping!)
+        declare BBjJettyContextConfiguration contextConf!
+        contextConf! = #serverConfig!.getCustomContext(contextName!)
+        
+        if(contextConf! = null()) then
+            return null()
+        endif
+        
+        methodret contextConf!.getBBjspServlet(mapping!)
+    methodend 
+    
+    rem /**
+    rem  * Removes the Rest Bridge configuration from the given context witht he given mapping.
+    rem  * 
+    rem  * @param context! The context of the Rest Bridge configuration to delete.
+    rem  * @param mapping! The mapping of the Rest Bridge configuration to delete.
+    rem  */
+    method public void removeRestBridgeFromContext(String contextName!, String mapping!)
+        declare BBjJettyContextConfiguration contextConfiguration!
+        contextConfiguration! = #serverConfig!.getCustomContext(contextName!)
+        
+        declare BBjspServletConfiguration bbjspServlet!
+        bbjspServlet! = contextConfiguration!.getBBjspServlet(mapping!)
+        if(bbjspServlet! = null()) then
+            methodret
+        endif
+        
+        contextConfiguration!.removeBBjspServlet(mapping!)
+        #serverConfig!.saveConfig()
+    methodend
+
+    method public BBjVector getContextNames()
+        methodret #serverConfig!.getContextNames()
+    methodend
+    
+    REM /**
+    REM  * Edits the existing Rest Bridge Configuration in the given context with the given initial mapping using the new mapping and the
+    REM  * given parameters.
+    REM  * 
+    REM  * @param contextName! The name of the contet where the Rest Bridge is configured
+    REM  * @param initialMapping! The initial mapping of the Rest Bridge configuration to edit
+    REM  * @param newMapping! Possible new mapping of the Rest Bridge Configuration
+    REM  * @param params! The HashMap with the Rest Bridge Parameters 
+    REM  */
+    method public void editRestBridgeConfiguration(String contextName!, String mapping!, HashMap params!)
+        declare BBjspServletConfiguration conf!
+        conf! = #getBBjspServlet(contextName!, mapping!)
+        
+        if(conf! = null()) then
+            methodret
+        endif
+        
+        rem remove the servlet parameters
+        conf!.clearParams()
+        
+        declare File adapterProgram!
+        adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
+        conf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+        conf!.addParam("REST_ADAPTERTERM", "IO")
+
+        declare Iterator it!
+        it! = params!.entrySet().iterator()
+        while(it!.hasNext())
+            entry! = it!.next()
+            if(entry!.getValue() <> "") then
+                conf!.addParam(entry!.getKey(), entry!.getValue())
+            endif
+        wend
+
+        #serverConfig!.saveConfig()
+    methodend
+
+    REM /**
+    REM  * Configures the Rest Bridge in the given context with the given mapping and parameters.
+    REM  * 
+    REM  * @param contextName! The name of the Context where to configure the Rest Bridge
+    REM  * @param mapping! The Mapping of the Rest Bridge
+    REM  * @param params! The HashMap with the Rest Bridge's parameters
+    REM  */
+    method public void configureRestBridge(String contextName!, String mapping!, HashMap params!)
+        declare BBjJettyContextConfiguration contextConfig!
+    
+        if(!#serverConfig!.getContextNames().contains(contextName!)) then
+            contextConfig! = #serverConfig!.createCustomContext(contextName!)
+            contextConfig!.setDocBase("$basis_home/htdocs")
+            contextConfig!.addWelcomeFile("index.html")
+            contextConfig!.setPath("/" + contextName!)
+            #serverConfig!.saveConfig()
+        else
+            contextConfig! = #serverConfig!.getCustomContext(contextName!)
+        endif
+        
+        rem check that the mapping is not already used by another program
+        if(contextConfig!.getBBjspServletMappings().contains(mapping!)) then
+            REM throw an Exception ?
+            methodret
+        endif
+
+        declare File restBridgeFile!
+        restBridgeFile! = new File(#pluginDirectory!, "RestBridge.bbj")
+
+        rem ClassName, Mapping, Source, Config(Optional)
+        rem http://documentation.basis.com/BASISHelp/WebHelp/gridmethods4/bbjjettycontextconfiguration_addbbjspservlet.htm
+        configuration! = contextConfig!.addBBjspServlet("RestBridge", mapping!, restBridgeFile!.getAbsolutePath())
+
+        declare File adapterProgram!
+        adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
+        configuration!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+        configuration!.addParam("REST_ADAPTERTERM", "IO")
+
+        declare Iterator it!
+        it! = params!.entrySet().iterator()
+        while(it!.hasNext())
+            entry! = it!.next()
+            if(entry!.getValue() <> "") then
+                configuration!.addParam(entry!.getKey(), entry!.getValue())
+            endif
+        wend
+
+        #serverConfig!.saveConfig()
+    methodend
+    
+    method public void restartContext(String contextName!)
+        declare BBjJettyContextController controller!
+        controller! = #admin!.getJettyServer().getContext(contextName!)
+        if(controller!.isStarted()) then
+            controller!.restart()
+        else
+            controller!.start()
+        endif
+    methodend
+
+    rem /**
+    rem  * Returns a vector with all mappings of the configured Rest Bridges for the given context.
+    rem  * This method is required since it can happen that the Rest Bridge was configured with different 
+    rem  * mappings multiple time for a same context.
+    rem  *
+    rem  * @param contextName! The name of the context 
+    rem  * @return a vector with all Rest Bridge Configuration mappings for the given context.
+    rem  */
+    method public BBjVector getRestBridgeMappingsForContext(String contextName!)
+        declare Iterator it!
+        declare File sourceFile!
+        declare BBjVector bbjspServlets!
+        declare BBjVector restBridgeMappings!
+        declare BBjspServletConfiguration conf!
+        declare BBjJettyContextConfiguration contextConfiguration!
+        
+        rem get the custom context for the given context name
+        contextConfiguration! = #serverConfig!.getCustomContext(contextName!)
+        
+        rem the Rest Bridge's source file
+        sourceFile! = new File(#pluginDirectory!, "RestBridge.bbj")
+        
+        restBridgeMappings! = new BBjVector()  
+        
+        rem retrieve the BBJSP servlets for the custom context
+        bbjspServlets! = contextConfiguration!.getBBjspServlets()
+        
+        it! = bbjspServlets!.iterator()
+        while(it!.hasNext())
+            conf! = cast(BBjspServletConfiguration, it!.next())
+            if(conf!.getClassName().equals("RestBridge") AND conf!.getSourceName().equals(sourceFile!.getAbsolutePath())) then
+                restBridgeMappings!.addItem(conf!.getMapping())
+            endif
+        wend
+        
+        methodret restBridgeMappings!
+    methodend
+
+classend

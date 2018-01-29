@@ -1,0 +1,91 @@
+class public ContextNameInputWindow
+
+    field private BBjSysGui sysGui!
+    field private BBjTopLevelWindow window!
+    
+    field private BBjButton btnOK!
+    field private BBjButton btnCancel!
+    
+    field private BBjInputE inpeContextName!
+    
+    field private Boolean cancel!
+    field private String contextName!
+
+    method public ContextNameInputWindow(BBjSysGui sysGui!)
+        #sysGui! = sysGui!
+        
+        #init()
+    methodend
+    
+    method private void init()
+        rem screenWidth = #sysGui!.getSystemMetrics().getScreenBounds().getWidth()
+        rem screenHeight = #sysGui!.getSystemMetrics().getScreenSize().getHeight()
+
+        windowWidth = 250
+        windowHeight = 85
+        context = #sysGui!.getAvailableContext()
+        #window! = #sysGui!.addWindow(context, 300, 300, windowWidth, windowHeight, "Context Name Input", $00080012$)
+
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, 20, 20, 70, 20, "Context Name:")
+
+        controlID = #window!.getAvailableControlID()
+        #inpeContextName! = #window!.addInputE(controlID, 100, 20-4, 100, 20, "")
+        #inpeContextName!.setInsertMode(1)
+        #inpeContextName!.focus()
+      
+        controlWidth = 75
+        controlHeight = 25
+        x = windowWidth - (controlWidth + 10)*2
+        y = windowHeight - controlHeight - 10
+        controlID = #window!.getAvailableControlID()
+        #btnCancel! = #window!.addButton(controlID, x, y, controlWidth, controlHeight, "Cancel")
+        #btnCancel!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "cancelButtonPush")
+
+        controlWidth = 75
+        controlHeight = 25
+        x = windowWidth - controlWidth - 10
+        y = windowHeight - controlHeight - 10
+        controlID = #window!.getAvailableControlID()
+        #btnOK! = #window!.addButton(controlID, x, y, controlWidth, controlHeight, "OK")
+        #btnOK!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "okButtonPush")
+        
+        #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "windowClose")
+    methodend
+    
+    method public void okButtonPush(BBjButtonPushEvent event!)
+        #contextName! = #inpeContextName!.getText()
+        BBjAPI().postCustomEvent("ContextNameInputWindowCloseEvent", "")
+    methodend
+    
+    method public void windowClose(BBjCloseEvent event!)
+        #cancel! = Boolean.TRUE 
+        BBjAPI().postCustomEvent("ContextNameInputWindowCloseEvent", "")
+    methodend
+    
+    method public void cancelButtonPush(BBjButtonPushEvent event!)
+        #cancel! = Boolean.TRUE 
+        BBjAPI().postCustomEvent("ContextNameInputWindowCloseEvent", "")
+    methodend
+    
+    method public void show()
+        BBjAPI().setCustomEventCallback("ContextNameInputWindowCloseEvent", "closeWindow")
+        
+        #cancel! = Boolean.FALSE
+        #window!.setVisible(Boolean.TRUE)
+        
+        process_events
+        
+        closeWindow:
+            #window!.setVisible(Boolean.FALSE)
+    methodend
+    
+    method public String getContextName()
+        methodret #contextName!
+    methodend
+    
+    method public Boolean cancelled()
+        methodret #cancel!
+    methodend
+
+classend 

@@ -1,0 +1,404 @@
+use java.io.File
+
+use ::ContextNameInputWindow.bbj::ContextNameInputWindow
+
+class public RestBridgeConfigurationWindow
+
+    field private BBjSysGui sysGui!
+    field private BBjWindow window!
+
+    field private BBjInputN inpnTimeout!
+    field private BBjListButton lbtContextNames!
+    field private BBjCheckBox chbUseGetAllowedFilters!
+
+    field private Boolean cancelled! = Boolean.FALSE
+
+    field private BBjInputE inpeMapping!
+    field private BBjInputE inpeRequestLog!
+    field private BBjInputE inpeConfigFile!
+    field private BBjInputE inpeAuthProgram!
+    field private BBjInputE inpeProgramPrefix!
+    field private BBjInputE inpeProgramSuffix!
+    field private BBjInputE inpeWorkingDirectory!
+
+    field private BBjButton btnOK!
+    field private BBjButton btnCancel!
+    field private BBjButton btnAddContext!
+    field private BBjButton btnBrowseConfigFile!
+    field private BBjButton btnBrowseRequestLogFile!
+    field private BBjButton btnBrowseWorkingDirectory!
+    field private BBjButton btnBrowseAuthenticationFile!
+
+    method public RestBridgeConfigurationWindow()
+        #init()
+    methodend
+
+    method private void init()
+        #sysGui! = BBjApi().openSysGui("X0")
+
+        screenWidth = #sysGui!.getSystemMetrics().getScreenBounds().getWidth()
+        screenHeight = #sysGui!.getSystemMetrics().getScreenSize().getHeight()
+
+        #window! = #sysGui!.addWindow((screenWidth/2)-200, (screenHeight/2)-250, 450, 400, "Bridge Configuration", $00000002$)
+
+        labelWidth = 115
+        defaultControlHeight = 25
+        space = 10
+
+        x = 20
+        y = 20
+        controlWidth = labelWidth
+        controlHeight = defaultControlHeight
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Context:")
+        x = x + controlWidth + space
+
+        controlWidth = 150
+        controlID = #window!.getAvailableControlID()
+        #lbtContextNames! = #window!.addListButton(controlID, x, y-5, controlWidth, controlHeight, "")
+        rem #lbtContextNames!.insertItems(0, configurator!.getContextNames())
+        #lbtContextNames!.setSize(controlWidth, controlHeight*5)
+        x = x + controlWidth + space
+
+        controlWidth = 75
+        controlID = #window!.getAvailableControlID()
+        #btnAddContext! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Add")
+        #btnAddContext!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "addContextButtonPush")
+
+        x = 20
+        y = y + 50
+        controlWidth = labelWidth
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Mapping:")
+        x = x + controlWidth + space
+
+        controlWidth = 150
+        controlID = #window!.getAvailableControlID()
+        #inpeMapping! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
+        #inpeMapping!.setText("/bridge/*")
+        #inpeMapping!.setInsertMode(1)
+
+        x = 20
+        y = y + 30
+        controlWidth = labelWidth
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Timeout:")
+        x = x + controlWidth + space
+
+        controlWidth = 150
+        controlID = #window!.getAvailableControlID()
+        #inpnTimeout! = #window!.addInputN(controlID, x, y-5, controlWidth, controlHeight)
+        #inpnTimeout!.setValue(1000)
+        #inpnTimeout!.setInsertMode(1)
+
+        x = 20
+        y = y + 30
+        controlWidth = labelWidth
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Program Prefix:")
+        x = x + controlWidth + space
+
+        controlWidth = 150
+        controlID = #window!.getAvailableControlID()
+        #inpeProgramPrefix! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
+        #inpeProgramPrefix!.setInsertMode(1)
+
+        x = 20
+        y = y + 30
+        controlWidth = labelWidth
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Program Suffix:")
+        x = x + controlWidth + space
+
+        controlWidth = 150
+        controlID = #window!.getAvailableControlID()
+        #inpeProgramSuffix! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
+        #inpeProgramSuffix!.setText(".bbj")
+        #inpeProgramSuffix!.setInsertMode(1)
+
+        x = 20
+        y = y + 20
+        controlWidth = 250
+        controlID = #window!.getAvailableControlID()
+        #chbUseGetAllowedFilters! = #window!.addCheckBox(controlID, x, y, controlWidth, controlHeight, "Use getAllowedFilters() if applicable")
+
+        x = 20
+        y = y + 50
+        controlWidth = labelWidth
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Config File:")
+        x = x + controlWidth + space
+
+        controlWidth = 200
+        controlID = #window!.getAvailableControlID()
+        #inpeConfigFile! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
+        #inpeConfigFile!.setInsertMode(1)
+        x = x + controlWidth + space
+
+        controlWidth = 75
+        controlID = #window!.getAvailableControlID()
+        #btnBrowseConfigFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
+        #btnBrowseConfigFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseConfigFileButtonPush")
+
+        x = 20
+        y = y + 30
+        controlWidth = labelWidth
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Working Directory:")
+        x = x + controlWidth + space
+
+        controlWidth = 200
+        controlID = #window!.getAvailableControlID()
+        #inpeWorkingDirectory! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
+        #inpeWorkingDirectory!.setInsertMode(1)
+        x = x + controlWidth + space
+
+        controlWidth = 75
+        controlID = #window!.getAvailableControlID()
+        #btnBrowseWorkingDirectory! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
+        #btnBrowseWorkingDirectory!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseWorkingDirectoryButtonPush")
+
+        x = 20
+        y = y + 30
+        controlWidth = labelWidth
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Auth Program:")
+        x = x + controlWidth + space
+
+        controlWidth = 200
+        controlID = #window!.getAvailableControlID()
+        #inpeAuthProgram! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
+        #inpeAuthProgram!.setInsertMode(1)
+        x = x + controlWidth + space
+
+        controlWidth = 75
+        controlID = #window!.getAvailableControlID()
+        #btnBrowseAuthenticationFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
+        #btnBrowseAuthenticationFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseAuthFileButtonPush")
+
+        x = 20
+        y = y + 30
+        controlWidth = labelWidth
+        controlID = #window!.getAvailableControlID()
+        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Request Log:")
+        x = x + controlWidth + space
+
+        controlWidth = 200
+        controlID = #window!.getAvailableControlID()
+        #inpeRequestLog! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
+        #inpeRequestLog!.setInsertMode(1)
+        x = x + controlWidth + space
+
+        controlWidth = 75
+        controlID = #window!.getAvailableControlID()
+        #btnBrowseRequestLogFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
+        #btnBrowseRequestLogFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseRequestLogButtonPush")
+
+        controlID = #window!.getAvailableControlID()
+        #btnCancel! = #window!.addButton(controlID, 270, 365, 75, 25, "Cancel")
+        #btnCancel!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "cancelClicked")
+
+        controlID = #window!.getAvailableControlID()
+        #btnOK! = #window!.addButton(controlID, 355, 365, 75, 25, "OK")
+        #btnOK!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "okClicked")
+
+        #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "closeWindow")
+    methodend
+
+    method public void show()   
+        BBjAPI().setCustomEventCallback("CloseWindowEvent", "CloseWindow")
+
+        process_events
+
+        CloseWindow:
+    methodend
+
+    method public void setContextNames(BBjVector contextNames!)
+        #lbtContextNames!.insertItems(0, contextNames!)
+    methodend
+
+    method public void closeWindow(BBjCloseEvent event!)
+        #cancelled! = Boolean.TRUE
+        BBjAPI().postCustomEvent("CloseWindowEvent", "")
+    methodend
+
+    method public void cancelClicked(BBjButtonPushEvent event!)
+        #cancelled! = Boolean.TRUE
+        BBjAPI().postCustomEvent("CloseWindowEvent", "")
+    methodend
+
+    method public void okClicked(BBjButtonPushEvent event!)
+        BBjAPI().postCustomEvent("CloseWindowEvent", "")
+    methodend
+
+    method public void addContextButtonPush(BBjButtonPushEvent event!)        
+        declare ContextNameInputWindow wnd!
+        wnd! = new ContextNameInputWindow(#sysGui!)
+        wnd!.show()
+        
+        if(!wnd!.cancelled()) then
+            name! = wnd!.getContextName()
+            
+            if(name! = "") then
+                a = msgbox("Invalid Context Name")
+                #addContextButtonPush(null())
+            endif
+            
+            if(#lbtContextNames!.getAllItems().contains(name!)) then
+                a = msgbox("Duplicate Context Name")
+                #addContextButtonPush(null())
+            endif
+            
+            #lbtContextNames!.addItem(name!)
+            #lbtContextNames!.selectIndex(#lbtContextNames!.getAllItems().size()-1)
+        endif
+    methodend
+    
+    method public void setContextName(String contextName!)
+        #lbtContextNames!.removeAllItems()
+        #lbtContextNames!.addItem(contextName!)
+        #lbtContextNames!.selectIndex(0)
+    methodend 
+
+    method public void setEditMode(Boolean editMode!)
+        #btnAddContext!.setEnabled(!editMode!)
+        #btnAddContext!.setVisible(!editMode!)
+        #inpeMapping!.setEnabled(!editMode!)
+        #lbtContextNames!.setEditable(0)
+    methodend
+
+    method public void browseConfigFileButtonPush(BBjButtonPushEvent event!)
+        path! = #inpeConfigFile!.getText()
+        configFilePath! = #browse(path!,"Configuration File Selection", Boolean.FALSE, "bbx")
+        #inpeConfigFile!.setText(configFilePath!)
+    methodend
+
+    method public String browse(String path!, String title!, Boolean directory!, String fileExtension!)
+        fileOpenPath! = dsk("")
+
+        if(path! <> "") then
+            declare File directory!
+            directory! = new File(path!)
+
+            if(directory!.exists() AND directory!.isDirectory()) then
+                fileOpenPath! = directory!.getAbsolutePath()
+            endif
+        endif
+
+        directoryPath$ = FILEOPEN("Configuration File Selection", fileOpenPath!,"",fileExtension!,"",directory!)
+        if(directoryPath$ <> "::CANCEL::") then
+            methodret directoryPath$
+        endif
+
+        methodret ""
+    methodend
+
+    method public void browseRequestLogButtonPush(BBjButtonPushEvent event!)
+        path! = #inpeRequestLog!.getText()
+        logPath! = #browse(path!,"Request Log File Selection", Boolean.FALSE, "")
+        #inpeRequestLog!.setText(logPath!)
+    methodend
+
+    method public void browseWorkingDirectoryButtonPush(BBjButtonPushEvent event!)
+        path! = #inpeWorkingDirectory!.getText()
+        wdPath! = #browse(path!,"Working Directory Selection", Boolean.TRUE, "")
+        #inpeWorkingDirectory!.setText(wdPath!)
+    methodend
+
+    method public void browseAuthFileButtonPush(BBjButtonPushEvent event!)
+        path! = #inpeAuthProgram!.getText()
+        authProgramPath! = #browse(path!,"Authentication File Selection", Boolean.FALSE, "bbj")
+        #inpeAuthProgram!.setText(authProgramPath!)
+    methodend
+
+    rem /**
+    rem  * Returns the user entered value for the Timeout property.
+    rem  * 
+    rem  * @return the timeout property value set by the user.
+    rem  */
+    method public BBjInt getTimeout()
+        methodret int(#inpnTimeout!.getValue())
+    methodend
+
+    method public void setTimeout(BBjInt timeout%)
+        #inpnTimeout!.setValue(timeout%)
+    methodend
+
+    method public String getContext()
+        methodret #lbtContextNames!.getSelectedItem()
+    methodend
+
+    method public void setContext(String contextName!)
+        REM TODO -
+        #lbtContextNames!.selectIndex(0)
+    methodend
+
+    method public String getMapping()
+        methodret #inpeMapping!.getText()
+    methodend
+
+    method public void setMapping(String mapping!)
+        #inpeMapping!.setText(mapping!)
+    methodend
+
+    method public String getProgramPrefix()
+        methodret #inpeProgramPrefix!.getText()
+    methodend
+
+    method public void setProgramPrefix(String prefix!)
+        #inpeProgramPrefix!.setText(prefix!)
+    methodend
+
+    method public String getProgramSuffix()
+        methodret #inpeProgramSuffix!.getText()
+    methodend
+
+    method public void setProgramSuffix(String suffix!)
+        #inpeProgramSuffix!.setText(suffix!)
+    methodend
+
+    method public String getConfigFilePath()
+        methodret #inpeConfigFile!.getText()
+    methodend
+
+    method public void setConfigFilePath(String path!)
+        #inpeConfigFile!.setText(path!)
+    methodend
+
+    method public String getWorkingDirectoryPath()
+        methodret #inpeWorkingDirectory!.getText()
+    methodend
+
+    method public void setWorkingDirectoryPath(String path!)
+        #inpeWorkingDirectory!.setText(path!)
+    methodend
+
+    method public String getAuthProgramPath()
+        methodret #inpeAuthProgram!.getText()
+    methodend
+
+    method public void setAuthProgramPath(String path!)
+        #inpeAuthProgram!.setText(path!)
+    methodend
+
+    method public Boolean useGetAllowedFilters()
+        methodret #chbUseGetAllowedFilters!.isSelected()
+    methodend
+
+    method public void setUseGetAllowedFilters(Boolean enable!)
+        #chbUseGetAllowedFilters!.setSelected(enable!)
+    methodend
+
+    method public Boolean cancelled()
+        methodret #cancelled!
+    methodend
+
+    method public String getRequestLogPath()
+        methodret #inpeRequestLog!.getText()
+    methodend
+
+    method public void setRequestLogPath(String path!)
+        #inpeRequestLog!.setText(path!)
+    methodend
+
+classend
