@@ -76,9 +76,17 @@ class public RestBridgeConfigurator
         contextConf! = #serverConfig!.getCustomContext(contextName!)
         
         if(contextConf! = null()) then
-            return null()
+            methodret null()
         endif
-        
+
+        REM Instead of returning a null object if the context doesn't exist,
+        REM BBj returns an empty object which throws a NPE when calling any method of the class
+        REM this workaround is used to determine if the context exists or not
+        status! = contextConf!.getStatus(err=*next)
+        if(status! = null()) then 
+            methodret null()
+        endif
+                
         methodret contextConf!.getBBjspServlet(mapping!)
     methodend 
     
@@ -115,13 +123,15 @@ class public RestBridgeConfigurator
     REM  * @param newMapping! Possible new mapping of the Rest Bridge Configuration
     REM  * @param params! The HashMap with the Rest Bridge Parameters 
     REM  */
-    method public void editRestBridgeConfiguration(String contextName!, String mapping!, HashMap params!)
+    method public void editRestBridgeConfiguration(String contextName!, String mapping!, HashMap params!, String configFilePath!)
         declare BBjspServletConfiguration conf!
         conf! = #getBBjspServlet(contextName!, mapping!)
         
         if(conf! = null()) then
             methodret
         endif
+        
+        conf!.setConfig(configFilePath!)
         
         rem remove the servlet parameters
         conf!.clearParams()
@@ -150,7 +160,7 @@ class public RestBridgeConfigurator
     REM  * @param mapping! The Mapping of the Rest Bridge
     REM  * @param params! The HashMap with the Rest Bridge's parameters
     REM  */
-    method public void configureRestBridge(String contextName!, String mapping!, HashMap params!)
+    method public void configureRestBridge(String contextName!, String mapping!, HashMap params!, String configFilePath!)
         declare BBjJettyContextConfiguration contextConfig!
     
         if(!#serverConfig!.getContextNames().contains(contextName!)) then
@@ -172,9 +182,12 @@ class public RestBridgeConfigurator
         declare File restBridgeFile!
         restBridgeFile! = new File(#pluginDirectory!, "RestBridge.bbj")
 
+        declare BBjspServletConfiguration configuration!
+        
         rem ClassName, Mapping, Source, Config(Optional)
         rem http://documentation.basis.com/BASISHelp/WebHelp/gridmethods4/bbjjettycontextconfiguration_addbbjspservlet.htm
         configuration! = contextConfig!.addBBjspServlet("RestBridge", mapping!, restBridgeFile!.getAbsolutePath())
+        configuration!.setConfig(configFilePath!)
 
         declare File adapterProgram!
         adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")

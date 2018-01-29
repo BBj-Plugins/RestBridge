@@ -148,14 +148,15 @@ params!.put("USE_GET_ALLOWED_FILTER", str(int(window!.useGetAllowedFilters())))
 params!.put("REST_REQUESTLOG", window!.getRequestLogPath())
 
 if(editMode) then
-    configurator!.editRestBridgeConfiguration(selectedContext!, selectedMapping!, params!)
+    configurator!.editRestBridgeConfiguration(selectedContext!, selectedMapping!, params!, window!.getConfigFilePath())
     introText! = "The Rest Bridge has been successfully edited."
 else
-    configurator!.configureRestBridge(selectedContext!, selectedMapping!, params!)
+    a = msgbox("Creating a new Context might take a few seconds")
+    configurator!.configureRestBridge(selectedContext!, selectedMapping!, params!, window!.getConfigFilePath())
     introText! = "The Rest Bridge has been successfully configured."
 endif
 
-answer = msgbox(introText! + " Do you want to start/restart the context: " + selectedContext!, 4)
+answer = msgbox(introText! + " Do you want to start/restart the context(Might take a few seconds to perform this step): " + selectedContext!, 4)
 if(answer = 6) then
     configurator!.restartContext(selectedContext!)
 endif
