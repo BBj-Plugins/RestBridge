@@ -99,6 +99,7 @@ class public RestBridge
             break
             case "OPTIONS"
                 response!.setStatus(200)
+                response!.setHeader("Access-Control-Max-Age","600")
                 #logResponse(req_id$,response!)
                 methodret
             break
