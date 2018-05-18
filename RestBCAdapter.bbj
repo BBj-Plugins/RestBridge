@@ -25,6 +25,10 @@ user$=auth$(1,pos(":"=auth$)-1)
 password$=auth$(pos(":"=auth$)+1)
 authenticated=0
 
+rem changing the string encoding to the server's encoding
+user$ = new String(user$,"utf-8").getBytes(info(1,2))
+password$ = new String(password$,"utf-8").getBytes(info(1,2))
+
 authpgm$="authenticate.bbj"
 if servletParams!.get("REST_AUTHPGM") <> null() then
     authpgm$=servletParams!.get("REST_AUTHPGM").toString()
