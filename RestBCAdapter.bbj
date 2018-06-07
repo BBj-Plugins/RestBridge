@@ -151,12 +151,16 @@ main_loop:
                 invoke$ = request!.get("invoke")
                 dr! = DataRow.fromJson(request!.get("body"))
                 if dr! <> null() and dr!.getColumnCount() > 0 then
+                    variableNamePrefix! = new String(user$)
+                    variableNamePrefix! = variableNamePrefix!.replaceAll("\W", "_")
+                    
                     it! = dr!.getFieldNames().iterator()
                     while it!.hasNext()
                         f$ = it!.next()
-                        execute user$+f$ + "! = dr!.getFieldValue("""+f$+""")"
-                        ex$ = ex$ + "," + user$ + f$ + "!"
+                        execute variableNamePrefix!+f$ + "! = dr!.getFieldValue("""+f$+""")"
+                        ex$ = ex$ + "," + variableNamePrefix! + f$ + "!"
                     wend
+                
                     ex$ = ex$(2)
                 endif
                 ex$ = "bc!."+invoke$+"("+ex$+")"
@@ -170,16 +174,20 @@ main_loop:
                         rs! = var!
                     else
                         rs! = new ResultSet()
-                        retdr! = new DataRow()
-                        class$=var!.getClass().getName()
-                        if class$ = "java.util.HashMap" then
-                            retdr! = new DataRow(var!)
+                        if var!.getClass().getName() = "com.basiscomponents.db.DataRow" then
+                            rs!.add(var!)
                         else
-                            if class$ = "java.lang.String" or class$ = "java.lang.Boolean" or pos("BBjNumber"=class$) or pos("BBjVector"=class$) then
-                                retdr!.setFieldValue(retvar$,var!)
+                            retdr! = new DataRow()
+                            class$=var!.getClass().getName()
+                            if class$ = "java.util.HashMap" then
+                                retdr! = new DataRow(var!)
+                            else
+                                if class$ = "java.lang.String" or class$ = "java.lang.Boolean" or pos("BBjNumber"=class$) or pos("BBjVector"=class$) then
+                                    retdr!.setFieldValue(retvar$,var!)
+                                endif
                             endif
+                            rs!.add(retdr!)
                         endif
-                        rs!.add(retdr!)
                     endif
 
                     response!.put("resultset",rs!)
