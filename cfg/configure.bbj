@@ -2,10 +2,10 @@ use java.io.File
 use java.util.HashMap
 use java.util.Iterator
 
-use ::RestBridgeConfigurator.bbj::RestBridgeConfigurator
-use ::ContextSelectionDialog.bbj::ContextSelectionDialog
-use ::AdminAPICredentialWindow.bbj::AdminAPICredentialWindow
-use ::RestBridgeConfigurationWindow.bbj::RestBridgeConfigurationWindow
+use ::RestBridge/cfg/RestBridgeConfigurator.bbj::RestBridgeConfigurator
+use ::RestBridge/cfg/ContextSelectionDialog.bbj::ContextSelectionDialog
+use ::RestBridge/cfg/AdminAPICredentialWindow.bbj::AdminAPICredentialWindow
+use ::RestBridge/cfg/RestBridgeConfigurationWindow.bbj::RestBridgeConfigurationWindow
 
 print 'hide'
 

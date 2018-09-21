@@ -1,6 +1,6 @@
 use java.io.File
 
-use ::ContextNameInputWindow.bbj::ContextNameInputWindow
+use ::RestBridge/cfg/ContextNameInputWindow.bbj::ContextNameInputWindow
 
 class public RestBridgeConfigurationWindow
 
