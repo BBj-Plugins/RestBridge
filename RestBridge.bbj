@@ -149,7 +149,9 @@ class public RestBridge
             methodret
         else
             auth$=auth$(7)
-            uid$ = hta(java.security.MessageDigest.getInstance("MD5").digest(auth$))
+			rem create uid$ as a unique representant of the user
+			rem this needs to contain the config file and the prefix!
+            uid$ = hta(java.security.MessageDigest.getInstance("MD5").digest(auth$+BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()+pfx))
         fi
 
 
@@ -784,6 +786,9 @@ class public RestBridge
 
         dim log$:#LOGTPL$
         log.id$=id$
+		System.out.println("------------------------")
+		System.out.println(log.id$)
+		System.out.println("------------------------")
         read record (ch,dom=skip,key=log.id$)log$
         log.END=System.currentTimeMillis()
         log.DURATION = log.END-log.START
