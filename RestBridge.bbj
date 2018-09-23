@@ -327,13 +327,8 @@ class public RestBridge
             response!.setHeader("Content-Disposition","inline; filename="""+filename$+"""")
 
             goto done_file
+
             filenotfund:
-
-            if info(3,4)="DEVPR01" and file$<>"D:\tmp\demo.pdf"then
-                file$="D:\tmp\demo.pdf"
-                goto tryagain
-            fi
-
             System.out.println("not found")
 
             response!.getOutputStream().write("file not found!")
@@ -552,9 +547,9 @@ class public RestBridge
                             if request!.getPathInfo().matches("/[^/]+/_output_/([^/]+)$") then
                                 filename$ = request!.getPathInfo().replaceAll("/[^/]+/_output_/([^/]+)$","$1")
                             else
-                                filename$ = request!.getPathInfo().replaceAll("/([^/]+).*","$1")+".xlsx"""
+                                filename$ = request!.getPathInfo().replaceAll("/([^/]+).*","$1")+".xlsx"
                             endif
-                            rem System.out.println(filename$)
+                           
                             response!.setHeader("content-disposition","attachment; filename="""+filename$+"""")
                             d$=System.getProperty("basis.cacheDirectory")+"/_output_/"
                             mkdir d$,err=*next
