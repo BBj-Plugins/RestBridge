@@ -31,7 +31,7 @@ password$ = new String(password$,"utf-8").getBytes(info(1,2))
 
 authpgm$="authenticate.bbj"
 if servletParams!.get("REST_AUTHPGM") <> null() then
-    authpgm$=servletParams!.get("REST_AUTHPGM").toString()
+    authpgm$ = servletParams!.get("REST_AUTHPGM").toString()
 endif
 call authpgm$
 
@@ -56,11 +56,19 @@ main_loop:
 
     rem requestSemaphore!.acquire()
     if !requestSemaphore!.tryAcquire(1,timeout,java.util.concurrent.TimeUnit.SECONDS) then
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_REQUEST")
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_RESPONSE")
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_REQUEST_SEM")
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_RESPONSE_SEM")
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_SERVLET_PARAMETERS")
+        rem a timeout has occurred while trying to acquire the semaphore
+
+        rem remove the sessions' namespace values
+        namespace! = BBjAPI().getGlobalNamespace()
+        namespace!.removeValue(ses$+"_REQUEST")
+        namespace!.removeValue(ses$+"_RESPONSE")
+        namespace!.removeValue(ses$+"_REQUEST_SEM")
+        namespace!.removeValue(ses$+"_RESPONSE_SEM")
+        namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
+
+        rem Calling the ON_CLEANUP label to perform possible user defined cleanup operations
+        call authpgm$+"::ON_CLEANUP",err=*next        
+
         release
     fi
 
@@ -555,20 +563,20 @@ REM         endif
             rem no stack trace for unauthenticated users
         fi
 
-
-
-
         BBjAPI().getGlobalNamespace().setValue(ses$+"_RESPONSE",response!)
         responseSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE_SEM")
         responseSemaphore!.release()
 
-
         wait 10; rem FIN_WAIT
 
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_REQUEST",err=*next)
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_RESPONSE",err=*next)
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_REQUEST_SEM",err=*next)
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_RESPONSE_SEM",err=*next)
-        BBjAPI().getGlobalNamespace().removeValue(ses$+"_SERVLET_PARAMETERS",err=*next)
+        namespace! = BBjAPI().getGlobalNamespace()
+        namespace!.removeValue(ses$+"_REQUEST",err=*next)
+        namespace!.removeValue(ses$+"_RESPONSE",err=*next)
+        namespace!.removeValue(ses$+"_REQUEST_SEM",err=*next)
+        namespace!.removeValue(ses$+"_RESPONSE_SEM",err=*next)
+        namespace!.removeValue(ses$+"_SERVLET_PARAMETERS",err=*next)
+
+        rem Calling the ON_CLEANUP label to perform possible user defined cleanup operations
+        call authpgm$+"::ON_CLEANUP",err=*next       
 release
 

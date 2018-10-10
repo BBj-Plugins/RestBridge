@@ -1,9 +1,3 @@
-REM /**
-REM  * authenticate.bbj
-REM  * @author vkolarov
-REM  *
-REM  */
-
 ENTER
     adminAPI! = BBjAPI().getAdmin(user$,password$,err=*next)
     if adminAPI! = null() then
@@ -13,3 +7,16 @@ ENTER
         adminAPI!.release()
     endif
 END
+
+
+ON_REQUEST:
+	rem This label gets called when a request has been made to the RestBridge
+	
+	return 
+
+
+ON_CLEANUP: 
+	rem This label gets called right before the RestBCAdapter program ends, 
+	rem and is meant to perform some cleanup operations
+
+	return 
