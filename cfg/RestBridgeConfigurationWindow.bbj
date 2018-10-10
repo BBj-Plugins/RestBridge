@@ -75,7 +75,7 @@ class public RestBridgeConfigurationWindow
         controlWidth = 150
         controlID = #window!.getAvailableControlID()
         #inpeMapping! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
-        #inpeMapping!.setText("/bridge/*")
+        #inpeMapping!.setText("/v0/*")
         #inpeMapping!.setInsertMode(1)
 
         x = 20
