@@ -12,11 +12,11 @@ END
 ON_REQUEST:
 	rem This label gets called when a request has been made to the RestBridge
 	
-	return 
+	exit 
 
 
 ON_CLEANUP: 
 	rem This label gets called right before the RestBCAdapter program ends, 
 	rem and is meant to perform some cleanup operations
 
-	return 
+	exit 
