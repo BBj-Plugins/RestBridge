@@ -210,7 +210,13 @@ main_loop:
             else
                 errorOccurred=0
                 rs! = new ResultSet()
-                res! = ResultSet.fromJson(request!.get("body"))
+				b1$=request!.get("body")
+				System.out.println(b1$)
+				if b1$>"" and b1$(1,1)<>"[" then
+					b1$="["+b1$+"]"
+				fi
+				System.out.println(b1$)
+                res! = ResultSet.fromJson(b1$)
                 k! = java.util.Arrays.asList(new String(filterf$).split("/"))
                 v! = java.util.Arrays.asList(new String(sel$).split("/",-1))
                 it! = res!.iterator()
