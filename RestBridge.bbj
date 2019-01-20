@@ -139,6 +139,14 @@ class public RestBridge
             auth$=str(request!.getHeader("authorization",err=*next))
         fi
 
+        if cvs(request!.getParameter("grant_type"),4) = "PASSWORD" then
+            user$=request!.getParameter("username")
+            password$=request!.getParameter("password")
+            auth$="Basic "+java.util.Base64.getEncoder().encode(user$+":"+password$)
+            rem we're using the Basic authentication way to pass username and password to the Adapter
+            rem so that the "usual" login can be used to check the credentials
+        fi
+        
         if auth$="null" or len(auth$)<8 OR (cvs(auth$(1,5),4)<>"BASIC" AND cvs(auth$(1,6),4)<>"BEARER")then
             tmp$=str(request!.getHeader("X-REQUESTED-WITH",err=*next))
             if tmp$<> "XMLHttpRequest" then

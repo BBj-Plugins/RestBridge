@@ -1,3 +1,4 @@
+use java.util.Date
 use com.auth0.jwt.JWT
 use com.auth0.jwt.algorithms.Algorithm
 use com.auth0.jwt.exceptions.JWTCreationException
@@ -7,8 +8,11 @@ use com.basiscomponents.db.DataRow
 ENTER
         
     if jwt$>"" then
+    
+        rem TODO: adjust these things according to your application's needs:
         secret$="your-256-bit-secret"
         algorithm! = Algorithm.HMAC256(secret$)
+        
         verifier! = JWT.require(algorithm!).build()
         jwt! = verifier!.verify(jwt$,err=jwt_failed) 
         authenticated=1
@@ -28,9 +32,6 @@ ENTER
         
         rem if your payload is needed in original json, we also put the payload$ into an STBL
         dummy$=STBL("JWTPAYLOAD",payload$)
-        
-        
-
     else
         rem in this place authenticate against the Admin API
         adminAPI! = BBjAPI().getAdmin(user$,password$,err=*next)
@@ -63,3 +64,35 @@ ON_CLEANUP:
 	rem and is meant to perform some cleanup operations
 
 	exit 
+	
+	
+ISSUE_JWT:
+    enter
+    
+    rem TODO: adjust these things according to your application's needs:
+    secret$="your-256-bit-secret"
+    issuer$="BBj REST Bridge Plug-In"
+    audience$="You"
+    
+    rem make it expire in one day
+    expires_in = 24*60*60*1000
+    
+    algorithm! = Algorithm.HMAC256(secret$)
+    
+    exp! = new Date(System.currentTimeMillis()+expires_in)
+    
+    t! = JWT.create()
+    t!.withIssuer(issuer$)
+    t!.withAudience(audience$)
+    t!.withSubject(user$)
+    t!.withExpiresAt(exp!)
+    
+    rem you can set additional payload values
+    rem t!.withClaim("foo","bar")
+    
+    token$=t!.sign(algorithm!)
+    
+    token_rec!.setFieldValue("access_token",token$)
+    token_rec!.setFieldValue("expires_in",expires_in)
+    token_rec!.setFieldValue("expires",exp!.toString())
+    exit

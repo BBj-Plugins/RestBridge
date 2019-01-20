@@ -132,6 +132,21 @@ main_loop:
         ns!.setValue("BCMAP",bcMap!)
     endif
 
+    if bc$="Token" then
+            rs! = new ResultSet()
+            token_rec! = new DataRow()
+            
+            rem token_rec! should be created in the customizable authpgm
+            call authpgm$+"::ISSUE_JWT"
+            
+            rs!.add(token_rec!)
+            response!.put("resultset",rs!)
+            response!.put("BC","Token")
+            response!.put("single",1)    
+            goto send_response
+    fi
+
+
     bc$=bc$+"BC"
     if bcMap!.containsKey(bc$) then
         bc! = bcMap!.get(bc$)
