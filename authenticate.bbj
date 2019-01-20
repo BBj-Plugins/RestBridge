@@ -1,12 +1,55 @@
+use com.auth0.jwt.JWT
+use com.auth0.jwt.algorithms.Algorithm
+use com.auth0.jwt.exceptions.JWTCreationException
+use com.auth0.jwt.interfaces.DecodedJWT
+use com.auth0.jwt.interfaces.JWTVerifier
+use com.basiscomponents.db.DataRow
 ENTER
-    adminAPI! = BBjAPI().getAdmin(user$,password$,err=*next)
-    if adminAPI! = null() then
-        throw "Wrong username and/or password",25
-    else
+        
+    if jwt$>"" then
+        secret$="your-256-bit-secret"
+        algorithm! = Algorithm.HMAC256(secret$)
+        verifier! = JWT.require(algorithm!).build()
+        jwt! = verifier!.verify(jwt$,err=jwt_failed) 
         authenticated=1
-        adminAPI!.release()
+        payload$ = java.util.Base64.getDecoder().decode(jwt!.getPayload())
+        jwtpayload! = DataRow.fromJson(payload$)
+
+        rem setting user$ to the JWT subject string
+        rem if the username is required later and it's in the payload this would probably be the best place to set user$
+
+        user$=jwt!.getSubject()
+        
+        rem storing the payload as a DataRow into the object table
+        rem if you need it later, simply use something like this:
+        rem
+        rem jwtpayload! = BBjAPI().getObjectTable().get("JWTPAYLOAD")
+        BBjAPI().getObjectTable().put("JWTPAYLOAD",jwtpayload!)
+        
+        rem if your payload is needed in original json, we also put the payload$ into an STBL
+        dummy$=STBL("JWTPAYLOAD",payload$)
+        
+        
+
+    else
+        rem in this place authenticate against the Admin API
+        adminAPI! = BBjAPI().getAdmin(user$,password$,err=*next)
+        if adminAPI! = null() then
+            throw "Wrong username and/or password",25
+        else
+            authenticated=1
+            adminAPI!.release()
+        endif
     endif
+    
 END
+
+jwt_failed:
+    emes$=errmes(-1)
+    if pos(":"=emes$)>0 then
+        emes$=cvs(emes$(pos(":"=emes$)+1),3)
+    endif
+    throw emes$,25
 
 
 ON_REQUEST:

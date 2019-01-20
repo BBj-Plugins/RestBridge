@@ -139,7 +139,7 @@ class public RestBridge
             auth$=str(request!.getHeader("authorization",err=*next))
         fi
 
-        if auth$="null" or len(auth$)<8 OR auth$(1,5)<>"Basic" then
+        if auth$="null" or len(auth$)<8 OR (cvs(auth$(1,5),4)<>"BASIC" AND cvs(auth$(1,6),4)<>"BEARER")then
             tmp$=str(request!.getHeader("X-REQUESTED-WITH",err=*next))
             if tmp$<> "XMLHttpRequest" then
                 response!.setHeader("WWW-Authenticate","Basic realm=""REST Web Service""")
@@ -148,7 +148,6 @@ class public RestBridge
             #logResponse(req_id$,response!)
             methodret
         else
-            auth$=auth$(7)
 			rem create uid$ as a unique representant of the user
 			rem this needs to contain the config file and the prefix!
             uid$ = hta(java.security.MessageDigest.getInstance("MD5").digest(auth$+BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()+pfx))

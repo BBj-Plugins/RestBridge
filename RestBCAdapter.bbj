@@ -12,7 +12,8 @@ if debug then System.out.println("REST: new remote session ")
 BBjAPI().getConfig().setOptionSetting("ERROR_UNWINDS", 1)
 
 ses$ = argv(1)
-auth$ = argv(2)
+authtype$=argv(2)
+auth$ = argv(3)
 
 if debug then System.out.println("REST: WORKDIR "+dir(""))
 ses$=stbl("SESSIONID",ses$)
@@ -20,9 +21,19 @@ ses$=stbl("SESSIONID",ses$)
 servletParams! = new HashMap()
 servletParams! = BBjAPI().getGlobalNamespace().getValue(ses$+"_SERVLET_PARAMETERS",err=*next)
 
-auth$=java.util.Base64.getDecoder().decode(auth$)
-user$=auth$(1,pos(":"=auth$)-1)
-password$=auth$(pos(":"=auth$)+1)
+if debug then System.out.println("Got auth header: "+authtype$+" "+auth$)
+authtype$=cvs(authtype$,4)
+
+if authtype$="BASIC" then
+  auth$=java.util.Base64.getDecoder().decode(auth$)
+  user$=auth$(1,pos(":"=auth$)-1)
+  password$=auth$(pos(":"=auth$)+1)
+fi
+
+if authtype$="BEARER" then
+  jwt$=auth$
+fi
+
 authenticated=0
 
 rem changing the string encoding to the server's encoding
@@ -33,6 +44,7 @@ authpgm$="authenticate.bbj"
 if servletParams!.get("REST_AUTHPGM") <> null() then
     authpgm$ = servletParams!.get("REST_AUTHPGM").toString()
 endif
+
 call authpgm$
 
 requestSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_REQUEST_SEM")
@@ -49,6 +61,7 @@ endif
 main_loop:
 
     CLEAR EXCEPT user$, ses$, requestSemaphore!, responseSemaphore!, ses!, authenticated, timeout, usecount, debug, authpgm$, servletParams!
+
 
     seterr execerr
 
