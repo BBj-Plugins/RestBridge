@@ -398,6 +398,8 @@ main_loop:
                     af! = bc!.getAllowedFilter(err=*next)
                 endif
 
+                REM check the field case insensitive
+                REM but pass them with the correct casing to the filter
                 afnames! = af!.getFieldNames()
                 afnames_uc! = new BBjVector()
                 it! = afnames!.iterator()
