@@ -387,7 +387,6 @@ main_loop:
                 wend
             fi
 
-
             rem Add parameters
             if params! <> null() and params!.size() >0 then
                 if filter! = null() then
@@ -399,6 +398,13 @@ main_loop:
                     af! = bc!.getAllowedFilter(err=*next)
                 endif
 
+                afnames! = af!.getFieldNames()
+                afnames_uc! = new BBjVector()
+                it! = afnames!.iterator()
+                while it!.hasNext()
+                    afnames_uc!.addItem(cvs(str(it!.next()),4))
+                wend
+
                 it! = params!.keySet().iterator()
                 while it!.hasNext()
                     p$=it!.next()
@@ -406,16 +412,14 @@ main_loop:
                     if (p$="_FULLTEXT" OR P$="_SEARCH")
                         filter!.setFieldValue("%SEARCH",pv$)
                     else
-                        if (p$(1,1)<>"_" and pv$>"" and (af!.contains(p$) OR bc$="DataSourceDataBC")) OR P$(1,1)="%" then
+                        if (p$(1,1)<>"_" and pv$>"" and (afnames_uc!.contains(p$) OR bc$="DataSourceDataBC")) OR P$(1,1)="%" then
                             rem todo: all BCs should accept filters with fields that are not part of the attributes record
                             rem and still honor all other fields in the filter correctly, instead of giving no result
-
-                            filter!.setFieldValue(p$,pv$)
+                            filter!.setFieldValue(afnames!.getItem(afnames_uc!.indexOf(p$)),pv$)
                         fi
                     fi
                 wend
             fi
-
             if filter! <> null() then
                 bc!.setFilter(filter!)
             fi
