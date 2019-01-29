@@ -14,6 +14,8 @@ class public RestBridge
         response! = context!.getResponse()
 
         debug = num(stbl("DEBUG",err=*next),err=*next)
+        restbridge_opt_jsonmeta=1
+        restbridge_opt_jsonmeta=int(num(stbl("RESTBRIDGE_OPT_JSONMETA",err=*next),err=*next))
 
         if debug then
             System.out.println("REST request --------------------------")
@@ -358,7 +360,7 @@ class public RestBridge
                 rs! = answer!.get("resultset",err=*next)
                 if method$ = "POST" and rs! <> null() and rs!.size() > 0 then
                     wr! = new java.io.StringWriter()
-                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!)
+                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
                     wr!.flush()
                     wr!.close()
                     response!.getOutputStream().write(wr!.toString())
@@ -528,7 +530,7 @@ class public RestBridge
                 if pos("application/json"=accept$) > 0 then
                     response!.setContentType("application/json")
                     wr! = new java.io.StringWriter()
-                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!)
+                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
                     s! = response!.getOutputStream()
 
                     wr!.flush()
