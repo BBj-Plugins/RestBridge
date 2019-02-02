@@ -16,7 +16,10 @@ class public RestBridge
         debug = num(stbl("DEBUG",err=*next),err=*next)
         restbridge_opt_jsonmeta=1
         restbridge_opt_jsonmeta=int(num(stbl("RESTBRIDGE_OPT_JSONMETA",err=*next),err=*next))
-
+        
+        restbridge_opt_enablegzip=1
+        restbridge_opt_enablegzip=int(num(stbl("RESTBRIDGE_OPT_ENABLEGZIP",err=*next),err=*next))
+        
         if debug then
             System.out.println("REST request --------------------------")
             System.out.println("REST request METHOD "+request!.getMethod())
@@ -226,6 +229,11 @@ class public RestBridge
                 accept$="text/html"
             fi
         fi
+        
+        accept_enc$=str(request!.getHeader("Accept-Encoding"))
+        if pos("gzip"=accept_enc$) > 0 then
+            do_gzip=1
+        fi
 
         rem check for multi-value accept headers
         atmp$=accept$
@@ -426,20 +434,23 @@ class public RestBridge
                 custom_css! = rs!.get(0).getAttribute("CUSTOM_CSS")
             endif
             response!.setContentType("text/html; charset="+info(1,2))
-            s! = response!.getOutputStream()
+            
+            
 
             if custom_css! <> null() then
-                s!.write("<html><head><style>table, th, td {padding:5px;border: 1px solid black;} "+str(custom_css!)+"</style></head><body>")
+                resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;} "+str(custom_css!)+"</style></head><body>"
             else
-                s!.write("<html><head><style>table, th, td {padding:5px;border: 1px solid black;}</style></head><body>")
+                resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;}</style></head><body>"
             endif
+            
 
+            
             single = num(answer!.get("single",err=*next),err=*next)
             if single>0 AND rs!.size()=1 then
                 rem TODO move this pivoted display into the writer
                 rec! = rs!.get(0)
                 it! = rec!.getFieldNames().iterator()
-                s!.write("<table>")
+                resp_str! = resp_str!+"<table>"
                 if request!.getPathInfo().endsWith("/_meta") then
                     attrSet! = new java.util.HashSet()
                     while it!.hasNext()
@@ -447,35 +458,35 @@ class public RestBridge
                         attrSet!.addAll(rs!.getColumnMetaData(f$).keySet())
                     wend
                     it! = attrSet!.iterator()
-                    s!.write("<tr><td></td>")
+                    resp_str! = resp_str!+"<tr><td></td>"
                     while it!.hasNext()
                         metaName$ = it!.next()
-                        s!.write("<td><b>"+metaName$+"</b></td>")
+                        resp_str! = resp_str!+"<td><b>"+metaName$+"</b></td>"
                     wend
-                    s!.write("</tr>")
+                    resp_str! = resp_str!+"</tr>"
                     it! = rec!.getFieldNames().iterator()
                     while it!.hasNext()
                         f$ = it!.next()
                         metaMap! = rs!.getColumnMetaData(f$)
-                        s!.write("<tr><td><b>"+f$+"</b></td>")
+                        resp_str! = resp_str!+"<tr><td><b>"+f$+"</b></td>"
                         it2! = attrSet!.iterator()
                         while it2!.hasNext()
                             metaName$ = it2!.next()
                             if metaMap!.containsKey(metaName$) then
-                                s!.write("<td>"+str(metaMap!.get(metaName$))+"</td>")
+                                resp_str! = resp_str!+"<td>"+str(metaMap!.get(metaName$))+"</td>"
                             else
-                                s!.write("<td></td>")
+                                resp_str! = resp_str!+"<td></td>"
                             endif
                         wend
-                        s!.write("</tr>")
+                        resp_str! = resp_str!+"</tr>"
                     wend
                 else
                     while it!.hasNext()
                         f$=it!.next()
-                        s!.write("<tr><td><b>"+f$+"</b></td><td>"+rec!.getFieldAsString(f$)+"</td></tr>")
+                        resp_str! = resp_str!+"<tr><td><b>"+f$+"</b></td><td>"+rec!.getFieldAsString(f$)+"</td></tr>"
                     wend
                 endif
-                s!.write("</table>")
+                resp_str! = resp_str!+"</table>"
             else
                 if (pk! <> null() ) then
                     pk$=str(pk!)
@@ -501,11 +512,22 @@ class public RestBridge
                 com.basiscomponents.db.ResultSetExporter.writeHTML(rs!,wr!,links!)
                 wr!.flush()
                 wr!.close()
-                s!.write(wr!.toString())
+                resp_str! = resp_str!+wr!.toString()
             fi
-            s!.write("</body></html>")
+            resp_str! = resp_str!+"</body></html>"
 
-            System.out.println("REST: 200 - sent answer text/html")
+            s! = response!.getOutputStream()    
+            if (restbridge_opt_enablegzip>0 and do_gzip) then
+                response!.setHeader("content-encoding","gzip")
+                out!= new java.io.ByteArrayOutputStream()
+                gzip! = new java.util.zip.GZIPOutputStream(out!)
+                gzip!.write(resp_str!.getBytes())
+                gzip!.close()
+                compressedData! = out!.toByteArray()
+                s!.write(compressedData!)
+            else
+                s!.write(resp_str!)
+            fi
 
             response!.setStatus(200)
             #logResponse(req_id$,response!)
@@ -519,11 +541,25 @@ class public RestBridge
                 endif
                 wr! = new java.io.StringWriter()
                 com.basiscomponents.db.ResultSetExporter.writeXML(rs!,"root","entity",wr!)
-                s! = response!.getOutputStream()
+                
 
                 wr!.flush()
                 wr!.close()
-                s!.write(wr!.toString())
+                
+                s! = response!.getOutputStream()    
+                if (restbridge_opt_enablegzip>0 and do_gzip) then
+                    response!.setHeader("content-encoding","gzip")
+                    out!= new java.io.ByteArrayOutputStream()
+                    gzip! = new java.util.zip.GZIPOutputStream(out!)
+                    gzip!.write(wr!.toString().getBytes())
+                    gzip!.close()
+                    compressedData! = out!.toByteArray()
+                    s!.write(compressedData!)
+                else
+                    s!.write(wr!.toString())
+                fi
+                
+                
                 #logResponse(req_id$,response!)
                 methodret
             else
@@ -531,11 +567,23 @@ class public RestBridge
                     response!.setContentType("application/json")
                     wr! = new java.io.StringWriter()
                     com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
-                    s! = response!.getOutputStream()
-
                     wr!.flush()
                     wr!.close()
-                    s!.write(wr!.toString())
+                    
+                    
+                    s! = response!.getOutputStream()    
+                    if (restbridge_opt_enablegzip>0 and do_gzip) then
+                        response!.setHeader("content-encoding","gzip")
+                        out!= new java.io.ByteArrayOutputStream()
+                        gzip! = new java.util.zip.GZIPOutputStream(out!)
+                        gzip!.write(wr!.toString().getBytes())
+                        gzip!.close()
+                        compressedData! = out!.toByteArray()
+                        s!.write(compressedData!)
+                    else
+                        s!.write(wr!.toString())
+                    fi
+
                     #logResponse(req_id$,response!)
                     methodret
                 else
@@ -543,11 +591,23 @@ class public RestBridge
                         response!.setContentType("text/csv")
                         wr! = new java.io.StringWriter()
                         com.basiscomponents.db.ResultSetExporter.writeTXT(rs!,wr!)
-                        s! = response!.getOutputStream()
 
                         wr!.flush()
                         wr!.close()
-                        s!.write(wr!.toString())
+
+                        s! = response!.getOutputStream()    
+                        if (restbridge_opt_enablegzip>0 and do_gzip) then
+                            response!.setHeader("content-encoding","gzip")
+                            out!= new java.io.ByteArrayOutputStream()
+                            gzip! = new java.util.zip.GZIPOutputStream(out!)
+                            gzip!.write(wr!.toString().getBytes())
+                            gzip!.close()
+                            compressedData! = out!.toByteArray()
+                            s!.write(compressedData!)
+                        else
+                            s!.write(wr!.toString())
+                        fi
+
                         #logResponse(req_id$,response!)
                         methodret
                     else
