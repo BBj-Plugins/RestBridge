@@ -422,33 +422,52 @@ main_loop:
                     fi
                 wend
             fi
+			
             if filter! <> null() then
                 bc!.setFilter(filter!)
             fi
 
-            fieldsel!=params!.get("_FIELDSEL",err=*next)
-            if fieldsel! <> null()
-                ok=0
-                vec! = new BBjVector(java.util.Arrays.asList(fieldsel!.split(",")))
-                bc!.setFieldSelection(vec!,err=*next); ok=1
-                if !ok then
-                    if pos("no match for method"=cvs(errmes(-1),8)) then
-                        fs! = new DataRow()
-                        it! = vec!.iterator()
-                        while it!.hasNext()
-                            fs!.setFieldValue(it!.next(),"")
-                        wend
-                        bc!.setFieldSelection(fs!)
-                    else
-                        throw errmes(-1),err()
-                    fi
-                 fi
-            fi
+			scope!=params!.get("_SCOPE")
+			fieldsel!=params!.get("_FIELDSEL",err=*next)
 
-            scope!=params!.get("_SCOPE")
-            if scope! <> null() then
-                bc!.setScope(str(scope!))
-            endif
+			if fieldsel! <> null() AND scope! <> null() then
+				ok=0
+				vec! = new BBjVector(java.util.Arrays.asList(fieldsel!.split(",")))
+				bc!.setFieldSelection(scope!, vec!,err=*next); ok=1
+				if !ok then
+					if pos("no match for method"=cvs(errmes(-1),8)) then
+						fs! = new DataRow()
+						it! = vec!.iterator()
+						while it!.hasNext()
+							fs!.setFieldValue(it!.next(),"")
+						wend
+						bc!.setFieldSelection(scope!, fs!)
+					else
+						throw errmes(-1),err()
+					fi
+				 fi			
+			else
+				if fieldsel! <> null()
+					ok=0
+					vec! = new BBjVector(java.util.Arrays.asList(fieldsel!.split(",")))
+					bc!.setFieldSelection(vec!,err=*next); ok=1
+					if !ok then
+						if pos("no match for method"=cvs(errmes(-1),8)) then
+							fs! = new DataRow()
+							it! = vec!.iterator()
+							while it!.hasNext()
+								fs!.setFieldValue(it!.next(),"")
+							wend
+							bc!.setFieldSelection(fs!)
+						else
+							throw errmes(-1),err()
+						fi
+					 fi
+				fi
+				if scope! <> null() then
+					bc!.setScope(str(scope!))
+				endif
+			fi
 
             first% = 0
             last% = 0
