@@ -39,7 +39,7 @@ class public RestBridgeConfigurationWindow
         screenWidth = #sysGui!.getSystemMetrics().getScreenBounds().getWidth()
         screenHeight = #sysGui!.getSystemMetrics().getScreenSize().getHeight()
 
-        #window! = #sysGui!.addWindow((screenWidth/2)-200, (screenHeight/2)-250, 450, 400, "Bridge Configuration", $00000002$)
+        #window! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), (screenWidth/2)-200, (screenHeight/2)-250, 450, 400, "Bridge Configuration", $00000002$)
 
         labelWidth = 115
         defaultControlHeight = 25
