@@ -18,19 +18,16 @@ class public ContextNameInputWindow
     methodend
     
     method private void init()
-        rem screenWidth = #sysGui!.getSystemMetrics().getScreenBounds().getWidth()
-        rem screenHeight = #sysGui!.getSystemMetrics().getScreenSize().getHeight()
-
         windowWidth = 250
         windowHeight = 85
         context = #sysGui!.getAvailableContext()
         #window! = #sysGui!.addWindow(context, 300, 300, windowWidth, windowHeight, "Context Name Input", $00080012$)
 
         controlID = #window!.getAvailableControlID()
-        #window!.addStaticText(controlID, 20, 20, 70, 20, "Context Name:")
+        #window!.addStaticText(controlID, 20, 20, 100, 20, "Context Name:")
 
         controlID = #window!.getAvailableControlID()
-        #inpeContextName! = #window!.addInputE(controlID, 100, 20-4, 100, 20, "")
+        #inpeContextName! = #window!.addInputE(controlID, 115, 20-4, 125, 20, "")
         #inpeContextName!.setInsertMode(1)
         #inpeContextName!.focus()
       
