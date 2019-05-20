@@ -91,15 +91,17 @@ class public RestBridgeConfigurationWindow
         for i= 0 to victor!.size()-1
           node = node +1
           #treeContext!.addExpandableNode(node,parent,victor!.getItem(i).toString())
-          victor2! = #admin!.getJettyServerConfig().getCustomContext("root").getBBjspServlets()
+          victor2! = #admin!.getJettyServerConfig().getCustomContext(victor!.getItem(i).toString()).getBBjspServlets()
           branch_node = node
-          for y=0 to victor2!.size()-1
-            node = node+1
-            bbjspServletConfiguration! = cast(BBjspServletConfiguration ,victor2!.getItem(y))
-            if bbjspServletConfiguration!.getClassName() = "RestBridge" then
-                   #treeContext!.addNode(node,branch_node,bbjspServletConfiguration!.getMapping())
-            fi  
-          next y
+          if victor2!.size > 0 then
+            for y=0 to victor2!.size()-1
+              node = node+1
+              bbjspServletConfiguration! = cast(BBjspServletConfiguration ,victor2!.getItem(y))
+              if bbjspServletConfiguration!.getClassName() = "RestBridge" then
+                     #treeContext!.addNode(node,branch_node,bbjspServletConfiguration!.getMapping())
+              fi  
+            next y
+          fi
         next i
 
 
