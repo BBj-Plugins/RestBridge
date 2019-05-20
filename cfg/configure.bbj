@@ -7,7 +7,7 @@ use ::RestBridge/cfg/ContextSelectionDialog.bbj::ContextSelectionDialog
 use ::RestBridge/cfg/AdminAPICredentialWindow.bbj::AdminAPICredentialWindow
 use ::RestBridge/cfg/RestBridgeConfigurationWindow.bbj::RestBridgeConfigurationWindow
 
-print 'hide'
+REM print 'hide'
 
 declare BBjAdmin admin!
 declare AdminAPICredentialWindow credentialsWindow!
@@ -15,15 +15,19 @@ declare AdminAPICredentialWindow credentialsWindow!
 admin! = BBjAPI().getAdmin("admin", "admin123", err=*next)
 if(admin! = null()) then
     credentialsWindow! = new AdminAPICredentialWindow()
+   rem  credentialsWindow!.
     sysGui! = BBjAPI().openSysGui("X0")
-    
     while(admin! = null())
         credentialsWindow!.open(sysGui!)
         if(credentialsWindow!.dialogCancelled()) then
             release
         endif
         
-        admin! = BBjAPI().getAdmin(credentialsWindow!.getUsername(), credentialsWindow!.getPassword())
+        admin! = BBjAPI().getAdmin(credentialsWindow!.getUsername(), credentialsWindow!.getPassword(),err=*next)
+        if(admin! = null()) then 
+            answer = msgbox("Please check your credentials.",0,"Rest Bridge Configuration")
+        endif
+        
     wend
 endif
 
