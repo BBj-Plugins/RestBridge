@@ -19,7 +19,7 @@ declare RestBridgeConfigurator configurator!
 
 
 
-admin! = BBjAPI().getAdmin("admin", "admin123", err=*next)
+admin! = BBjAPI().getAdmin("admin", "admin3421", err=*next)
 if(admin! = null()) then
     credentialsWindow! = new AdminAPICredentialWindow()
     sysGui! = BBjAPI().openSysGui("X0")
@@ -100,7 +100,7 @@ if(!contextNames!.isEmpty()) then
 endif
 
 declare RestBridgeConfigurationWindow window!
-window! = new RestBridgeConfigurationWindow()
+window! = new RestBridgeConfigurationWindow(admin!)
 
 if(editMode) then
     window!.setEditMode(Boolean.TRUE)
