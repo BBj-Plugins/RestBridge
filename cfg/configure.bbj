@@ -11,8 +11,15 @@ REM print 'hide'
 
 declare BBjAdmin admin!
 declare AdminAPICredentialWindow credentialsWindow!
+declare HashMap contextMap!
+declare BBjVector mappings!
+declare BBjVector configurations!
+declare RestBridgeConfigurator configurator!
 
-admin! = BBjAPI().getAdmin("admin", "admin123", err=*next)
+
+
+
+admin! = BBjAPI().getAdmin("admin", "admin3421", err=*next)
 if(admin! = null()) then
     credentialsWindow! = new AdminAPICredentialWindow()
    rem  credentialsWindow!.
@@ -31,10 +38,6 @@ if(admin! = null()) then
     wend
 endif
 
-declare HashMap contextMap!
-declare BBjVector mappings!
-declare BBjVector configurations!
-declare RestBridgeConfigurator configurator!
 
 configurator! = new RestBridgeConfigurator(admin!)
 
@@ -101,7 +104,7 @@ if(!contextNames!.isEmpty()) then
 endif
 
 declare RestBridgeConfigurationWindow window!
-window! = new RestBridgeConfigurationWindow()
+window! = new RestBridgeConfigurationWindow(admin!)
 
 if(editMode) then
     window!.setEditMode(Boolean.TRUE)

@@ -28,8 +28,13 @@ class public RestBridgeConfigurationWindow
     field private BBjButton btnBrowseRequestLogFile!
     field private BBjButton btnBrowseWorkingDirectory!
     field private BBjButton btnBrowseAuthenticationFile!
+    field private BBjAdmin admin!
+    
+    field private BBjTree treeContext!
+    
 
-    method public RestBridgeConfigurationWindow()
+    method public RestBridgeConfigurationWindow(BBjAdmin admin!)
+        #admin!= admin!
         #init()
     methodend
 
@@ -39,7 +44,7 @@ class public RestBridgeConfigurationWindow
         screenWidth = #sysGui!.getSystemMetrics().getScreenBounds().getWidth()
         screenHeight = #sysGui!.getSystemMetrics().getScreenSize().getHeight()
 
-        #window! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), (screenWidth/2)-200, (screenHeight/2)-250, 450, 400, "Bridge Configuration", $00000002$)
+        #window! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), (screenWidth/2)-200, (screenHeight/2)-250, 850, 400, "Bridge Configuration", $00000002$)
 
         labelWidth = 115
         defaultControlHeight = 25
@@ -52,6 +57,7 @@ class public RestBridgeConfigurationWindow
         controlID = #window!.getAvailableControlID()
         #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Context:")
         x = x + controlWidth + space
+        
 
         controlWidth = 150
         controlID = #window!.getAvailableControlID()
@@ -60,10 +66,42 @@ class public RestBridgeConfigurationWindow
         #lbtContextNames!.setSize(controlWidth, controlHeight*5)
         x = x + controlWidth + space
 
+
+        
+
         controlWidth = 75
         controlID = #window!.getAvailableControlID()
         #btnAddContext! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Add")
         #btnAddContext!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "addContextButtonPush")
+
+
+
+
+        x= 450
+        controlWidth = 350
+        controlID = #window!.getAvailableControlID()
+        #treeContext! = #window!.addTree(controlID, x+20,y,controlWidth,360)
+        node = 0
+        #treeContext!.setRoot(node,"contexts")
+        declare BBjVector victor!
+        declare BBjVector victor2!
+        declare BBjspServletConfiguration bbjspServletConfiguration!
+        
+        victor! = #admin!.getJettyServerConfig().getContextNames()
+        for i= 0 to victor!.size()-1
+          node = node +1
+          #treeContext!.addExpandableNode(node,parent,victor!.getItem(i).toString())
+          victor2! = #admin!.getJettyServerConfig().getCustomContext("root").getBBjspServlets()
+          branch_node = node
+          for y=0 to victor2!.size()-1
+            node = node+1
+            bbjspServletConfiguration! = cast(BBjspServletConfiguration ,victor2!.getItem(y))
+            if bbjspServletConfiguration!.getClassName() = "RestBridge" then
+                   #treeContext!.addNode(node,branch_node,bbjspServletConfiguration!.getMapping())
+            fi  
+          next y
+        next i
+
 
         x = 20
         y = y + 50
