@@ -11,6 +11,13 @@ print 'hide'
 
 declare BBjAdmin admin!
 declare AdminAPICredentialWindow credentialsWindow!
+declare HashMap contextMap!
+declare BBjVector mappings!
+declare BBjVector configurations!
+declare RestBridgeConfigurator configurator!
+
+
+
 
 admin! = BBjAPI().getAdmin("admin", "admin123", err=*next)
 if(admin! = null()) then
@@ -27,10 +34,6 @@ if(admin! = null()) then
     wend
 endif
 
-declare HashMap contextMap!
-declare BBjVector mappings!
-declare BBjVector configurations!
-declare RestBridgeConfigurator configurator!
 
 configurator! = new RestBridgeConfigurator(admin!)
 
