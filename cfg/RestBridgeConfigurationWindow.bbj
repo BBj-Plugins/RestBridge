@@ -1,6 +1,7 @@
 use java.io.File
 
 use ::RestBridge/cfg/ContextNameInputWindow.bbj::ContextNameInputWindow
+use ::RestBridge/cfg/RestBridgeConfigurator.bbj::RestBridgeConfigurator
 
 class public RestBridgeConfigurationWindow
 
@@ -29,11 +30,15 @@ class public RestBridgeConfigurationWindow
     field private BBjButton btnBrowseWorkingDirectory!
     field private BBjButton btnBrowseAuthenticationFile!
     field private BBjAdmin admin!
+    field private RestBridgeConfigurator configurate!
+    field private BBjVector contexts!
     
     field private BBjTree treeContext!
     
 
-    method public RestBridgeConfigurationWindow(BBjAdmin admin!)
+    method public RestBridgeConfigurationWindow(BBjAdmin admin!,RestBridgeConfigurator configurate!)
+        #contexts! = new BBjVector()
+        #configurate! = configurate!
         #admin!= admin!
         #init()
     methodend
@@ -49,63 +54,17 @@ class public RestBridgeConfigurationWindow
         labelWidth = 115
         defaultControlHeight = 25
         space = 10
-
-        x = 20
         y = 20
-        controlWidth = labelWidth
-        controlHeight = defaultControlHeight
-        controlID = #window!.getAvailableControlID()
-        #window!.addStaticText(controlID, x, y, controlWidth, controlHeight, "Context:")
-        x = x + controlWidth + space
         
 
         controlWidth = 150
-        controlID = #window!.getAvailableControlID()
-        #lbtContextNames! = #window!.addListButton(controlID, x, y-5, controlWidth, controlHeight, "")
-        rem #lbtContextNames!.insertItems(0, configurator!.getContextNames())
-        #lbtContextNames!.setSize(controlWidth, controlHeight*5)
-        x = x + controlWidth + space
 
 
-        
-
-        controlWidth = 75
-        controlID = #window!.getAvailableControlID()
-        #btnAddContext! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Add")
-        #btnAddContext!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "addContextButtonPush")
-
-
-
-
-        x= 450
+        x= 20
         controlWidth = 350
-        controlID = #window!.getAvailableControlID()
-        #treeContext! = #window!.addTree(controlID, x+20,y,controlWidth,360)
-        node = 0
-        #treeContext!.setRoot(node,"contexts")
-        declare BBjVector victor!
-        declare BBjVector victor2!
-        declare BBjspServletConfiguration bbjspServletConfiguration!
-        
-        victor! = #admin!.getJettyServerConfig().getContextNames()
-        for i= 0 to victor!.size()-1
-          node = node +1
-          #treeContext!.addExpandableNode(node,parent,victor!.getItem(i).toString())
-          victor2! = #admin!.getJettyServerConfig().getCustomContext(victor!.getItem(i).toString()).getBBjspServlets()
-          branch_node = node
-          if victor2!.size > 0 then
-            for y=0 to victor2!.size()-1
-              node = node+1
-              bbjspServletConfiguration! = cast(BBjspServletConfiguration ,victor2!.getItem(y))
-              if bbjspServletConfiguration!.getClassName() = "RestBridge" then
-                     #treeContext!.addNode(node,branch_node,bbjspServletConfiguration!.getMapping())
-              fi  
-            next y
-          fi
-        next i
+        #reloadTree()
 
-
-        x = 20
+        x = 420
         y = y + 50
         controlWidth = labelWidth
         controlID = #window!.getAvailableControlID()
@@ -118,7 +77,7 @@ class public RestBridgeConfigurationWindow
         #inpeMapping!.setText("/v0/*")
         #inpeMapping!.setInsertMode(1)
 
-        x = 20
+        x = 420
         y = y + 30
         controlWidth = labelWidth
         controlID = #window!.getAvailableControlID()
@@ -131,7 +90,7 @@ class public RestBridgeConfigurationWindow
         #inpnTimeout!.setValue(1000)
         #inpnTimeout!.setInsertMode(1)
 
-        x = 20
+        x = 420
         y = y + 30
         controlWidth = labelWidth
         controlID = #window!.getAvailableControlID()
@@ -143,7 +102,7 @@ class public RestBridgeConfigurationWindow
         #inpeProgramPrefix! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
         #inpeProgramPrefix!.setInsertMode(1)
 
-        x = 20
+        x = 420
         y = y + 30
         controlWidth = labelWidth
         controlID = #window!.getAvailableControlID()
@@ -156,13 +115,13 @@ class public RestBridgeConfigurationWindow
         #inpeProgramSuffix!.setText(".bbj")
         #inpeProgramSuffix!.setInsertMode(1)
 
-        x = 20
+        x = 420
         y = y + 20
         controlWidth = 250
         controlID = #window!.getAvailableControlID()
         #chbUseGetAllowedFilters! = #window!.addCheckBox(controlID, x, y, controlWidth, controlHeight, "Use getAllowedFilters() if applicable")
 
-        x = 20
+        x = 420
         y = y + 50
         controlWidth = labelWidth
         controlID = #window!.getAvailableControlID()
@@ -180,7 +139,7 @@ class public RestBridgeConfigurationWindow
         #btnBrowseConfigFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
         #btnBrowseConfigFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseConfigFileButtonPush")
 
-        x = 20
+        x = 420
         y = y + 30
         controlWidth = labelWidth
         controlID = #window!.getAvailableControlID()
@@ -198,7 +157,7 @@ class public RestBridgeConfigurationWindow
         #btnBrowseWorkingDirectory! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
         #btnBrowseWorkingDirectory!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseWorkingDirectoryButtonPush")
 
-        x = 20
+        x = 420
         y = y + 30
         controlWidth = labelWidth
         controlID = #window!.getAvailableControlID()
@@ -216,7 +175,7 @@ class public RestBridgeConfigurationWindow
         #btnBrowseAuthenticationFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
         #btnBrowseAuthenticationFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseAuthFileButtonPush")
 
-        x = 20
+        x = 420
         y = y + 30
         controlWidth = labelWidth
         controlID = #window!.getAvailableControlID()
@@ -235,11 +194,16 @@ class public RestBridgeConfigurationWindow
         #btnBrowseRequestLogFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseRequestLogButtonPush")
 
         controlID = #window!.getAvailableControlID()
-        #btnCancel! = #window!.addButton(controlID, 270, 365, 75, 25, "Cancel")
+        #btnCancel! = #window!.addButton(controlID, 420, 365, 75, 25, "Cancel")
         #btnCancel!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "cancelClicked")
+        
+        controlWidth = 75
+        controlID = #window!.getAvailableControlID()
+        #btnAddContext! = #window!.addButton(controlID, 535, 365, controlWidth, controlHeight, "Add")
+        #btnAddContext!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "addContextButtonPush")
 
         controlID = #window!.getAvailableControlID()
-        #btnOK! = #window!.addButton(controlID, 355, 365, 75, 25, "OK")
+        #btnOK! = #window!.addButton(controlID, 620, 365, 75, 25, "OK")
         #btnOK!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "okClicked")
 
         #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "closeWindow")
@@ -251,10 +215,6 @@ class public RestBridgeConfigurationWindow
         process_events
 
         CloseWindow:
-    methodend
-
-    method public void setContextNames(BBjVector contextNames!)
-        #lbtContextNames!.insertItems(0, contextNames!)
     methodend
 
     method public void closeWindow(BBjCloseEvent event!)
@@ -281,30 +241,53 @@ class public RestBridgeConfigurationWindow
             
             if(name! = "") then
                 a = msgbox("Invalid Context Name")
-                #addContextButtonPush(null())
+                #addContextButtonPush(null())      
             endif
             
-            if(#lbtContextNames!.getAllItems().contains(name!)) then
-                a = msgbox("Duplicate Context Name")
-                #addContextButtonPush(null())
+            if(#contexts!.contains(name!)) then
+                a = msgbox("Invalid Context Name")
+                #addContextButtonPush(null())      
             endif
-            
-            #lbtContextNames!.addItem(name!)
-            #lbtContextNames!.selectIndex(#lbtContextNames!.getAllItems().size()-1)
+           
+            #contexts!.add(name!)
+            #reloadTree()
+            rem #configurate!.configureRestBridge(name!,NULL,NULL,NULL)
+           
         endif
     methodend
     
-    method public void setContextName(String contextName!)
-        #lbtContextNames!.removeAllItems()
-        #lbtContextNames!.addItem(contextName!)
-        #lbtContextNames!.selectIndex(0)
-    methodend 
+    method public void reloadTree()
+        controlID = #window!.getAvailableControlID()
+        #treeContext! = #window!.addTree(controlID, x,y,controlWidth,360)
+        node = 0
+        #treeContext!.setRoot(node,"contexts")
+        declare BBjVector victor!
+        declare BBjVector victor2!
+        declare BBjspServletConfiguration bbjspServletConfiguration!
+        
+        victor! = #admin!.getJettyServerConfig().getContextNames()
+        for i= 0 to victor!.size()-1
+          node = node +1
+          #treeContext!.addExpandableNode(node,parent,victor!.getItem(i).toString())
+          #contexts!.add(victor!.getItem(I).toString())
+          victor2! = #admin!.getJettyServerConfig().getCustomContext(victor!.getItem(i).toString()).getBBjspServlets()
+          branch_node = node
+          if victor2!.size > 0 then
+            for y=0 to victor2!.size()-1
+              node = node+1
+              bbjspServletConfiguration! = cast(BBjspServletConfiguration ,victor2!.getItem(y))
+              if bbjspServletConfiguration!.getClassName() = "RestBridge" then
+                     #treeContext!.addNode(node,branch_node,bbjspServletConfiguration!.getMapping())
+              fi  
+            next y
+          fi
+        next i  
+    methodend
 
     method public void setEditMode(Boolean editMode!)
         #btnAddContext!.setEnabled(!editMode!)
         #btnAddContext!.setVisible(!editMode!)
         #inpeMapping!.setEnabled(!editMode!)
-        #lbtContextNames!.setEditable(0)
     methodend
 
     method public void browseConfigFileButtonPush(BBjButtonPushEvent event!)
@@ -364,14 +347,6 @@ class public RestBridgeConfigurationWindow
         #inpnTimeout!.setValue(timeout%)
     methodend
 
-    method public String getContext()
-        methodret #lbtContextNames!.getSelectedItem()
-    methodend
-
-    method public void setContext(String contextName!)
-        REM TODO -
-        #lbtContextNames!.selectIndex(0)
-    methodend
 
     method public String getMapping()
         methodret #inpeMapping!.getText()
