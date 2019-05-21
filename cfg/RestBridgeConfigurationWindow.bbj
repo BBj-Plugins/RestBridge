@@ -255,6 +255,7 @@ class public RestBridgeConfigurationWindow
             map! = new HashMap()
             #configurate!.configureRestBridge(name!,"/v0/*",map!,"")
             #reloadTree()
+            a = msgbox("Context was created")
            
         endif
     methodend
