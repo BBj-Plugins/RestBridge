@@ -104,11 +104,10 @@ if(!contextNames!.isEmpty()) then
 endif
 
 declare RestBridgeConfigurationWindow window!
-window! = new RestBridgeConfigurationWindow(admin!)
+window! = new RestBridgeConfigurationWindow(admin!,configurator!)
 
 if(editMode) then
     window!.setEditMode(Boolean.TRUE)
-    window!.setContextName(contextName!)
     window!.setMapping(contextMapping!)
 
     declare BBjspServletConfiguration conf!
@@ -122,7 +121,6 @@ if(editMode) then
     window!.setUseGetAllowedFilters(num(conf!.getParameter("USE_GET_ALLOWED_FILTER"), err=*next))
     window!.setRequestLogPath(conf!.getParameter("REST_REQUESTLOG"))
 else
-    window!.setContextNames(configurator!.getContextNames())
     window!.setAuthProgramPath(configurator!.getDefaultAuthProgramPath())
 endif
 
