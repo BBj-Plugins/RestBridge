@@ -1,4 +1,5 @@
 use java.io.File
+use java.util.HashMap
 
 use ::RestBridge/cfg/ContextNameInputWindow.bbj::ContextNameInputWindow
 use ::RestBridge/cfg/RestBridgeConfigurator.bbj::RestBridgeConfigurator
@@ -250,15 +251,17 @@ class public RestBridgeConfigurationWindow
             endif
            
             #contexts!.add(name!)
+            declare HashMap map!
+            map! = new HashMap()
+            #configurate!.configureRestBridge(name!,"/v0/*",map!,"")
             #reloadTree()
-            rem #configurate!.configureRestBridge(name!,NULL,NULL,NULL)
            
         endif
     methodend
     
     method public void reloadTree()
         controlID = #window!.getAvailableControlID()
-        #treeContext! = #window!.addTree(controlID, x,y,controlWidth,360)
+        #treeContext! = #window!.addTree(controlID, 20,20,300,360)
         node = 0
         #treeContext!.setRoot(node,"contexts")
         declare BBjVector victor!
