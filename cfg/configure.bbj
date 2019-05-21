@@ -19,7 +19,7 @@ declare RestBridgeConfigurator configurator!
 
 
 
-admin! = BBjAPI().getAdmin("admin", "admin3421", err=*next)
+admin! = BBjAPI().getAdmin("admin", "admin123", err=*next)
 if(admin! = null()) then
     credentialsWindow! = new AdminAPICredentialWindow()
    rem  credentialsWindow!.
@@ -32,7 +32,7 @@ if(admin! = null()) then
         
         admin! = BBjAPI().getAdmin(credentialsWindow!.getUsername(), credentialsWindow!.getPassword(),err=*next)
         if(admin! = null()) then 
-            answer = msgbox("Please check your credentials.",0,"Rest Bridge Configuration")
+            answer = msgbox("Invalid credentials.",0,"Rest Bridge Configuration")
         endif
         
     wend

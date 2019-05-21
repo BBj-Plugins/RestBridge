@@ -187,6 +187,7 @@ class public RestBridgeConfigurator
         rem ClassName, Mapping, Source, Config(Optional)
         rem http://documentation.basis.com/BASISHelp/WebHelp/gridmethods4/bbjjettycontextconfiguration_addbbjspservlet.htm
         configuration! = contextConfig!.addBBjspServlet("RestBridge", mapping!, restBridgeFile!.getAbsolutePath())
+        
         configuration!.setConfig(configFilePath!)
 
         declare File adapterProgram!
