@@ -8,13 +8,15 @@ class public RestBridgeConfigurationWindow
 
     field private BBjSysGui sysGui!
     field private BBjWindow window!
-
+    field private BBjWindow prevWindow!
+    
     field private BBjInputN inpnTimeout!
     field private BBjListButton lbtContextNames!
     field private BBjCheckBox chbUseGetAllowedFilters!
 
     field private Boolean cancelled! = Boolean.FALSE
-
+    field private Boolean opend! = Boolean.FALSE
+    
     field private BBjInputE inpeMapping!
     field private BBjInputE inpeRequestLog!
     field private BBjInputE inpeConfigFile!
@@ -23,9 +25,11 @@ class public RestBridgeConfigurationWindow
     field private BBjInputE inpeProgramSuffix!
     field private BBjInputE inpeWorkingDirectory!
 
+    field private BBjCEdit previewField!
     field private BBjButton btnOK!
     field private BBjButton btnSelect!
     field private BBjButton btnCancel!
+    field private BBjButton btnPreviewCode!
     field private BBjButton btnAddContext!
     field private BBjButton btnBrowseConfigFile!
     field private BBjButton btnBrowseRequestLogFile!
@@ -211,7 +215,21 @@ class public RestBridgeConfigurationWindow
         controlID = #window!.getAvailableControlID()
         #btnOK! = #window!.addButton(controlID, 620, 365, 75, 25, "OK")
         #btnOK!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "okClicked")
-
+        
+        controlID = #window!.getAvailableControlID()
+        #btnPreviewCode! = #window!.addButton(controlID, 705, 365, 75, 25, "Preview Code")
+        #btnPreviewCode!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "previewCode")
+        
+        
+        
+REM         #prevWindow! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), #window!.getX(), #window!.getY(),#window!.getWidth(),#window!.getHeight(), "Codepreview", $00000002$)
+REM         #prevWindow!.setVisible(0)
+REM         #prevWindow!.setCallback(BBjWindow.ON_KEYPRESS,#this!,"windowKeypressEvent")
+REM         
+REM         controlID = #prevWindow!.getAvailableControlID()
+REM         #previewField! = #prevWindow!.addCEdit(controlID,20,20,810,360,"",$0306$)
+REM 
+REM         #prevWindow!.setCallback(BBjAPI.ON_CLOSE, #this!,"closePrevWindow")
         #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "closeWindow")
     methodend
 
@@ -246,7 +264,17 @@ class public RestBridgeConfigurationWindow
 
     method public void closeWindow(BBjCloseEvent event!)
         #cancelled! = Boolean.TRUE
+        if #opend! then 
+            #prevWindow!.destroy()
+        endif
         BBjAPI().postCustomEvent("CloseWindowEvent", "")
+        
+    methodend
+    
+    method public void closePrevWindow(BBjCloseEvent event!)
+        #previewField!.destroy()
+        #prevWindow!.destroy()
+        #opend! = Boolean.FALSE
     methodend
 
     method public void cancelClicked(BBjButtonPushEvent event!)
@@ -256,6 +284,14 @@ class public RestBridgeConfigurationWindow
 
     method public void okClicked(BBjButtonPushEvent event!)
         BBjAPI().postCustomEvent("CloseWindowEvent", "")
+    methodend
+    
+    method public void windowKeypressEvent(BBjKeypressEvent e!)
+    
+        if e!.getKeyCode() = 27 then 
+            #prevWindow!.setVisible(0)
+        endif    
+        
     methodend
 
     method public void addContextButtonPush(BBjButtonPushEvent event!)        
@@ -366,6 +402,65 @@ class public RestBridgeConfigurationWindow
         path! = #inpeAuthProgram!.getText()
         authProgramPath! = #browse(path!,"Authentication File Selection", Boolean.FALSE, "bbj")
         #inpeAuthProgram!.setText(authProgramPath!)
+    methodend
+    
+    method public void previewCode(BBjButtonPushEvent e!)
+        
+        #prevWindow! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), #window!.getX(), #window!.getY(),#window!.getWidth(),#window!.getHeight(), "Codepreview", $00000002$)
+        #opend! = Boolean.TRUE
+        #prevWindow!.setCallback(BBjWindow.ON_KEYPRESS,#this!,"windowKeypressEvent")
+        
+        
+        controlID = #prevWindow!.getAvailableControlID()
+        #prevWindow!.addStaticText(controlID,20,0,80,20,"Example Code:")
+        
+        
+        controlID = #prevWindow!.getAvailableControlID()
+        #previewField! = #prevWindow!.addCEdit(controlID,20,20,#prevWindow!.getWidth() - 40,#prevWindow!.getHeight() - 40,"",$0306$)
+        declare BBjFont  font!
+        
+        font! = #sysGui!.makeFont("Consolas",12,0)
+        #previewField!.setFont(font!)
+
+        #prevWindow!.setCallback(BBjAPI.ON_CLOSE, #this!,"closePrevWindow")
+            
+        #previewField!.setText(#assembleCode())
+        
+    methodend
+    
+    method private String assembleCode()
+        declare java.lang.StringBuilder builder!
+        builder! = new java.lang.StringBuilder()
+        
+        builder!.append("admin! = BBjAPI().getAdmin(user!,password!)"+$0A$)
+        builder!.append("serverConfig! = admin!.getJettyServerConfig()"+$0A$+$0A$)
+        builder!.append("contextConfig! = serverConfig!.createCustomContext(contextName!)"+$0A$)
+        builder!.append("contextConfig!.setDocBase(""$basis_home/htdocs"")"+$0A$)
+        builder!.append("contextConfig!.addWelcomeFile(""index.html"")"+$0A$)
+        builder!.append("contextConfig!.setPath(""/"" + contextName!)"+$0A$)
+        builder!.append("serverConfig!.saveConfig()"+$0A$+$0A$)
+        builder!.append("contextConfig!.getBBjspServletMappings().contains(mapping!)"+$0A$+$0A$)
+        builder!.append("directory! = new File(dsk("""") + dir(""""))"+$0A$)
+        builder!.append("pluginDirectory! = directory!.getParentFile()"+$0A$)
+        builder!.append("restBridgeFile! = new File(pluginDirectory!, ""RestBridge.bbj"")"+$0A$+$0A$)
+        builder!.append("declare BBjspServletConfiguration configuration!"+$0A$)
+        builder!.append("configuration! = contextConfig!.addBBjspServlet(""RestBridge"", mapping!, restBridgeFile!.getAbsolutePath())"+$0A$)
+        builder!.append("configuration!.setConfig(configFilePath!)"+$0A$+$0A$)
+        builder!.append("declare File adapterProgram!"+$0A$)
+        builder!.append("adapterProgram! = new File(pluginDirectory!, ""RestBCAdapter.bbj"")"+$0A$)
+        builder!.append("configuration!.addParam(""REST_ADAPTERPGM"", adapterProgram!.getAbsolutePath())"+$0A$)
+        builder!.append("configuration!.addParam(""REST_ADAPTERTERM"", ""IO"")"+$0A$+$0A$)        
+        builder!.append("declare Iterator it!"+$0A$)
+        builder!.append("it! = params!.entrySet().iterator()"+$0A$+$0A$)
+        builder!.append("while(it!.hasNext())"+$0A$)
+        builder!.append("   entry! = it!.next()"+$0A$)
+        builder!.append("   if(entry!.getValue() <> """") then"+$0A$)
+        builder!.append("       configuration!.addParam(entry!.getKey(), entry!.getValue())"+$0A$)
+        builder!.append("   endif"+$0A$)
+        builder!.append("wend"+$0A$+$0A$)
+        builder!.append("serverConfig!.saveConfig()")
+       
+        methodret builder!.toString()
     methodend
 
     rem /**
