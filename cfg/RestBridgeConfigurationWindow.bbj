@@ -27,6 +27,7 @@ class public RestBridgeConfigurationWindow
 
     field private BBjCEdit previewField!
     field private BBjButton btnOK!
+    field private BBjButton btnSelect!
     field private BBjButton btnCancel!
     field private BBjButton btnPreviewCode!
     field private BBjButton btnAddContext!
@@ -37,11 +38,14 @@ class public RestBridgeConfigurationWindow
     field private BBjAdmin admin!
     field private RestBridgeConfigurator configurate!
     field private BBjVector contexts!
+    field private BBjVector contextIDs!
+    field private String selected!
     
     field private BBjTree treeContext!
     
 
     method public RestBridgeConfigurationWindow(BBjAdmin admin!,RestBridgeConfigurator configurate!)
+        #selected! = ""
         #contexts! = new BBjVector()
         #configurate! = configurate!
         #admin!= admin!
@@ -68,6 +72,7 @@ class public RestBridgeConfigurationWindow
         x= 20
         controlWidth = 350
         #reloadTree()
+        #treeContext!.setCallback(BBjTree.ON_TREE_SELECT,#this!,"onSelect")
 
         x = 420
         y = y + 50
@@ -235,6 +240,34 @@ REM         #prevWindow!.setCallback(BBjAPI.ON_CLOSE, #this!,"closePrevWindow")
 
         CloseWindow:
     methodend
+    
+    method public void onSelect(BBjTreeNodeSelectedEvent event!)
+        declare int position!
+        if(#contextIDs!.contains(event!.getNodeID()))then
+            for i = 0 to #contextIDs!
+                if(#contextIDs!.getItem(i) = event!.getNodeID())then
+                    position!= i
+                    break
+                fi
+            next i
+        else
+            methodret
+        fi
+        
+        #selected!= #contexts!.getItem(position!)
+        print #selected!
+        declare BBjspServletConfiguration conf!
+        conf! = configurator!.getBBjspServlet(#selected!, "/v0/*")
+        #setTimeout(num(conf!.getParameter("REST_TIMEOUT"), err=*next))
+        #setWorkingDirectoryPath(conf!.getParameter("REST_WD"))
+        #setProgramPrefix(conf!.getParameter("REST_PGM_PREFIX"))
+        #setProgramSuffix(conf!.getParameter("REST_PGM_SUFFIX"))
+        #setConfigFilePath(conf!.getConfig())
+        #setAuthProgramPath(conf!.getParameter("REST_AUTHPGM"))
+        #setUseGetAllowedFilters(num(conf!.getParameter("USE_GET_ALLOWED_FILTER"), err=*next))
+        #setRequestLogPath(conf!.getParameter("REST_REQUESTLOG"))
+        
+    methodend
 
     method public void closeWindow(BBjCloseEvent event!)
         #cancelled! = Boolean.TRUE
@@ -291,11 +324,15 @@ REM         #prevWindow!.setCallback(BBjAPI.ON_CLOSE, #this!,"closePrevWindow")
             map! = new HashMap()
             #configurate!.configureRestBridge(name!,"/v0/*",map!,"")
             #reloadTree()
+            a = msgbox("Context was created")
+            
            
         endif
     methodend
     
     method public void reloadTree()
+        #contexts! = new BBjVector()
+        #contextIDs! = new BBjVector()
         controlID = #window!.getAvailableControlID()
         #treeContext! = #window!.addTree(controlID, 20,20,300,360)
         node = 0
@@ -309,6 +346,7 @@ REM         #prevWindow!.setCallback(BBjAPI.ON_CLOSE, #this!,"closePrevWindow")
           node = node +1
           #treeContext!.addExpandableNode(node,parent,victor!.getItem(i).toString())
           #contexts!.add(victor!.getItem(I).toString())
+          #contextIDs!.add(node)
           victor2! = #admin!.getJettyServerConfig().getCustomContext(victor!.getItem(i).toString()).getBBjspServlets()
           branch_node = node
           if victor2!.size > 0 then
