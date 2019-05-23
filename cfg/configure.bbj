@@ -17,8 +17,6 @@ declare BBjVector configurations!
 declare RestBridgeConfigurator configurator!
 
 
-
-
 admin! = BBjAPI().getAdmin("admin", "admin123", err=*next)
 if(admin! = null()) then
     credentialsWindow! = new AdminAPICredentialWindow()

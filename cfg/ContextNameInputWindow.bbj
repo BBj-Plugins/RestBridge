@@ -5,6 +5,7 @@ class public ContextNameInputWindow
     
     field private BBjButton btnOK!
     field private BBjButton btnCancel!
+    field private BBjButton btnPreviewCode!
     
     field private BBjInputE inpeContextName!
     
@@ -46,7 +47,7 @@ class public ContextNameInputWindow
         controlID = #window!.getAvailableControlID()
         #btnOK! = #window!.addButton(controlID, x, y, controlWidth, controlHeight, "OK")
         #btnOK!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "okButtonPush")
-        
+         
         #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "windowClose")
     methodend
     
