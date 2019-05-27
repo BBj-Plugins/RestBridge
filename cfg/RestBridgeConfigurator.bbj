@@ -130,12 +130,14 @@ class public RestBridgeConfigurator
         if(conf! = null()) then
             methodret
         endif
-        
+
         conf!.setConfig(configFilePath!)
         
         rem remove the servlet parameters
-        conf!.clearParams()
-        
+        while !conf!.getParamaterNames().isEmpty()
+            conf!.clearParams()
+        wend
+
         declare File adapterProgram!
         adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
         conf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
@@ -162,20 +164,18 @@ class public RestBridgeConfigurator
     REM  */
     method public void configureRestBridge(String contextName!, String mapping!, HashMap params!, String configFilePath!)
         declare BBjJettyContextConfiguration contextConfig!
-    
+        
+        #serverConfig! = #admin!.getJettyServerConfig()
+        
         if(!#serverConfig!.getContextNames().contains(contextName!)) then
-            contextConfig! = #serverConfig!.createCustomContext(contextName!)
-            contextConfig!.setDocBase("$basis_home/htdocs")
-            contextConfig!.addWelcomeFile("index.html")
-            contextConfig!.setPath("/" + contextName!)
-            #serverConfig!.saveConfig()
+            a = msgbox("Context not found!")
         else
             contextConfig! = #serverConfig!.getCustomContext(contextName!)
         endif
         
         rem check that the mapping is not already used by another program
         if(contextConfig!.getBBjspServletMappings().contains(mapping!)) then
-            REM throw an Exception ?
+            a = msgbox("Mapping already exists!")
             methodret
         endif
 
@@ -205,6 +205,19 @@ class public RestBridgeConfigurator
         wend
 
         #serverConfig!.saveConfig()
+    methodend
+    
+    
+    method public void addContext(String contextName!)
+    
+        if(!#serverConfig!.getContextNames().contains(contextName!)) then
+            contextConfig! = #serverConfig!.createCustomContext(contextName!)
+            contextConfig!.setDocBase("$basis_home/htdocs")
+            contextConfig!.addWelcomeFile("index.html")
+            contextConfig!.setPath("/" + contextName!)
+            #serverConfig!.saveConfig()
+         endif 
+          
     methodend
     
     method public void restartContext(String contextName!)

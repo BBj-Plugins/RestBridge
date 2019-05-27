@@ -7,14 +7,23 @@ class public ContextNameInputWindow
     field private BBjButton btnCancel!
     field private BBjButton btnPreviewCode!
     
+    field private int x!
+    field private int y!
+    
     field private BBjInputE inpeContextName!
     
     field private Boolean cancel!
+    
+    field private String title!
+    field private String btnTitle!
     field private String contextName!
 
-    method public ContextNameInputWindow(BBjSysGui sysGui!)
+    method public ContextNameInputWindow(BBjSysGui sysGui!,int x!, int y!, String title!, String btnTitle!)
         #sysGui! = sysGui!
-        
+        #x! = x!
+        #y! = y!
+        #title!= title!
+        #btnTitle! = btnTitle!
         #init()
     methodend
     
@@ -22,15 +31,17 @@ class public ContextNameInputWindow
         windowWidth = 250
         windowHeight = 85
         context = #sysGui!.getAvailableContext()
-        #window! = #sysGui!.addWindow(context, 300, 300, windowWidth, windowHeight, "Context Name Input", $00080012$)
+        #window! = #sysGui!.addWindow(context, #x!-windowWidth/2, #y!-windowHeight/2, windowWidth, windowHeight, #title!, $00080012$)
 
         controlID = #window!.getAvailableControlID()
-        #window!.addStaticText(controlID, 20, 20, 100, 20, "Context Name:")
+        #window!.addStaticText(controlID, 20, 20, 100, 20, #btnTitle!)
 
         controlID = #window!.getAvailableControlID()
         #inpeContextName! = #window!.addInputE(controlID, 115, 20-4, 125, 20, "")
         #inpeContextName!.setInsertMode(1)
         #inpeContextName!.focus()
+        #inpeContextName!.setCallback(BBjInputE.ON_INPUT_KEYPRESS,#this!,"inputOnKeyPress")
+        
       
         controlWidth = 75
         controlHeight = 25
@@ -49,6 +60,7 @@ class public ContextNameInputWindow
         #btnOK!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "okButtonPush")
          
         #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "windowClose")
+        #window!.setCallback(BBjWindow.ON_KEYPRESS,#this!,"windowOnKeyPress")
     methodend
     
     method public void okButtonPush(BBjButtonPushEvent event!)
@@ -64,6 +76,20 @@ class public ContextNameInputWindow
     method public void cancelButtonPush(BBjButtonPushEvent event!)
         #cancel! = Boolean.TRUE 
         BBjAPI().postCustomEvent("ContextNameInputWindowCloseEvent", "")
+    methodend
+    
+    method public void windowOnKeyPress(BBjKeypressEvent e!)
+         
+        if (e!.getKeyCode() = 27)
+            #cancelButtonPush(null())
+        endif
+    methodend
+    
+    method public void inputOnKeyPress(BBjInputKeypressEvent e!)
+        if (e!.getKeyCode() = 13) then 
+            #okButtonPush(null())
+        endif
+        
     methodend
     
     method public void show()

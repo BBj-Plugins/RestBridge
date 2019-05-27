@@ -19,10 +19,10 @@ declare RestBridgeConfigurator configurator!
 
 
 
-admin! = BBjAPI().getAdmin("admin", "admin3421", err=*next)
+
+admin! = BBjAPI().getAdmin("admin", "admin123", err=*next)
 if(admin! = null()) then
     credentialsWindow! = new AdminAPICredentialWindow()
-   rem  credentialsWindow!.
     sysGui! = BBjAPI().openSysGui("X0")
     while(admin! = null())
         credentialsWindow!.open(sysGui!)
@@ -41,129 +41,147 @@ endif
 
 configurator! = new RestBridgeConfigurator(admin!)
 
-rem get the context names where the Rest Bridge has been configured
-contextNames! = configurator!.getRestBridgeContextConfigurations()
-
-if(!contextNames!.isEmpty()) then
-    answer = msgbox("Select what you want to do.",7,"Rest Bridge Configuration","Create","Edit","Remove")
-
-    rem Cancel
-    if(answer < 1) then
-        release
-    endif
-
-    rem filling the context map<ContextName, BBjVector<Mapping>>
-    contextMap! = new HashMap()
-    for i=0 to contextNames!.size() -1
-        contextName! = contextNames!.get(i)
-        mappings! = configurator!.getRestBridgeMappingsForContext(contextName!)
-        contextMap!.put(contextName!, mappings!)
-    next i
-
-    if(answer > 1) then
-        deleteMode = 0
-        if(answer = 3) then
-            if(REV < "REV 18.00") then
-                a = msgbox("In BBj Versions prior to 18.00 the BBJSP could only be removed manually in the Enterprise Manager.")
-                release
-            endif
-            deleteMode = 1
-        else
-            editMode = 1
-        endif
-
-        declare ContextSelectionDialog dialog!
-        
-        if(contextMap!.size() = 1 AND mappings!.size() = 1) then
-            contextMapping! = mappings!.get(0)
-        else
-            dialog! = new ContextSelectionDialog(deleteMode)
-            dialog!.setContextMap(contextMap!)
-            dialog!.show()
-    
-            if(dialog!.cancelled()) then
-                release
-            endif
-    
-            contextName! = dialog!.getSelectedContextName()
-            contextMapping! = dialog!.getSelectedMapping()
-        endif
- 
-        if(deleteMode) then
-            answer = msgbox("Do you really want to remove the Rest Bridge configuration from the selected Context(" + contextName! + ") with the selected Mapping(" + contextMapping! +") ?", 4)
-            if(answer = 6) then
-                configurator!.removeRestBridgeFromContext(contextName!, contextMapping!)
-                answer = msgbox("The Rest Bridge configuration has been removed successfully from the selected context. Do you want to start/restart the context: " + contextName!, 4)
-                if(answer = 6) then
-                    configurator!.restartContext(contextName!)
-                endif
-            endif
-            release
-        endif
-    endif
-endif
-
 declare RestBridgeConfigurationWindow window!
 window! = new RestBridgeConfigurationWindow(admin!,configurator!)
-
-if(editMode) then
-    window!.setEditMode(Boolean.TRUE)
-    window!.setMapping(contextMapping!)
-
-    declare BBjspServletConfiguration conf!
-    conf! = configurator!.getBBjspServlet(contextName!, contextMapping!)
-    window!.setTimeout(num(conf!.getParameter("REST_TIMEOUT"), err=*next))
-    window!.setWorkingDirectoryPath(conf!.getParameter("REST_WD"))
-    window!.setProgramPrefix(conf!.getParameter("REST_PGM_PREFIX"))
-    window!.setProgramSuffix(conf!.getParameter("REST_PGM_SUFFIX"))
-    window!.setConfigFilePath(conf!.getConfig())
-    window!.setAuthProgramPath(conf!.getParameter("REST_AUTHPGM"))
-    window!.setUseGetAllowedFilters(num(conf!.getParameter("USE_GET_ALLOWED_FILTER"), err=*next))
-    window!.setRequestLogPath(conf!.getParameter("REST_REQUESTLOG"))
-else
-    window!.setAuthProgramPath(configurator!.getDefaultAuthProgramPath())
-endif
-
 displayConfigurationWindow:
 
 window!.show()
 
-if(window!.cancelled()) then
-    release
-endif
+REM if(window!.cancelled()) then
+REM     release
+REM endif
 
-selectedContext! = window!.getContext()
-selectedMapping! = window!.getMapping()
 
-if(!editMode) then
-    if(configurator!.getBBjspServlet(selectedContext!, selectedMapping!) <> null()) then
-        a = msgbox("There is already a BBJSP Servlet defined for this context and mapping, please change")
-        goto displayConfigurationWindow
-    endif
-endif
+rem get the context names where the Rest Bridge has been configured
+rem contextNames! = configurator!.getRestBridgeContextConfigurations()
 
-declare HashMap params!
-params! = new HashMap()
-params!.put("REST_TIMEOUT", str(int(window!.getTimeout())))
-params!.put("REST_WD", window!.getWorkingDirectoryPath())
-params!.put("REST_AUTHPGM", window!.getAuthProgramPath())
-params!.put("REST_PGM_PREFIX", window!.getProgramPrefix())
-params!.put("REST_PGM_SUFFIX", window!.getProgramSuffix())
-params!.put("USE_GET_ALLOWED_FILTER", str(int(window!.useGetAllowedFilters())))
-params!.put("REST_REQUESTLOG", window!.getRequestLogPath())
+REM if(!contextNames!.isEmpty()) then
+REM     answer = msgbox("Select what you want to do.",7,"Rest Bridge Configuration","Create","Edit","Remove")
+REM 
+REM     rem Cancel
+REM     if(answer < 1) then
+REM         release
+REM     endif
+REM 
+REM     rem filling the context map<ContextName, BBjVector<Mapping>>
+REM     contextMap! = new HashMap()
+REM     for i=0 to contextNames!.size() -1
+REM         contextName! = contextNames!.get(i)
+REM         mappings! = configurator!.getRestBridgeMappingsForContext(contextName!)
+REM         contextMap!.put(contextName!, mappings!)
+REM     next i
+REM 
+REM     if(answer > 1) then
+REM         deleteMode = 0
+REM         if(answer = 3) then
+REM             if(REV < "REV 18.00") then
+REM                 a = msgbox("In BBj Versions prior to 18.00 the BBJSP could only be removed manually in the Enterprise Manager.")
+REM                 release
+REM             endif
+REM             deleteMode = 1
+REM         else
+REM             editMode = 1
+REM         endif
+REM 
+REM         declare ContextSelectionDialog dialog!
+REM         
+REM         if(contextMap!.size() = 1 AND mappings!.size() = 1) then
+REM             contextMapping! = mappings!.get(0)
+REM         else
+REM             dialog! = new ContextSelectionDialog(deleteMode)
+REM             dialog!.setContextMap(contextMap!)
+REM             dialog!.show()
+REM     
+REM             if(dialog!.cancelled()) then
+REM                 release
+REM             endif
+REM     
+REM             contextName! = dialog!.getSelectedContextName()
+REM             contextMapping! = dialog!.getSelectedMapping()
+REM         endif
+REM  
+REM         if(deleteMode) then
+REM             answer = msgbox("Do you really want to remove the Rest Bridge configuration from the selected Context(" + contextName! + ") with the selected Mapping(" + contextMapping! +") ?", 4)
+REM             if(answer = 6) then
+REM                 configurator!.removeRestBridgeFromContext(contextName!, contextMapping!)
+REM                 answer = msgbox("The Rest Bridge configuration has been removed successfully from the selected context. Do you want to start/restart the context: " + contextName!, 4)
+REM                 if(answer = 6) then
+REM                     configurator!.restartContext(contextName!)
+REM                 endif
+REM             endif
+REM             release
+REM         endif
+REM     endif
+REM endif
+REM 
+REM declare RestBridgeConfigurationWindow window!
+REM window! = new RestBridgeConfigurationWindow(admin!,configurator!)
+REM ? "edit ?"
+REM if(Boolean.TRUE) then
+REM ? "edit!"
+REM 
+REM     window!.setMapping(contextMapping!)
+REM 
+REM     declare BBjspServletConfiguration conf!
+REM     ?contextName!
+REM     ?contextMapping!
+REM     ? num(conf!.getParameter("REST_TIMEOUT"), err=*next)
+REM     ?conf!.getParameter("REST_WD")
+REM     ?conf!.getParameter("REST_PGM_PREFIX")
+REM     ?conf!.getParameter("REST_PGM_SUFFIX")
+REM     ?conf!.getConfig()
+REM     ?conf!.getParameter("REST_AUTHPGM")
+REM     ?num(conf!.getParameter("USE_GET_ALLOWED_FILTER"), err=*next)
+REM     ?conf!.getParameter("REST_REQUESTLOG")
+REM     ?configurator!.getDefaultAuthProgramPath()
+REM     escape
+REM     
+REM     conf! = configurator!.getBBjspServlet(contextName!, contextMapping!)
+REM     window!.setTimeout(num(conf!.getParameter("REST_TIMEOUT"), err=*next))
+REM     window!.setWorkingDirectoryPath(conf!.getParameter("REST_WD"))
+REM     window!.setProgramPrefix(conf!.getParameter("REST_PGM_PREFIX"))
+REM     window!.setProgramSuffix(conf!.getParameter("REST_PGM_SUFFIX"))
+REM     window!.setConfigFilePath(conf!.getConfig())
+REM     window!.setAuthProgramPath(conf!.getParameter("REST_AUTHPGM"))
+REM     window!.setUseGetAllowedFilters(num(conf!.getParameter("USE_GET_ALLOWED_FILTER"), err=*next))
+REM     window!.setRequestLogPath(conf!.getParameter("REST_REQUESTLOG"))
+REM else
+REM     window!.setAuthProgramPath(configurator!.getDefaultAuthProgramPath())
+REM endif
 
-if(editMode) then
-    configurator!.editRestBridgeConfiguration(selectedContext!, selectedMapping!, params!, window!.getConfigFilePath())
-    introText! = "The Rest Bridge has been successfully edited."
-else
-    a = msgbox("Creating a new Context might take a few seconds")
-    configurator!.configureRestBridge(selectedContext!, selectedMapping!, params!, window!.getConfigFilePath())
-    introText! = "The Rest Bridge has been successfully configured."
-endif
 
-answer = msgbox(introText! + " Do you want to start/restart the context(Might take a few seconds to perform this step): " + selectedContext!, 4)
-if(answer = 6) then
-    configurator!.restartContext(selectedContext!)
-endif
+REM selectedContext! = window!.getContext()
+REM selectedMapping! = window!.getMapping()
+
+REM if(!editMode) then
+REM     if(configurator!.getBBjspServlet(selectedContext!, selectedMapping!) <> null()) then
+REM         a = msgbox("There is already a BBJSP Servlet defined for this context and mapping, please change")
+REM         goto displayConfigurationWindow
+REM     endif
+REM endif
+
+REM declare HashMap params!
+REM params! = new HashMap()
+REM params!.put("REST_TIMEOUT", str(int(window!.getTimeout())))
+REM params!.put("REST_WD", window!.getWorkingDirectoryPath())
+REM params!.put("REST_AUTHPGM", window!.getAuthProgramPath())
+REM params!.put("REST_PGM_PREFIX", window!.getProgramPrefix())
+REM params!.put("REST_PGM_SUFFIX", window!.getProgramSuffix())
+REM params!.put("USE_GET_ALLOWED_FILTER", str(int(window!.useGetAllowedFilters())))
+REM params!.put("REST_REQUESTLOG", window!.getRequestLogPath())
+
+REM if(editMode) then
+REM     configurator!.editRestBridgeConfiguration(selectedContext!, selectedMapping!, params!, window!.getConfigFilePath())
+REM     introText! = "The Rest Bridge has been successfully edited."
+REM else
+REM     a = msgbox("Creating a new Context might take a few seconds")
+REM     configurator!.configureRestBridge(selectedContext!, selectedMapping!, params!, window!.getConfigFilePath())
+REM     introText! = "The Rest Bridge has been successfully configured."
+REM endif
+REM 
+REM answer = msgbox(introText! + " Do you want to start/restart the context(Might take a few seconds to perform this step): " + selectedContext!, 4)
+REM if(answer = 6) then
+REM     configurator!.restartContext(selectedContext!)
+REM endif
 
 release
