@@ -49,6 +49,7 @@ class public RestBridgeConfigurationWindow
     field private String selectedBridge!
 
     field private BBjTree treeContext!
+    field private int node!
 
 
     method public RestBridgeConfigurationWindow(BBjAdmin admin!,RestBridgeConfigurator configurate!)
@@ -73,10 +74,8 @@ class public RestBridgeConfigurationWindow
         space = 10
         y = 25
 
-
         controlWidth = 350
 
-        #reloadTree()
         xorig = 340
         x = xorig
         controlWidth = labelWidth
@@ -237,7 +236,12 @@ class public RestBridgeConfigurationWindow
         #btnRemoveBridge!.setCallback(BBjButton.ON_BUTTON_PUSH,#this!,"removeBridge")
         #btnRemoveBridge!.setEnabled(0)
         
-
+        controlID = #window!.getAvailableControlID()
+        #treeContext! = #window!.addTree(controlID, 20,20,300,335)
+        #treeContext!.setCallback(BBjTree.ON_TREE_SELECT,#this!,"onSelect")
+        #treeContext!.setRoot(0,"contexts")
+        #loadTree()
+        
         #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "closeWindow")
 
         #updateUI()
@@ -249,35 +253,33 @@ class public RestBridgeConfigurationWindow
         process_events
 
         CloseWindow:
-
-
     methodend
 
     method public void onSelect(BBjTreeNodeSelectedEvent event!)
-        declare BBjTree test!
+        #onNodeSelect(event!.getNodeID())
+    methodend
+    
+    method private void onNodeSelect(int id!)
         declare BBjVector vic!
 
-
-         test! = event!.getTree()
          vic! = new BBjVector()
-         vic! = test!.getSelectedNodes()
+         vic! = #treeContext!.getSelectedNodes()
 
-        if(#contexts!.containsKey(event!.getNodeID())) then
-            #selected! = #contexts!.get(event!.getNodeID()).toString()
+        if(#contexts!.containsKey(id!)) then
+            #selected! = #contexts!.get(id!).toString()
             #selectedBridge! = ""
             #updateUI()
             #btnRemoveBridge!.setEnabled(0)
             #btnAddBridge!.setEnabled(1)
         else
-
-            if(#mappings!.containsKey(event!.getNodeID())) then
-                    #selectedBridge! = #mappings!.get(event!.getNodeID()).toString()
-                    #selected! = #contexts!.get(#treeContext!.getParentNode(event!.getNodeID())).toString()
-                    #updateUI()
-                    #btnRemoveBridge!.setEnabled(1)
+            if(#mappings!.containsKey(id!)) then
+                #selectedBridge! = #mappings!.get(id!).toString()
+                #selected! = #contexts!.get(#treeContext!.getParentNode(id!)).toString()
+                #updateUI()
+                #btnRemoveBridge!.setEnabled(1)
             endif
         endif
-
+        
     methodend
 
     method private BBjspServletConfiguration reciveBridgeInformation()
@@ -289,25 +291,24 @@ class public RestBridgeConfigurationWindow
             methodret null()
         endif
         methodret servlet!
-
     methodend
 
     method private void enableUI(Boolean enable!)
 
-            #inpeRequestLog!.setEnabled(enable!)
-            #inpeConfigFile!.setEnabled(enable!)
-            #inpeAuthProgram!.setEnabled(enable!)
-            #inpeProgramPrefix!.setEnabled(enable!)
-            #inpeProgramSuffix!.setEnabled(enable!)
-            #inpeWorkingDirectory!.setEnabled(enable!)
-            #inpnTimeout!.setEnabled(enable!)
-            #btnPreviewCode!.setEnabled(enable!)
-            #btnBrowseConfigFile!.setEnabled(enable!)
-            #btnBrowseRequestLogFile!.setEnabled(enable!)
-            #btnBrowseWorkingDirectory!.setEnabled(enable!)
-            #btnBrowseAuthenticationFile!.setEnabled(enable!)
-            #chbUseGetAllowedFilters!.setEnabled(enable!)
-            #btnSave!.setEnabled(enable!)
+        #inpeRequestLog!.setEnabled(enable!)
+        #inpeConfigFile!.setEnabled(enable!)
+        #inpeAuthProgram!.setEnabled(enable!)
+        #inpeProgramPrefix!.setEnabled(enable!)
+        #inpeProgramSuffix!.setEnabled(enable!)
+        #inpeWorkingDirectory!.setEnabled(enable!)
+        #inpnTimeout!.setEnabled(enable!)
+        #btnPreviewCode!.setEnabled(enable!)
+        #btnBrowseConfigFile!.setEnabled(enable!)
+        #btnBrowseRequestLogFile!.setEnabled(enable!)
+        #btnBrowseWorkingDirectory!.setEnabled(enable!)
+        #btnBrowseAuthenticationFile!.setEnabled(enable!)
+        #chbUseGetAllowedFilters!.setEnabled(enable!)
+        #btnSave!.setEnabled(enable!)
     methodend
 
     method private void updateUI()
@@ -357,12 +358,12 @@ class public RestBridgeConfigurationWindow
             #prevWindow!.destroy()
         endif
         BBjAPI().postCustomEvent("CloseWindowEvent", "")
-
     methodend
 
     method public void closePrevWindow(BBjCloseEvent event!)
         #previewField!.destroy()
         #prevWindow!.destroy()
+        #window!.setEnabled(1)
         #opend! = Boolean.FALSE
     methodend
 
@@ -378,6 +379,7 @@ class public RestBridgeConfigurationWindow
             a = msgbox("No Bridge selected!")
             methodret
         endif
+        
         params! = new HashMap()
         params!.put("REST_TIMEOUT", str(int(#getTimeout())))
         params!.put("REST_WD", #getWorkingDirectoryPath())
@@ -387,21 +389,19 @@ class public RestBridgeConfigurationWindow
         params!.put("USE_GET_ALLOWED_FILTER", str(int(#useGetAllowedFilters())))
         params!.put("REST_REQUESTLOG", #getRequestLogPath())
 
-        ? params!.get("REST_TIMEOUT")
+        #window!.setCursor(32514)
         #configurate!.editRestBridgeConfiguration(#selected!, #selectedBridge!, params!, #getConfigFilePath())
+        #window!.setCursor(32512)
 
         a = msgbox("Bridge configurations saved successfully!")
-
-        #reloadTree()
-REM         BBjAPI().postCustomEvent("CloseWindowEvent", "")
     methodend
 
     method public void windowKeypressEvent(BBjKeypressEvent e!)
 
         if e!.getKeyCode() = 27 then
             #prevWindow!.setVisible(0)
+            #window!.setEnabled(1)
         endif
-
     methodend
 
     method public void addContextButtonPush(BBjButtonPushEvent event!)
@@ -409,42 +409,36 @@ REM         BBjAPI().postCustomEvent("CloseWindowEvent", "")
         wnd! = new ContextNameInputWindow(#sysGui!,#window!.getX()+#window!.getWidth()/2,#window!.getY()+#window!.getHeight()/2,"Context Name Input","Context Name:")
         wnd!.show()
 
-
         if(!wnd!.cancelled()) then
             name! = wnd!.getContextName()
 
               if(name! = "") then
                     a = msgbox("Invalid Context Name")
                     #addContextButtonPush(null())
-                 
               endif
 
               if(#contexts!.containsValue(name!)) then
                     a = msgbox("Invalid Context Name")
                     #addContextButtonPush(null())
-
               endif
 
               if (name! <> "" AND !#contexts!.containsValue(name!)) then
                     #btnAddContext!.setEnabled(0)
                     #window!.setCursor(32514)
                     #configurate!.addContext(name!)
-                    #reloadTree()
+                    #addContext(name!)
                     #btnAddContext!.setEnabled(1)
                     #window!.setCursor(32512)
                     a = msgbox("Context was created")
               endif
-
         endif
     methodend
-
 
     method public void addBridge (BBjButtonPushEvent e!)
        declare ContextNameInputWindow wnd!
        declare java.lang.String name!
         wnd! = new ContextNameInputWindow(#sysGui!,#window!.getX()+#window!.getWidth()/2,#window!.getY()+#window!.getHeight()/2,"Bridge Mapping Input","Bridge Mapping:")
         wnd!.show()
-
 
         if(!wnd!.cancelled()) then
             name! = wnd!.getContextName()
@@ -462,9 +456,7 @@ REM         BBjAPI().postCustomEvent("CloseWindowEvent", "")
             endif
             name! = name!.replaceAll(" ","")
 
-
             params! = new HashMap()
-
             params!.put("REST_TIMEOUT","1000")
             params!.put("REST_WD", "")
             params!.put("REST_AUTHPGM","C:\bbj\plugins\RestBridge\authenticate.bbj")
@@ -475,62 +467,120 @@ REM         BBjAPI().postCustomEvent("CloseWindowEvent", "")
 
             #configurate!.configureRestBridge(#selected!,name!,params!,"")
             #inpnTimeout!.setFocusable(1)
+            #selectedBridge! = name!
             a = msgbox("Bridge successfully created!")
-            #reloadTree()
+            #addBridge(name!)
         endif
     methodend
 
     method public void removeBridge(BBjButtonPushEvent e!)
-            if (!(#selectedBridge! = "") AND !(#selected! = ""))
-                #configurate!.removeRestBridgeFromContext(#selected!,#selectedBridge!)
-                a = msgbox("The Bridge :" + #selectedBridge! + " was deleted from Context: "+#selected!+"." )
-                #selectedBridge! = ""
-                #selected! = ""
-                #btnRemoveBridge!.setEnabled(0)
-                #btnAddBridge!.setEnabled(0)
-            else
-                a = msgbox("No Bridge selected")
-            endif
-            #reloadTree()
+        if (!(#selectedBridge! = "") AND !(#selected! = ""))
+            a = msgbox("Are you sure you want to delete " + #selectedBridge! + " from " + #selected!,1)
+            if a <> 1 then
+                methodret
+            endif 
+            #configurate!.removeRestBridgeFromContext(#selected!,#selectedBridge!)
+            a = msgbox("The Bridge :" + #selectedBridge! + " was deleted from Context: "+#selected!+"." )
+            #btnRemoveBridge!.setEnabled(0)
+            #btnAddBridge!.setEnabled(0)
+            #removeBridge(#selectedBridge!)
+            #selectedBridge! = ""
             #updateUI()
+        else
+            a = msgbox("No Bridge selected")
+        endif
+    methodend
+    
+    method private void removeBridge(String name!)
+        declare int id!
+        declare int j!
 
+        rem j! is needed because BBj changes int to BBjInt
+        for i = 1 to #node!
+            j! =i
+            
+            if(#selectedBridge! = #mappings!.get(j!))
+                if(#treeContext!.getNodeText(#treeContext!.getParentNode(j!)) = #selected!)
+                    #treeContext!.removeNode(j!)
+                    break
+                endif
+            endif
+        next i 
+    methodend
+    
+    method private void addContext(String name!)
+        #node!= #node!+1 
+        #treeContext!.addExpandaNode(#node!,0,name!)
+        #contexts!.put(#node!,name!)
+    methodend
+    
+    method private void addBridge(String name!)
+        declare int id!
+        declare int j!
+
+        rem j! is needed cause BBj changes int to BBjInt
+        for i = 1 to #node!
+            j! =i
+            if (#contexts!.get(j!) = #selected!) then
+                #node!= #node! +1
+                #treeContext!.addNode(#node!,j!,name!)
+                #mappings!.put(#node!,name!)
+                break 
+            endif
+        next i 
+        for i = 1 to #node! 
+            if (#treeContext!.getNodeText(i) = #selectedBridge!) then
+                if (#treeContext!.getNodeText(#treeContext!.getParentNode(i)) = #selected!) then
+                    #treeContext!.selectNode(i)
+                    #onNodeSelect(i)
+                    break
+                endif
+            endif
+        next i 
     methodend
 
-    method public void reloadTree()
+    method public void loadTree()
         declare BBjVector victor!
         declare BBjVector victor2!
         declare BBjspServletConfiguration bbjspServletConfiguration!
-        declare int node!
-
 
         #contexts!.clear()
         #mappings!.clear()
-
-        controlID = #window!.getAvailableControlID()
-
-        #treeContext! = #window!.addTree(controlID, 20,20,300,335)
-        #treeContext!.setCallback(BBjTree.ON_TREE_SELECT,#this!,"onSelect")
-        #treeContext!.setRoot(node,"contexts")
-
-        node! = 0
+        
+        #treeContext!.removeNode(0)
+        #node! = 0
+        #treeContext!.setRoot(#node!,"contexts")
+        
         victor! = #admin!.getJettyServerConfig().getContextNames()
         for i= 0 to victor!.size()-1
-          node! = node! +1
-          #treeContext!.addExpandableNode(node!,parent,victor!.getItem(i).toString())
-          #contexts!.put(node!,victor!.getItem(i).toString())
-          victor2! = #admin!.getJettyServerConfig().getCustomContext(victor!.getItem(i).toString()).getBBjspServlets()
-          branch_node! = node!
-          if victor2!.size > 0 then
-            for y=0 to victor2!.size()-1
-              node! = node!+1
-              bbjspServletConfiguration! = cast(BBjspServletConfiguration ,victor2!.getItem(y))
-              if bbjspServletConfiguration!.getClassName() = "RestBridge" then
-                     #treeContext!.addNode(node!,branch_node!,bbjspServletConfiguration!.getMapping())
-                     #mappings!.put(node!,bbjspServletConfiguration!.getMapping())
-              fi
-            next y
-          fi
+        
+            #node! = #node! +1
+
+            #treeContext!.addExpandableNode(#node!,parent,victor!.getItem(i).toString())
+            #contexts!.put(#node!,victor!.getItem(i).toString())
+            victor2! = #admin!.getJettyServerConfig().getCustomContext(victor!.getItem(i).toString()).getBBjspServlets()
+            branch_node! = #node!
+            if victor2!.size > 0 then
+                for y=0 to victor2!.size()-1
+                    bbjspServletConfiguration! = cast(BBjspServletConfiguration ,victor2!.getItem(y))
+                    if bbjspServletConfiguration!.getClassName() = "RestBridge" then
+                        #node! = #node!+1
+                        #treeContext!.addNode(#node!,branch_node!,bbjspServletConfiguration!.getMapping())
+                        #mappings!.put(#node!,bbjspServletConfiguration!.getMapping())
+                    endif
+                next y
+            endif
         next i
+        
+        for i = 1 to #node!
+            if (#treeContext!.getNodeText(i) = #selectedBridge!) then
+                if (#treeContext!.getNodeText(#treeContext!.getParentNode(i)) = #selected!) then
+                    #treeContext!.selectNode(i)
+                    #onNodeSelect(i)
+                    break
+                endif
+            endif
+        next i 
     methodend
 
     method public void browseConfigFileButtonPush(BBjButtonPushEvent event!)
@@ -579,14 +629,13 @@ REM         BBjAPI().postCustomEvent("CloseWindowEvent", "")
 
     method public void previewCode(BBjButtonPushEvent e!)
 
-        #prevWindow! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), #window!.getX(), #window!.getY(),#window!.getWidth(),#window!.getHeight(), "Codepreview", $00000002$)
+        #prevWindow! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), #window!.getX(), #window!.getY(),#window!.getWidth()+100,#window!.getHeight(), "Codepreview", $00000002$)
         #opend! = Boolean.TRUE
         #prevWindow!.setCallback(BBjWindow.ON_KEYPRESS,#this!,"windowKeypressEvent")
-
+        #window!.setEnabled(0)
 
         controlID = #prevWindow!.getAvailableControlID()
         #prevWindow!.addStaticText(controlID,20,0,80,20,"Example Code:")
-
 
         controlID = #prevWindow!.getAvailableControlID()
         #previewField! = #prevWindow!.addCEdit(controlID,20,20,#prevWindow!.getWidth() - 40,#prevWindow!.getHeight() - 40,"",$0306$)
@@ -598,52 +647,80 @@ REM         BBjAPI().postCustomEvent("CloseWindowEvent", "")
         #prevWindow!.setCallback(BBjAPI.ON_CLOSE, #this!,"closePrevWindow")
 
         #previewField!.setText(#assembleCode())
-
     methodend
 
     method private String assembleCode()
         declare java.lang.StringBuilder builder!
         builder! = new java.lang.StringBuilder()
-
-        builder!.append("admin! = BBjAPI().getAdmin(user!,password!)"+$0A$)
-        builder!.append("serverConfig! = admin!.getJettyServerConfig()"+$0A$+$0A$)
-        builder!.append("contextConfig! = serverConfig!.createCustomContext(contextName!)"+$0A$)
-        builder!.append("contextConfig!.setDocBase(""$basis_home/htdocs"")"+$0A$)
-        builder!.append("contextConfig!.addWelcomeFile(""index.html"")"+$0A$)
-        builder!.append("contextConfig!.setPath(""/"" + contextName!)"+$0A$)
-        builder!.append("serverConfig!.saveConfig()"+$0A$+$0A$)
-        builder!.append("contextConfig!.getBBjspServletMappings().contains(mapping!)"+$0A$+$0A$)
-        builder!.append("directory! = new File(dsk("""") + dir(""""))"+$0A$)
-        builder!.append("pluginDirectory! = directory!.getParentFile()"+$0A$)
-        builder!.append("restBridgeFile! = new File(pluginDirectory!, ""RestBridge.bbj"")"+$0A$+$0A$)
-        builder!.append("declare BBjspServletConfiguration configuration!"+$0A$)
-        builder!.append("configuration! = contextConfig!.addBBjspServlet(""RestBridge"", mapping!, restBridgeFile!.getAbsolutePath())"+$0A$)
-        builder!.append("configuration!.setConfig(configFilePath!)"+$0A$+$0A$)
+        
+        builder!.append("use java.io.File"+$0A$+$0A$)
+        builder!.append("declare File restBridgeFile!"+$0A$)
+        builder!.append("declare File directory!"+$0A$)
         builder!.append("declare File adapterProgram!"+$0A$)
-        builder!.append("adapterProgram! = new File(pluginDirectory!, ""RestBCAdapter.bbj"")"+$0A$)
-        builder!.append("configuration!.addParam(""REST_ADAPTERPGM"", adapterProgram!.getAbsolutePath())"+$0A$)
-        builder!.append("configuration!.addParam(""REST_ADAPTERTERM"", ""IO"")"+$0A$+$0A$)
-        builder!.append("declare Iterator it!"+$0A$)
-        builder!.append("it! = params!.entrySet().iterator()"+$0A$+$0A$)
-        builder!.append("while(it!.hasNext())"+$0A$)
-        builder!.append("   entry! = it!.next()"+$0A$)
-        builder!.append("   if(entry!.getValue() <> """") then"+$0A$)
-        builder!.append("       configuration!.addParam(entry!.getKey(), entry!.getValue())"+$0A$)
-        builder!.append("   endif"+$0A$)
-        builder!.append("wend"+$0A$+$0A$)
-        builder!.append("serverConfig!.saveConfig()")
+        builder!.append("declare BBjAdmin admin!"+$0A$)
+        builder!.append("declare BBjJettyContextConfiguration contextConf!"+$0A$)
+        builder!.append("declare BBjJettyServerConfiguration serverconfig!"+$0A$)
+        builder!.append("declare BBjspServletConfiguration bridgeConf!"+$0A$+$0A$)
+        builder!.append("declare String user!"+$0A$)
+        builder!.append("declare String password!"+$0A$)
+        builder!.append("declare String contextName!"+$0A$)
+        builder!.append("declare String bridgeName!"+$0A$)
+        builder!.append("declare String configFilePath!"+$0A$)
+        builder!.append("declare String timeOut!"+$0A$)
+        builder!.append("declare String workingDirectory!"+$0A$)
+        builder!.append("declare String authPgm!"+$0A$)
+        builder!.append("declare String preffix!"+$0A$)
+        builder!.append("declare String suffix!"+$0A$)
+        builder!.append("declare String useGetAllowedFilter!"+$0A$)
+        builder!.append("declare String requestLogPath!"+$0A$+$0A$)
+        builder!.append("user! = """"" +$0A$)
+        builder!.append("password! = """""+$0A$)
+        builder!.append("contextName! = """+#selected!+""""+$0A$)
+        builder!.append("bridgeName! = """+#selectedBridge!+""""+$0A$)
+        builder!.append("configFilePath! = """+#getConfigFilePath()+""""+$0A$)
+        builder!.append("timeOut! = """+str(#getTimeout())+""""+$0A$)
+        builder!.append("workingDirectory! = """+#getWorkingDirectoryPath()+""""+$0A$)
+        builder!.append("authPgm! = """+#getAuthProgramPath()+""""+$0A$)
+        builder!.append("preffix! = """+#getProgramPrefix()+""""+$0A$)
+        builder!.append("suffix! = """+#getProgramSuffix()+""""+$0A$)
+        builder!.append("useGetAllowedFilter! = """+str(#useGetAllowedFilters())+""""+$0A$)
+        builder!.append("requestLogPath! = """+#getRequestLogPath()+""""+$0A$+$0A$)
+        builder!.append("admin! = BBjAPI().getAdmin(user!,password!)"+$0A$)
+        builder!.append("serverConfig! = admin!.getJettyServerConfig()"+$0A$)
+        builder!.append("directory! = new File(dsk("""") + dir(""""))"+$0A$+$0A$)
+        builder!.append("REM Creating a new Context with default DocBase and a WelcomeFile"+$0A$)
+        builder!.append("contextConf! = serverConfig!.createCustomContext(contextName!)"+$0A$)
+        builder!.append("contextConf!.setDocBase(""$basis_home/htdocs"")"+$0A$)
+        builder!.append("contextConf!.addWelcomeFile(""index.html"")"+$0A$)
+        builder!.append("contextConf!.setPath(""/"" + contextName!)"+$0A$)
+        builder!.append("serverConfig!.saveConfig()"+$0A$+$0A$)
+        builder!.append("restBridgeFile! = new File(directory!.getParentFile(),""RestBridge.bbj"")"+$0A$)
+        builder!.append("bridgeConf! = contextConf!.addBBjspServlet(""RestBridge"",bridgeName!,restBridgeFile!.getAbsolutePath())"+$0A$+$0A$)
+        builder!.append("bridgeConf!.setConfig(configFilePath!)"+$0A$)
+        builder!.append("adapterProgram! = new File(directory!.getParentFile(),""RestBCAdapter.bbj"")"+$0A$+$0A$)
+        builder!.append("REM Here you can add Parameter to your Birdge."+$0A$)
+        builder!.append("bridgeConf!.addParam(""REST_ADAPTERPGM"", adapterProgram!.getAbsolutePath())"+$0A$)
+        builder!.append("bridgeConf!.addParam(""REST_ADAPTERTERM"", ""IO"")"+$0A$)
+        builder!.append("bridgeConf!.addParam(""REST_TIMEOUT"",timeOut!)"+$0A$)
+        builder!.append("bridgeConf!.addParam(""REST_WD"",workingDirectory!)"+$0A$)
+        builder!.append("bridgeConf!.addParam(""REST_AUTHPGM"",authpgm!)"+$0A$)
+        builder!.append("bridgeConf!.addParam(""REST_PGM_PREFIX"",preffix!)"+$0A$)
+        builder!.append("bridgeConf!.addParam(""REST_PGM_SUFFIX"",suffix!)"+$0A$)
+        builder!.append("bridgeConf!.addParam(""USE_GET_ALLOWED_FILTER"",useGetAllowedFilter!)"+$0A$)
+        builder!.append("bridgeConf!.addParam(""REST_REQUESTLOG"",requestLogPath!)"+$0A$)
+        builder!.append("serverConfig!.saveConfig()"+$0A$)
 
         methodret builder!.toString()
     methodend
     
     method public void okOnClick(BBjButtonPushEvent e!)
         if !( #selected! = null() OR #selected! = "" OR #selectedBridge! = "" OR #selectedBridge! = null()) then
-
             #saveClicked(null())
         endif    
 
         BBjAPI().postCustomEvent("CloseWindowEvent", "")
-    methodend
+    methodend 
+    
     
     
     rem /**
