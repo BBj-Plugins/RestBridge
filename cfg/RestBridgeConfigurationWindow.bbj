@@ -364,6 +364,7 @@ class public RestBridgeConfigurationWindow
         #previewField!.destroy()
         #prevWindow!.destroy()
         #window!.setEnabled(1)
+        #window!.focus()
         #opend! = Boolean.FALSE
     methodend
 
@@ -401,6 +402,7 @@ class public RestBridgeConfigurationWindow
         if e!.getKeyCode() = 27 then
             #prevWindow!.setVisible(0)
             #window!.setEnabled(1)
+            #window!.focus()
         endif
     methodend
 
