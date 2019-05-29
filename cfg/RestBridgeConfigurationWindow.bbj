@@ -85,7 +85,7 @@ class public RestBridgeConfigurationWindow
 
         controlWidth = 150
         controlID = #window!.getAvailableControlID()
-        #inpeMapping! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeight)
+        #inpeMapping! = #window!.addInputE(controlID, x, y-5, controlWidth, controlHeigh)
         #inpeMapping!.setEnabled(0)
         #inpeMapping!.setInsertMode(1)
 
@@ -449,6 +449,7 @@ class public RestBridgeConfigurationWindow
                 #addContextButtonPush(null())
                 methodret
             endif
+            
             if !(name!.endsWith("/*")) then
                 name! = name! + "/*"
             endif
@@ -466,12 +467,15 @@ class public RestBridgeConfigurationWindow
             params!.put("REST_PGM_SUFFIX",".bbj")
             params!.put("USE_GET_ALLOWED_FILTER","0")
             params!.put("REST_REQUESTLOG","")
-
-            #configurate!.configureRestBridge(#selected!,name!,params!,"")
-            #inpnTimeout!.setFocusable(1)
-            #selectedBridge! = name!
-            a = msgbox("Bridge successfully created!")
-            #addBridge(name!)
+            if !(#mappings!.containsValue(name!)) then 
+                #configurate!.configureRestBridge(#selected!,name!,params!,"")
+                #inpnTimeout!.setFocusable(1)
+                #selectedBridge! = name!
+                a = msgbox("Bridge successfully created!")
+                #addBridge(name!)
+            else
+                a = msgbox("Mapping already exists!")
+            endif
         endif
     methodend
 
@@ -482,7 +486,7 @@ class public RestBridgeConfigurationWindow
                 methodret
             endif 
             #configurate!.removeRestBridgeFromContext(#selected!,#selectedBridge!)
-            a = msgbox("The Bridge :" + #selectedBridge! + " was deleted from Context: "+#selected!+"." )
+            a = msgbox("The Bridge " + #selectedBridge! + " was deleted from Context "+#selected!+"." )
             #btnRemoveBridge!.setEnabled(0)
             #btnAddBridge!.setEnabled(0)
             #removeBridge(#selectedBridge!)
@@ -512,7 +516,7 @@ class public RestBridgeConfigurationWindow
     
     method private void addContext(String name!)
         #node!= #node!+1 
-        #treeContext!.addExpandaNode(#node!,0,name!)
+        #treeContext!.addExpandableNode(#node!,0,name!)
         #contexts!.put(#node!,name!)
     methodend
     
@@ -530,11 +534,12 @@ class public RestBridgeConfigurationWindow
                 break 
             endif
         next i 
-        for i = 1 to #node! 
-            if (#treeContext!.getNodeText(i) = #selectedBridge!) then
-                if (#treeContext!.getNodeText(#treeContext!.getParentNode(i)) = #selected!) then
-                    #treeContext!.selectNode(i)
-                    #onNodeSelect(i)
+        for i = 1 to #node!
+            j! = i
+            if (#treeContext!.getNodeText(j!) = #selectedBridge!) then
+                if (#treeContext!.getNodeText(#treeContext!.getParentNode(j!)) = #selected!) then
+                    #treeContext!.selectNode(j!)
+                    #onNodeSelect(j!)
                     break
                 endif
             endif
