@@ -7,7 +7,7 @@ use ::RestBridge/cfg/ContextSelectionDialog.bbj::ContextSelectionDialog
 use ::RestBridge/cfg/AdminAPICredentialWindow.bbj::AdminAPICredentialWindow
 use ::RestBridge/cfg/RestBridgeConfigurationWindow.bbj::RestBridgeConfigurationWindow
 
-print 'hide'
+rem print 'hide'
 
 declare BBjAdmin admin!
 declare AdminAPICredentialWindow credentialsWindow!

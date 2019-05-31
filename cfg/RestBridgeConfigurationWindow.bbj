@@ -489,7 +489,16 @@ class public RestBridgeConfigurationWindow
             a = msgbox("The Bridge " + #selectedBridge! + " was deleted from Context "+#selected!+"." )
             #btnRemoveBridge!.setEnabled(0)
             #btnAddBridge!.setEnabled(0)
+
+            declare int j!
+            j! = 0
+            while !(#mappings!.get(j!) = #selectedBridge!)
+                j! = j! + 1
+            wend
+            
             #removeBridge(#selectedBridge!)
+            #mappings!.remove(j!)
+            #node! = #node!- 1
             #selectedBridge! = ""
             #updateUI()
         else
@@ -534,6 +543,7 @@ class public RestBridgeConfigurationWindow
                 break 
             endif
         next i 
+
         for i = 1 to #node!
             j! = i
             if (#treeContext!.getNodeText(j!) = #selectedBridge!) then
