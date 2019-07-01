@@ -1,2 +1,0 @@
-#Mon May 20 12:15:00 CEST 2019
-projectConfiguration={"environmentId"\:"BRE_CONTAINER","projectPrefix"\:"","tokenized"\:false,"outputFolderName"\:"bin","projectVersion"\:"18.21.0","deploymentDescriptor"\:"","properties"\:{},"compilerErrorLogging"\:false,"projectBuildLogging"\:true,"staticTypeChecking"\:false,"staticTypeWarnings"\:false,"defaultSourceOption"\:false,"maxParseSize"\:1048576}
