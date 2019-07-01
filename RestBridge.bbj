@@ -428,6 +428,11 @@ class public RestBridge
             endif
         endif
 
+        rem Set the String value's character set based on the Accept-Charset value(if set)
+        if request!.getHeader("Accept-Charset") <> null() then
+            charset! = request!.getHeader("Accept-Charset")
+            #setCharacterSet(rs!, charset!)
+        endif
 
         if pos("text/html"=accept$) > 0 OR pos("*/*"=accept$) > 0  then
             if rs!.size() then
@@ -717,6 +722,48 @@ class public RestBridge
 
     methodend
 
+    rem /**
+    rem  * This method converts the VARCHAR and LONGVARCHAR field values 
+    rem  * of the given ResultSet to the given charset. 
+    rem  * 
+    rem  * This method is used when the Accept-Charset header was specified 
+    rem  * so that the RestBridge returns the Data in the requested charset.
+    rem  * 
+    rem  * @param resultSet! The ResultSet whose VARCHAR and LONGVARCHAR fields will be converted
+    rem  * @param charset! The character Set to use for the VARCHAR fields
+    rem  *
+    rem  */
+    method private static void setCharacterSet(ResultSet resultSet!, String charset!)
+        charsetIsSupported! = Boolean.FALSE
+        charsetIsSupported! = java.nio.charset.Charset.isSupported(charset!, err=*next)
+        if !charsetIsSupported! then
+            methodret
+        endif
+
+        if resultSet! = null() or resultSet!.isEmpty() then
+            methodret 
+        endif
+
+        rsIterator! = resultSet!.iterator()
+        while rsIterator!.hasNext()
+            dataRow! = rsIterator!.next()
+            
+            fieldNames! = dataRow!.getFieldNames()
+            if fieldNames!.isEmpty() then
+                continue
+            endif
+            
+            fieldNameIterator! = fieldNames!.iterator()
+            while fieldNameIterator!.hasNext()
+                fieldName! = fieldNameIterator!.next()
+
+                fieldType! = dataRow!.getFieldType(fieldName!)
+                if fieldType! = java.sql.Types.VARCHAR OR fieldType! = java.sql.Types.LONGVARCHAR then
+                    dataRow!.setFieldValue(fieldName!, new String(dataRow!.getFieldAsString(fieldName!), charset!))
+                endif
+            wend
+        wend
+    methodend
 
     method public static BBjString newSession(BBjString auth$, HashMap servletParams!)
 
