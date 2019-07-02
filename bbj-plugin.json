@@ -3,5 +3,5 @@
 	"description":"The REST Bridge Plug-In allows to publish BBj classes as a RESTful web service.",
 	"version":"1.00",
 	"author":"Basis",
-	"bbj_dependency"     : "17.00"
+	"bbj_dependency"     : "18.21"
 }
