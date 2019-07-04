@@ -467,6 +467,7 @@ class public RestBridgeConfigurationWindow
     method public void addBridge (BBjButtonPushEvent e!)
        declare ContextNameInputWindow wnd!
        declare java.lang.String name!
+       declare File bbjHome!
         wnd! = new ContextNameInputWindow(#sysGui!,#window!.getX()+#window!.getWidth()/2,#window!.getY()+#window!.getHeight()/2,"Bridge Mapping Input","Bridge Mapping:")
         wnd!.show()
 
@@ -486,11 +487,14 @@ class public RestBridgeConfigurationWindow
                 name! = "/" + name!
             endif  
             name! = name!.replaceAll(" ","")
-
+            
+            bbjHome! = new File(System.getProperty("basis.BBjHome"))
+            auth! = bbjHome!.getAbsolutePath() + "\plugins\RestBridge\authenticate.bbj"
+            
             params! = new HashMap()
             params!.put("REST_TIMEOUT","1000")
             params!.put("REST_WD", "")
-            params!.put("REST_AUTHPGM","C:\bbj\plugins\RestBridge\authenticate.bbj")
+            params!.put("REST_AUTHPGM",auth!)
             params!.put("REST_PGM_PREFIX","")
             params!.put("REST_PGM_SUFFIX",".bbj")
             params!.put("USE_GET_ALLOWED_FILTER","0")
