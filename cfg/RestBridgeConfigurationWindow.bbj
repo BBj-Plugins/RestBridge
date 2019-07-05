@@ -490,9 +490,8 @@ class public RestBridgeConfigurationWindow
             
             buffer! = System.getProperty("basis.BBjHome") + "\plugins\RestBridge\authenticate.bbj"
             bbjHome! = new File(buffer!)
-            auth! = bbjHome!.getAbsolutePath()
-            ? auth!
-            escape 
+            auth! = bbjHome!.getAbsolutePath().replaceAll("\\|\/", File.Separator)
+
             params! = new HashMap()
             params!.put("REST_TIMEOUT","1000")
             params!.put("REST_WD", "")
