@@ -488,9 +488,11 @@ class public RestBridgeConfigurationWindow
             endif  
             name! = name!.replaceAll(" ","")
             
-            bbjHome! = new File(System.getProperty("basis.BBjHome"))
-            auth! = bbjHome!.getAbsolutePath() + "\plugins\RestBridge\authenticate.bbj"
-            
+            buffer! = System.getProperty("basis.BBjHome") + "\plugins\RestBridge\authenticate.bbj"
+            bbjHome! = new File(buffer!)
+            auth! = bbjHome!.getAbsolutePath()
+            ? auth!
+            escape 
             params! = new HashMap()
             params!.put("REST_TIMEOUT","1000")
             params!.put("REST_WD", "")
