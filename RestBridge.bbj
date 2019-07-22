@@ -365,22 +365,20 @@ class public RestBridge
             if pos("application/json"=accept$) > 0 then
                 response!.setStatus(num(statuscode!))
                 response!.setContentType("application/json")
-                rs! = answer!.get("resultset",err=*next)
-                if method$ = "POST" and rs! <> null() and rs!.size() > 0 then
-                    wr! = new java.io.StringWriter()
-                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
-                    wr!.flush()
-                    wr!.close()
-                    response!.getOutputStream().write(wr!.toString())
-                    #logResponse(req_id$,response!)
-                else
-                    e$ = "{""code"":"""+str(errorcode$)+""",""message"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)+""","
-                    if debug and statuscode! <> "401" then
-                        e$ = e$ + """stacktrace"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)+""","
-                    endif
-                    e$ = e$ + """ses"":"""+ses$+"""}"
-                    response!.getOutputStream().write(e$)
-                endif
+                    if request!.getHeader("verbose", err=*next)="true" then		
+					   e$ = "[{""status"":""error"",""value"":[],""count"":""0"", ""error"": {""code"":"""+str(errorcode$)+""",""message"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)+""","
+						if debug and statuscode! <> "401" then
+							e$ = e$ + """stacktrace"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)+""","
+						endif						 
+						e$ = e$ + """ses"":"""+ses$+"""}}]" 
+                    else	
+  					   	e$ = "{""code"":"""+str(errorcode$)+""",""message"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)+""","
+						if debug and statuscode! <> "401" then
+							e$ = e$ + """stacktrace"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)+""","
+						endif						 
+						e$ = e$ + """ses"":"""+ses$+"""}"                  
+                    endif    
+                response!.getOutputStream().write(e$)
             else
                 response!.setContentType("text/html")
                 s! = response!.getOutputStream()
@@ -570,25 +568,33 @@ class public RestBridge
             else
                 if pos("application/json"=accept$) > 0 then
                     response!.setContentType("application/json")
-                    wr! = new java.io.StringWriter()
-                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
-                    wr!.flush()
-                    wr!.close()
-                    
-                    
-                    s! = response!.getOutputStream()    
-                    if (restbridge_opt_enablegzip>0 and do_gzip) then
-                        response!.setHeader("content-encoding","gzip")
-                        out!= new java.io.ByteArrayOutputStream()
-                        gzip! = new java.util.zip.GZIPOutputStream(out!)
-                        gzip!.write(wr!.toString().getBytes())
-                        gzip!.close()
-                        compressedData! = out!.toByteArray()
-                        s!.write(compressedData!)
-                    else
-                        s!.write(wr!.toString())
-                    fi
-
+                    if request!.getHeader("verbose", err=*next)="true" then				
+						
+						if request!.getHeader("nometa", err=*next)="true" then  
+							resultsetString$ = rs!.toJson(java.lang.Boolean.FALSE)
+						else 
+							wr! = new java.io.StringWriter()						
+							com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!)						
+							resultsetString$ = wr!.toString()
+							wr!.flush()
+							wr!.close()
+						endif 
+						rsCount$ = STR(rs!.size())
+						outputString$ = "[{""status"":""OK"",""value"":"+resultsetString$+",""count"":"""+rsCount$+""", ""error"": {}}]"
+						s!.write(outputString$)                   
+                    else					
+						if request!.getHeader("nometa", err=*next)="true" then  
+							resultsetString$ = rs!.toJson(java.lang.Boolean.FALSE)
+						else 
+							wr! = new java.io.StringWriter()
+							com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!)
+							resultsetString$ = wr!.toString()
+							wr!.flush()
+							wr!.close()
+						endif 
+						s! = response!.getOutputStream()				
+						s!.write(resultsetString$)						
+                    endif
                     #logResponse(req_id$,response!)
                     methodret
                 else
