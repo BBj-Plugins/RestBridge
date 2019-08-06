@@ -16,6 +16,7 @@ class public RestBridge
         debug = num(stbl("DEBUG",err=*next),err=*next)
         restbridge_opt_jsonmeta=1
         restbridge_opt_jsonmeta=int(num(stbl("RESTBRIDGE_OPT_JSONMETA",err=*next),err=*next))
+        blnAddMetaToResult=restbridge_opt_jsonmeta
         
         restbridge_opt_enablegzip=1
         restbridge_opt_enablegzip=int(num(stbl("RESTBRIDGE_OPT_ENABLEGZIP",err=*next),err=*next))
@@ -368,18 +369,30 @@ class public RestBridge
                 rs! = answer!.get("resultset",err=*next)
                 if method$ = "POST" and rs! <> null() and rs!.size() > 0 then
                     wr! = new java.io.StringWriter()
-                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+                    blnAddMetaToResult=restbridge_opt_jsonmeta
+                    if request!.getHeader("nometa", err=*next)="true" then
+                    	blnAddMetaToResult=0
+                    endif
+                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,blnAddMetaToResult)
                     wr!.flush()
                     wr!.close()
                     response!.getOutputStream().write(wr!.toString())
                     #logResponse(req_id$,response!)
                 else
-                    e$ = "{""code"":"""+str(errorcode$)+""",""message"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)+""","
-                    if debug and statuscode! <> "401" then
-                        e$ = e$ + """stacktrace"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)+""","
-                    endif
-                    e$ = e$ + """ses"":"""+ses$+"""}"
-                    response!.getOutputStream().write(e$)
+					if request!.getHeader("verbose", err=*next)="true" then		
+						e$ = "[{""status"":""error"",""value"":[],""count"":""0"", ""error"": {""code"":"""+str(errorcode$)+""",""message"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)+""","
+						if debug and statuscode! <> "401" then
+							e$ = e$ + """stacktrace"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)+""","
+						endif						 
+						e$ = e$ + """ses"":"""+ses$+"""}}]" 
+					else
+						e$ = "{""code"":"""+str(errorcode$)+""",""message"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)+""","
+						if debug and statuscode! <> "401" then
+							e$ = e$ + """stacktrace"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)+""","
+						endif
+						e$ = e$ + """ses"":"""+ses$+"""}"
+					endif
+					response!.getOutputStream().write(e$)
                 endif
             else
                 response!.setContentType("text/html")
@@ -571,7 +584,16 @@ class public RestBridge
                 if pos("application/json"=accept$) > 0 then
                     response!.setContentType("application/json")
                     wr! = new java.io.StringWriter()
-                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+                    blnAddMetaToResult=restbridge_opt_jsonmeta
+                    if request!.getHeader("nometa", err=*next)="true" then
+                    	blnAddMetaToResult=0
+                    endif
+                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,blnAddMetaToResult)
+                    outStr!=wr!.toString()
+					if request!.getHeader("verbose", err=*next)="true" then
+						rsCount$ = STR(rs!.size())
+						outStr! = "[{""status"":""OK"",""value"":"+wr!.toString()+",""count"":"""+rsCount$+""", ""error"": {}}]"
+					endif
                     wr!.flush()
                     wr!.close()
                     
@@ -581,12 +603,12 @@ class public RestBridge
                         response!.setHeader("content-encoding","gzip")
                         out!= new java.io.ByteArrayOutputStream()
                         gzip! = new java.util.zip.GZIPOutputStream(out!)
-                        gzip!.write(wr!.toString().getBytes())
+                        gzip!.write(outStr!.toString().getBytes())
                         gzip!.close()
                         compressedData! = out!.toByteArray()
                         s!.write(compressedData!)
                     else
-                        s!.write(wr!.toString())
+                        s!.write(outStr!.toString())
                     fi
 
                     #logResponse(req_id$,response!)
@@ -596,7 +618,7 @@ class public RestBridge
                         response!.setContentType("text/csv")
                         wr! = new java.io.StringWriter()
                         com.basiscomponents.db.ResultSetExporter.writeTXT(rs!,wr!)
-
+						wr!.toString()
                         wr!.flush()
                         wr!.close()
 
@@ -610,7 +632,7 @@ class public RestBridge
                             compressedData! = out!.toByteArray()
                             s!.write(compressedData!)
                         else
-                            s!.write(wr!.toString())
+                            s!.write(outputString$)
                         fi
 
                         #logResponse(req_id$,response!)
