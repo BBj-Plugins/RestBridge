@@ -218,7 +218,7 @@ main_loop:
                             if class$ = "java.util.HashMap" then
                                 retdr! = new DataRow(var!)
                             else
-                                if class$ = "java.lang.String" or class$ = "java.lang.Boolean" or pos("BBjNumber"=class$) or pos("BBjVector"=class$) then
+                                if class$ = "java.lang.String" or class$ = "java.lang.Boolean" or pos("BBjString"=class$) or pos("BBjNumber"=class$) or pos("BBjVector"=class$) then
                                     retdr!.setFieldValue(retvar$,var!)
                                 endif
                             endif
