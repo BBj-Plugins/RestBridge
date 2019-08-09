@@ -1,5 +1,11 @@
 use java.util.HashMap
+
+use java.io.ByteArrayOutputStream
+use java.util.zip.GZIPOutputStream
+use javax.servlet.ServletOutputStream
+
 use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
 
 class public RestBridge
 
@@ -368,7 +374,7 @@ class public RestBridge
                 rs! = answer!.get("resultset",err=*next)
                 if method$ = "POST" and rs! <> null() and rs!.size() > 0 then
                     wr! = new java.io.StringWriter()
-                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+                    ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
                     wr!.flush()
                     wr!.close()
                     response!.getOutputStream().write(wr!.toString())
@@ -440,15 +446,11 @@ class public RestBridge
             endif
             response!.setContentType("text/html; charset="+info(1,2))
             
-            
-
             if custom_css! <> null() then
                 resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;} "+str(custom_css!)+"</style></head><body>"
             else
                 resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;}</style></head><body>"
             endif
-            
-
             
             single = num(answer!.get("single",err=*next),err=*next)
             if single>0 AND rs!.size()=1 then
@@ -514,24 +516,19 @@ class public RestBridge
                 fi
                 wr! = new java.io.StringWriter()
 
-                com.basiscomponents.db.ResultSetExporter.writeHTML(rs!,wr!,links!)
+                ResultSetExporter.writeHTML(rs!,wr!,links!)
                 wr!.flush()
                 wr!.close()
                 resp_str! = resp_str!+wr!.toString()
             fi
             resp_str! = resp_str!+"</body></html>"
 
-            s! = response!.getOutputStream()    
             if (restbridge_opt_enablegzip>0 and do_gzip) then
-                response!.setHeader("content-encoding","gzip")
-                out!= new java.io.ByteArrayOutputStream()
-                gzip! = new java.util.zip.GZIPOutputStream(out!)
-                gzip!.write(resp_str!.getBytes())
-                gzip!.close()
-                compressedData! = out!.toByteArray()
-                s!.write(compressedData!)
+                #writeGZipCompressedData(response!, resp_str!.getBytes())
             else
+                s! = response!.getOutputStream()   
                 s!.write(resp_str!)
+                s!.close()
             fi
 
             response!.setStatus(200)
@@ -545,25 +542,18 @@ class public RestBridge
                     response!.setContentType("text/xml")
                 endif
                 wr! = new java.io.StringWriter()
-                com.basiscomponents.db.ResultSetExporter.writeXML(rs!,"root","entity",wr!)
+                ResultSetExporter.writeXML(rs!,"root","entity",wr!)
                 
-
                 wr!.flush()
                 wr!.close()
-                
-                s! = response!.getOutputStream()    
+                    
                 if (restbridge_opt_enablegzip>0 and do_gzip) then
-                    response!.setHeader("content-encoding","gzip")
-                    out!= new java.io.ByteArrayOutputStream()
-                    gzip! = new java.util.zip.GZIPOutputStream(out!)
-                    gzip!.write(wr!.toString().getBytes())
-                    gzip!.close()
-                    compressedData! = out!.toByteArray()
-                    s!.write(compressedData!)
+                    #writeGZipCompressedData(response!, wr!.toString().getBytes())
                 else
+                    s! = response!.getOutputStream()
                     s!.write(wr!.toString())
+                    s!.close()
                 fi
-                
                 
                 #logResponse(req_id$,response!)
                 methodret
@@ -571,22 +561,16 @@ class public RestBridge
                 if pos("application/json"=accept$) > 0 then
                     response!.setContentType("application/json")
                     wr! = new java.io.StringWriter()
-                    com.basiscomponents.db.ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+                    ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
                     wr!.flush()
                     wr!.close()
                     
-                    
-                    s! = response!.getOutputStream()    
                     if (restbridge_opt_enablegzip>0 and do_gzip) then
-                        response!.setHeader("content-encoding","gzip")
-                        out!= new java.io.ByteArrayOutputStream()
-                        gzip! = new java.util.zip.GZIPOutputStream(out!)
-                        gzip!.write(wr!.toString().getBytes())
-                        gzip!.close()
-                        compressedData! = out!.toByteArray()
-                        s!.write(compressedData!)
+                        #writeGZipCompressedData(response!, wr!.toString().getBytes())
                     else
+                        s! = response!.getOutputStream()    
                         s!.write(wr!.toString())
+                        s!.close()
                     fi
 
                     #logResponse(req_id$,response!)
@@ -595,22 +579,17 @@ class public RestBridge
                     if pos("text/csv"=accept$) >0 OR pos("text/plain"=accept$) >0 then
                         response!.setContentType("text/csv")
                         wr! = new java.io.StringWriter()
-                        com.basiscomponents.db.ResultSetExporter.writeTXT(rs!,wr!)
+                        ResultSetExporter.writeTXT(rs!,wr!)
 
                         wr!.flush()
                         wr!.close()
 
-                        s! = response!.getOutputStream()    
                         if (restbridge_opt_enablegzip>0 and do_gzip) then
-                            response!.setHeader("content-encoding","gzip")
-                            out!= new java.io.ByteArrayOutputStream()
-                            gzip! = new java.util.zip.GZIPOutputStream(out!)
-                            gzip!.write(wr!.toString().getBytes())
-                            gzip!.close()
-                            compressedData! = out!.toByteArray()
-                            s!.write(compressedData!)
+                            #writeGZipCompressedData(response!, wr!.toString().getBytes())
                         else
+                            s! = response!.getOutputStream()    
                             s!.write(wr!.toString())
+                            s!.close()
                         fi
 
                         #logResponse(req_id$,response!)
@@ -630,7 +609,7 @@ class public RestBridge
 
                             wr! = new java.io.StringWriter()
                             f! = java.io.File.createTempFile("output_", "xls", new java.io.File(d$))
-                            com.basiscomponents.db.ResultSetExporter.writeXLSX(rs!, f!, 1)
+                            ResultSetExporter.writeXLSX(rs!, f!, 1)
 
                             if debug then
                                 System.out.println("REST: WRITING Excel to "+d$)
@@ -685,7 +664,6 @@ class public RestBridge
         fi
         #logResponse(req_id$,response!)
         methodret
-
 
         setup_err:
             response!.setContentType("text/plain")
@@ -949,81 +927,103 @@ class public RestBridge
 
     methodend
 
+    rem /**
+    rem  * Returns a HashMap containing the parameter names and values defined for the RestBridge.
+    rem  * <br>
+    rem  * It is currently possible to define the RestBridge parameters in the servlet configuration 
+    rem  * and in the servlet's config.bbx file. This method prioritizes the servlet parameters, meaning 
+    rem  * if a RestBridge parameter is defined as servlet parameter and in the config.bbx, the parameter 
+    rem  * from the servlet configuration will be added to the HashMap.
+    rem  * <br>
+    rem  * The current RestBridge parameters are: <br>
+    rem  * <ul>
+    rem  *     <li>REST_PGM_PREFIX</li>
+    rem  *     <li>REST_PGM_SUFFIX</li>
+    rem  *     <li>REST_WD</li>
+    rem  *     <li>REST_ADAPTERPGM</li>
+    rem  *     <li>REST_ADAPTERTERM</li>
+    rem  *     <li>REST_TIMEOUT</li>
+    rem  *     <li>REST_AUTHPGM</li>
+    rem  *     <li>REST_REQUESTLOG</li>
+    rem  *     <li>USE_GET_ALLOWED_FILTER</li>
+    rem  * </ul>
+    rem  * <br>
+    rem  * Some of these parameters are explicitly required to be set as STBLs. This method will set them 
+    rem  * as STBL if required, so that the user can define all parameters in one place.
+    rem  * 
+    rem  * @param context! The servlet context used to read the parameters defined for the RestBridge servlet
+    rem  * @return a HashMap with the RestBridge parameters(=options) currenlty set.
+    rem  */
     method private static HashMap getServletParameters(BBjspServletContext context!)
 
-        declare BBjString param!
-        declare HashMap map!
+        rem the list of available parameter names
+        declare BBjVector parameterNames!
+        parameterNames! = new BBjVector()
+        parameterNames!.add("REST_PGM_PREFIX")
+        parameterNames!.add("REST_PGM_SUFFIX")
+        parameterNames!.add("REST_WD")
+        parameterNames!.add("REST_ADAPTERPGM")
+        parameterNames!.add("REST_ADAPTERTERM")
+        parameterNames!.add("REST_TIMEOUT")
+        parameterNames!.add("REST_AUTHPGM")
+        parameterNames!.add("REST_REQUESTLOG")
+        parameterNames!.add("USE_GET_ALLOWED_FILTER")
 
-        map! = new HashMap()
+        rem the list of parameter names that must be set as STBL 
+        declare BBjVector parameterNamesToSetAsSTBL!
+        parameterNamesToSetAsSTBL! = new BBjVector()
+        parameterNamesToSetAsSTBL.add("REST_WD")
+        parameterNamesToSetAsSTBL.add("REST_ADAPTERPGM")
+        parameterNamesToSetAsSTBL.add("REST_REQUESTLOG")
 
-        param! = context!.getInitParameter("REST_PGM_PREFIX")
-        if param! <> null() then
-            map!.put("REST_PGM_PREFIX",param!)
-        else
-            map!.put("REST_PGM_PREFIX",stbl("REST_PGM_PREFIX",err=*next))
-        endif
+        declare HashMap parameterMap!
+        declare BBjString parameterValue!
 
-        param! = context!.getInitParameter("REST_PGM_SUFFIX")
-        if param! <> null() then
-            map!.put("REST_PGM_SUFFIX",param!)
-        else
-            map!.put("REST_PGM_SUFFIX",stbl("REST_PGM_SUFFIX",err=*next))
-        endif
+        rem the map to fill with the parameter names and values
+        parameterMap! = new HashMap()
+        for i=0 to parameterNames!.size() -1
+            parameterName! = parameterNames!.get(i)
+            parameterValue! = context!.getInitParameter(parameterName!)
 
-        param! = context!.getInitParameter("REST_WD")
-        if param! <> null() then
-            map!.put("REST_WD",param!)
-            void$ = stbl("REST_WD",param!)
-        else
-            map!.put("REST_WD",stbl("REST_WD",err=*next))
-        endif
+            if parameterValue! <> null() then
+                parameterMap!.put(parameterName!,parameterValue!)
 
-        param! = context!.getInitParameter("REST_ADAPTERPGM")
-        if param! <> null() then
-            map!.put("REST_ADAPTERPGM",param!)
-            void$ = stbl("REST_ADAPTERPGM",param!)
-        else
-            map!.put("REST_ADAPTERPGM",stbl("REST_ADAPTERPGM",err=*next))
-        endif
+                rem Setting the parameter as STBL
+                if parameterNamesToSetAsSTBL!.contains(parameterName!) then
+                    void$ = stbl(parameterName!,parameterValue!)
+                endif
+            else
+                parameterMap!.put(parameterName!,stbl(parameterName!,err=*next))
+            endif
+        next i
 
-        param! = context!.getInitParameter("REST_ADAPTERTERM")
-        if param! <> null() then
-            map!.put("REST_ADAPTERTERM",param!)
-        else
-            map!.put("REST_ADAPTERTERM",stbl("REST_ADAPTERTERM",err=*next))
-        endif
+        methodret parameterMap!
+    methodend
 
-        param! = context!.getInitParameter("REST_TIMEOUT")
-        if param! <> null() then
-            map!.put("REST_TIMEOUT",param!)
-        else
-            map!.put("REST_TIMEOUT",stbl("REST_TIMEOUT",err=*next))
-        endif
+    rem /**
+    rem  * Writes the given content in GZIP format into the given response
+    rem  * 
+    rem  * @param response! The response object to write the content into
+    rem  * @param content! The byte array content to write as response
+    rem  */
+    method private void writeGZipCompressedData(BBjspWebResponse response!, byte[] content!)
+        rem Setting the correct header
+        response!.setHeader("content-encoding","gzip")
 
-        param! = context!.getInitParameter("REST_AUTHPGM")
-        if param! <> null() then
-            map!.put("REST_AUTHPGM",param!)
-        else
-            map!.put("REST_AUTHPGM",stbl("REST_AUTHPGM",err=*next))
-        endif
+        declare byte[] compressedData!
+        declare GZIPOutputStream gzipOutputStream!
+        declare ByteArrayOutputStream byteArrayOutputStream!
 
-        param! = context!.getInitParameter("REST_REQUESTLOG")
-        if param! <> null() then
-            map!.put("REST_REQUESTLOG",param!)
-            void$ = stbl("REST_REQUESTLOG",param!)
-        else
-            map!.put("REST_REQUESTLOG",stbl("REST_REQUESTLOG",err=*next))
-        endif
+        outputStream! = response!.getOutputStream()
+        byteArrayOutputStream! = new ByteArrayOutputStream()
 
-        param! = context!.getInitParameter("USE_GET_ALLOWED_FILTER")
-        if param! <> null() then
-            map!.put("USE_GET_ALLOWED_FILTER",param!)
-        else
-            map!.put("USE_GET_ALLOWED_FILTER",stbl("USE_GET_ALLOWED_FILTER",err=*next))
-        endif
+        gzipOutputStream! = new GZIPOutputStream(byteArrayOutputStream!)
+        gzipOutputStream!.write(content!)
+        gzipOutputStream!.close()
 
-        methodret map!
-
+        compressedData! = byteArrayOutputStream!.toByteArray()
+        outputStream!.write(compressedData!)
+        outputStream!.close()
     methodend
 
 classend
