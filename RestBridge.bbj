@@ -7,6 +7,13 @@ use javax.servlet.ServletOutputStream
 use com.basiscomponents.db.ResultSet
 use com.basiscomponents.db.ResultSetExporter
 
+use java.io.File
+use java.io.FileInputStream
+use java.io.FileOutputStream
+use java.io.IOException
+use java.util.zip.ZipEntry
+use java.util.zip.ZipOutputStream
+
 class public RestBridge
 
     field public static BBjString LOGTPL$="ID:C(16*),METHOD:C(1*),START:N(1*),END:N(1*),DURATION:N(1*),ADDR:C(1*),URL:C(1*),URI:C(1*),QUERY:C(1*),HEADERS:C(1*),PARAMS:C(1*),STATUS:C(1*)"
@@ -275,7 +282,7 @@ class public RestBridge
         System.out.println("BLOBDATA : "+blobdata$)
         if blobdata$<>"null" then
             rs! = answer!.get("resultset",err=*next)
-            if rs! = null() or rs!.size()<>1 or !rs!.getItem(0).getFieldNames().contains(blobdata$) then
+            if rs! = null() or rs!.size() = 0 or !rs!.getItem(0).getFieldNames().contains(blobdata$) then
                 goto blob_err
             fi
 
@@ -287,22 +294,54 @@ class public RestBridge
                 ext$=blobname$(pos("."=blobname$,1,pos("."=blobname$,1,0))+1)
             fi
             d$=System.getProperty("basis.cacheDirectory")+"/_output_/"
-            mkdir d$,err=*next
+            mkdir d$,err=*next            
+            if rs!.size() = 1 then 
+                wr! = new java.io.StringWriter()
+                f! = java.io.File.createTempFile("output_", ext$, new java.io.File(d$))
+                ch=unt
+                open (ch)str(f!.toPath())
+                write (ch)rs!.getItem(0).getFieldAsString(blobdata$,err=blob_err)
+                close (ch)
+    
+                java.nio.file.Files.copy(f!.toPath(), response!.getOutputStream())
+                f!.delete()
+    
+                response!.setContentType("application/"+ext$)
+                response!.setHeader("Content-Disposition","inline; filename="""+blobname$+"""")
+    
+                #logResponse(req_id$,response!)
+            else
+              count=0
+              tmpfiles! = new BBjVector()
+              f! = java.io.File.createTempFile("output_", ".zip", new java.io.File(d$))
+              fos! = new FileOutputStream(str(f!.toPath()))
+              zos! = new ZipOutputStream(fos!)
 
-            wr! = new java.io.StringWriter()
-            f! = java.io.File.createTempFile("output_", ext$, new java.io.File(d$))
-            ch=unt
-            open (ch)str(f!.toPath())
-            write (ch)rs!.getItem(0).getFieldAsString(blobdata$,err=blob_err)
-            close (ch)
+              it! = rs!.iterator()
+              while it!.hasNext()
+                rec! = it!.next()
+                blob$ = rec!.getFieldAsString(blobdata$,err=*continue)
+                if blob$="" or (len(blob$)>4 and blob$(1,4)="!err") then continue
+                count=count+1
+                tmpname$=str(count:"00000000")+"_"+blobname$
+                tmp$=tmp$+" "+tmpname$
+                zos!.putNextEntry(new ZipEntry(tmpname$))
+                zos!.write(blob$, 0, len(blob$))
+                zos!.closeEntry()
+              wend
+              
+              zos!.close()
+                
+                java.nio.file.Files.copy(f!.toPath(), response!.getOutputStream())
+                f!.delete()
+    
+                response!.setContentType("application/zip")
+                response!.setHeader("Content-Disposition","inline; filename=""files.zip""")
+    
+                #logResponse(req_id$,response!)
 
-            java.nio.file.Files.copy(f!.toPath(), response!.getOutputStream())
-            f!.delete()
-
-            response!.setContentType("application/"+ext$)
-            response!.setHeader("Content-Disposition","inline; filename="""+blobname$+"""")
-
-            #logResponse(req_id$,response!)
+                
+            fi
             methodret
 
             blob_err:
