@@ -417,7 +417,11 @@ main_loop:
                         if (p$(1,1)<>"_" and pv$>"" and (afnames_uc!.contains(p$) OR bc$="DataSourceDataBC")) OR P$(1,1)="%" then
                             rem todo: all BCs should accept filters with fields that are not part of the attributes record
                             rem and still honor all other fields in the filter correctly, instead of giving no result
-                            filter!.setFieldValue(afnames!.getItem(afnames_uc!.indexOf(p$)),pv$)
+                            if (afnames_uc!.contains(p$)) then
+                                filter!.setFieldValue(afnames!.getItem(afnames_uc!.indexOf(p$)),pv$)
+                            else
+                                filter!.setFieldValue(p$,pv$)
+                            fi                            
                         fi
                     fi
                 wend
