@@ -1,0 +1,63 @@
+REM /**
+REM  * Context.bbj
+REM  */
+
+use ::RestBridge/cfg/Bridge.bbj::Bridge
+
+class public Context
+
+    field private String name!
+    field private int ID!
+    field private BBjVector bridges!
+    
+    method public Context(String name!, int ID!)
+        #name! = name!
+        #ID! = ID!
+        #bridges! = new BBjVector()
+    methodend
+
+    method public void addBridge(Bridge bridge!)
+        #bridges!.add(bridge!)
+    methodend
+    
+    method public void removeBridge(Bridge bridge!)
+        #bridges!.remove(bridge!)
+    methodend
+    
+    method public Bridge getBridge(String name!)
+        if (#bridges!.size() > 0) then 
+            for i = 0 to #bridges!.size() -1
+                buffer! = cast(Bridge,#bridges!.get(i))
+                if buffer!.getMapping() = name! then
+                    methodret cast(Bridge,#bridges!.get(i)) 
+                endif     
+            next i
+        endif
+        methodret null() 
+    methodend
+    
+    method public Bridge getBridge(int ID!)
+    if (#bridges!.size() > 0) then 
+        for i = 0 to #bridges!.size() -1
+           buffer! = cast(Bridge,#bridges!.get(i))
+           if buffer!.getID() = ID! then
+                methodret cast(Bridge,#bridges!.get(i)) 
+           endif     
+        next i
+    endif    
+        methodret null()
+    methodend
+    
+    method public int getBridgesAmount()
+        methodret #bridges!.size()
+    methodend
+    
+    method public String getName()
+        methodret #name!
+    methodend
+    
+    method public int getID()
+        methodret #ID!
+    methodend 
+    
+classend

@@ -1,0 +1,22 @@
+REM /**
+REM  * Bridge.bbj
+REM  */
+
+class public Bridge
+    
+    field private String mapping!
+    field private int ID!
+    
+    method public Bridge(String mapping!,int ID!)
+        #mapping! = mapping!
+        #ID! = ID!
+    methodend
+    
+    method public String getMapping()
+        methodret #mapping!
+    methodend
+    
+    method public int getID()
+        methodret #ID!
+    methodend
+classend
