@@ -141,8 +141,6 @@ class public RestBridge
             break
         swend
 
-
-
         token$=request!.getParameter("_TOKEN")
         if token$>"" then
             auth$="Basic "+token$
@@ -172,13 +170,11 @@ class public RestBridge
             uid$ = hta(java.security.MessageDigest.getInstance("MD5").digest(auth$+BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()+pfx))
         fi
 
-
         ses_list! = BBjAPI().getGlobalNamespace().getValue(uid$+"_list",err=*next)
         if ses_list! = null() then
             BBjAPI().getGlobalNamespace().setValue(uid$+"_list",new java.util.Stack())
             ses_list! = BBjAPI().getGlobalNamespace().getValue(uid$+"_list")
         endif
-
 
         while 1
             if (ses_list!.empty())
@@ -366,6 +362,7 @@ class public RestBridge
             stacktrace$ = answer!.get("stacktrace")
         endif
 
+        rem if the status code is not starting with 20, an error occurred
         if statuscode! <> null() and !mask(statuscode!,"20\d") then
             rem System.out.println("REST: error "+str(statuscode!)+" - "+str(errormsg!))
             if pos("application/json"=accept$) > 0 then
@@ -380,9 +377,20 @@ class public RestBridge
                     response!.getOutputStream().write(wr!.toString())
                     #logResponse(req_id$,response!)
                 else
-                    e$ = "{""code"":"""+str(errorcode$)+""",""message"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)+""","
+                    ok = 0; java.lang.Class.forName("org.apache.commons.lang.StringEscapeUtils", err=*next); ok = 1
+                    if ok then
+                        rem BBj 18.21 or older
+                        escapedErrorMessage! = org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)
+                        escapedStacktrace! = org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)
+                    else
+                        rem BBj 19.00 or newer
+                        escapedErrorMessage! = org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(errormsg!)
+                        escapedStacktrace! = org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(stacktrace$)
+                    endif 
+
+                    e$ = "{""code"":"""+str(errorcode$)+""",""message"":"""+ escapedErrorMessage! +""","
                     if debug and statuscode! <> "401" then
-                        e$ = e$ + """stacktrace"":"""+org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)+""","
+                        e$ = e$ + """stacktrace"":"""+ escapedStacktrace! +""","
                     endif
                     e$ = e$ + """ses"":"""+ses$+"""}"
                     response!.getOutputStream().write(e$)
