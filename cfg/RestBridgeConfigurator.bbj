@@ -136,7 +136,7 @@ class public RestBridgeConfigurator
         rem Clearing the parameters
         rem This is actually a work-around for the 
         rem BBj bug causing duplicate parameters to be left over
-        ok = 0; conf!.getParameterNames(); ok = 1
+        ok = 0; conf!.getParameterNames(err=*next); ok = 1
         if ok then
             rem remove the servlet parameters
             while !conf!.getParameterNames().isEmpty()
@@ -146,14 +146,14 @@ class public RestBridgeConfigurator
 
         rem Prior to BBj 19.10, there was a typo in the getParameterNames() method
         rem this code chunk was added to clear the parameters in this old version 
-        ok = 0; conf!.getParamaterNames(); ok = 1
+        ok = 0; conf!.getParamaterNames(err=*next); ok = 1
         if ok then
             rem remove the servlet parameters
             while !conf!.getParamaterNames().isEmpty()
                 conf!.clearParams()
             wend
-        endif        
-        
+        endif
+
 
         declare File adapterProgram!
         adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
