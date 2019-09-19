@@ -972,9 +972,9 @@ class public RestBridge
         rem the list of parameter names that must be set as STBL 
         declare BBjVector parameterNamesToSetAsSTBL!
         parameterNamesToSetAsSTBL! = new BBjVector()
-        parameterNamesToSetAsSTBL.add("REST_WD")
-        parameterNamesToSetAsSTBL.add("REST_ADAPTERPGM")
-        parameterNamesToSetAsSTBL.add("REST_REQUESTLOG")
+        parameterNamesToSetAsSTBL!.add("REST_WD")
+        parameterNamesToSetAsSTBL!.add("REST_ADAPTERPGM")
+        parameterNamesToSetAsSTBL!.add("REST_REQUESTLOG")
 
         declare HashMap parameterMap!
         declare BBjString parameterValue!
