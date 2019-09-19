@@ -204,7 +204,7 @@ class public RestBridgeConfigurationWindow
         controlID = #window!.getAvailableControlID()
         #btnBrowseRequestLogFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
         #btnBrowseRequestLogFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseRequestLogButtonPush")
-        
+
         controlID = #window!.getAvailableControlID()
         #btnPreviewCode! = #window!.addButton(controlID, x -50, 20, controlWidth, controlHeight, "Preview Code")
         #btnPreviewCode!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "previewCode")
@@ -217,11 +217,11 @@ class public RestBridgeConfigurationWindow
         #btnSave! = #window!.addButton(controlID, x - controlWidth - space, 365, controlWidth, controlHeight, "Save")
         #btnSave!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "saveClicked")
         x = x - controlWidth - space
-        
+
         controlID = #window!.getAvailableControlID()
         #btnCancel! = #window!.addButton(controlID, x- controlWidth - space, 365, controlWidth, controlHeight, "Cancel")
         #btnCancel!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "cancelClicked")
-        
+
         controlID = #window!.getAvailableControlID()
         #btnAddContext! = #window!.addButton(controlID, 20, 365, controlWidth, controlHeight, "Add Context")
         #btnAddContext!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "addContextButtonPush")
@@ -235,15 +235,15 @@ class public RestBridgeConfigurationWindow
         #btnRemoveBridge! = #window!.addButton(controlID,190, 365, controlWidth+10, controlHeight, "Remove Bridge")
         #btnRemoveBridge!.setCallback(BBjButton.ON_BUTTON_PUSH,#this!,"removeBridge")
         #btnRemoveBridge!.setEnabled(0)
-        
+
         controlID = #window!.getAvailableControlID()
         #treeContext! = #window!.addTree(controlID, 20,20,300,335)
         #treeContext!.setCallback(BBjTree.ON_TREE_SELECT,#this!,"onSelect")
         #treeContext!.setRoot(0,"contexts")
         #loadTree()
-        
+
         #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "closeWindow")
-        
+
         #updateUI()
     methodend
 
@@ -258,24 +258,24 @@ class public RestBridgeConfigurationWindow
     method public void onSelect(BBjTreeNodeSelectedEvent event!)
         #onNodeSelect(event!.getNodeID())
     methodend
-    
+
     method private void onNodeSelect(int id!)
-        declare BBjVector vector!   
+        declare BBjVector vector!
         declare Context context!
-        
+
         context! = null()
         vector! = new BBjVector()
         vector! = #treeContext!.getSelectedNodes()
-        
+
 
         for i = 0 to #contexts!.size() -1
             buffer! = cast(Context,#contexts!.get(i))
-            if (buffer!.getID() = id!) then 
+            if (buffer!.getID() = id!) then
                 context! = cast(Context,#contexts!.get(i))
                 break
             endif
         next i
-        
+
         if(context! <> null()) then
             #selected! = context!
             #selectedBridge! = null()
@@ -291,9 +291,9 @@ class public RestBridgeConfigurationWindow
                     #updateUI()
                     #btnRemoveBridge!.setEnabled(1)
                  endif
-            next i     
+            next i
         endif
-        
+
     methodend
 
     method private BBjspServletConfiguration reciveBridgeInformation()
@@ -330,10 +330,10 @@ class public RestBridgeConfigurationWindow
 
         servlet! = #reciveBridgeInformation()
         if (servlet! <> null()) then
-            
+
             error = 1; #setTimeout(num(servlet!.getParameter("REST_TIMEOUT")),err=*next); error = 0
             if error = 1 then #setTimeout(0)
-            
+
             #setMapping(servlet!.getMapping())
             #setProgramPrefix(servlet!.getParameter("REST_PGM_PREFIX"))
             #setProgramSuffix(servlet!.getParameter("REST_PGM_SUFFIX"))
@@ -341,10 +341,10 @@ class public RestBridgeConfigurationWindow
             #setAuthProgramPath(servlet!.getParameter("REST_AUTHPGM"))
             #setRequestLogPath(servlet!.getParameter("REST_REQUESTLOG"))
             #setConfigFilePath(servlet!.getConfig())
-            
+
             error = 1; #setUseGetAllowedFilters(num(servlet!.getParameter("USE_GET_ALLOWED_FILTER")),err=*next); error = 0
             if error = 1 then #setUseGetAllowedFilters(0)
-            
+
             #setConfigFilePath(servlet!.getConfig())
             #enableUI(1)
         else
@@ -359,7 +359,7 @@ class public RestBridgeConfigurationWindow
             #inpnTimeout!.setText("")
             #chbUseGetAllowedFilters!.setSelected(0)
         endif
-        
+
     methodend
 
     method public Context getContext()
@@ -394,7 +394,7 @@ class public RestBridgeConfigurationWindow
             a = msgbox("No Bridge selected!")
             methodret
         endif
-        
+
         params! = new HashMap()
         params!.put("REST_TIMEOUT", str(int(#getTimeout())))
         params!.put("REST_WD", #getWorkingDirectoryPath())
@@ -423,7 +423,7 @@ class public RestBridgeConfigurationWindow
     method public void addContextButtonPush(BBjButtonPushEvent event!)
         declare ContextNameInputWindow wnd!
         declare Boolean contains!
-        
+
         wnd! = new ContextNameInputWindow(#sysGui!,#window!.getX()+#window!.getWidth()/2,#window!.getY()+#window!.getHeight()/2,"Context Name Input","Context Name:")
         wnd!.show()
 
@@ -434,24 +434,24 @@ class public RestBridgeConfigurationWindow
                     a = msgbox("Invalid Context Name")
                     #addContextButtonPush(null())
               endif
-              
+
               for i = 0 to #contexts!.size() -1
                   buffer! = cast(Context,#contexts!.get(i))
                   if(buffer!.getName() = name!) then
                         a = msgbox("Invalid Context Name")
                         #addContextButtonPush(null())
                   endif
-              next i 
-              
+              next i
+
               contains! = Boolean.FALSE
               for i = 0 to #contexts!.size() -1
-                  buffer! = cast(Context,#contexts!.get(i))  
-                  if (buffer!.getName() = name!) then 
+                  buffer! = cast(Context,#contexts!.get(i))
+                  if (buffer!.getName() = name!) then
                       contains! = Boolean.TRUE
                       break
                   endif
               next i
-              
+
               if (name! <> "" AND !contains!) then
                     #btnAddContext!.setEnabled(0)
                     #window!.setCursor(32514)
@@ -478,19 +478,19 @@ class public RestBridgeConfigurationWindow
                 #addContextButtonPush(null())
                 methodret
             endif
-            
+
             if !(name!.endsWith("/*")) then
                 name! = name! + "/*"
             endif
 
             if !(name!.startsWith("/")) then
                 name! = "/" + name!
-            endif  
+            endif
             name! = name!.replaceAll(" ","")
-            
+
             buffer! = System.getProperty("basis.BBjHome") + "\plugins\RestBridge\authenticate.bbj"
             bbjHome! = new File(buffer!)
-            auth! = bbjHome!.getAbsolutePath().replaceAll("\\|\/", File.Separator)
+            auth! = bbjHome!.getAbsolutePath().replaceAll("\\|\/", java.io.File.separator)
 
             params! = new HashMap()
             params!.put("REST_TIMEOUT","1000")
@@ -500,8 +500,8 @@ class public RestBridgeConfigurationWindow
             params!.put("REST_PGM_SUFFIX",".bbj")
             params!.put("USE_GET_ALLOWED_FILTER","0")
             params!.put("REST_REQUESTLOG","")
-            
-            if (#selected!.getBridge(name!) = null()) then 
+
+            if (#selected!.getBridge(name!) = null()) then
                 #configurate!.configureRestBridge(#selected!.getName(),name!,params!,"")
                 #inpnTimeout!.setFocusable(1)
                 #node! = #node! +1
@@ -520,12 +520,12 @@ class public RestBridgeConfigurationWindow
             a = msgbox("Are you sure you want to delete " + #selectedBridge!.getMapping() + " from " + #selected!.getName(),1)
             if a <> 1 then
                 methodret
-            endif 
+            endif
             #configurate!.removeRestBridgeFromContext(#selected!.getName(),#selectedBridge!.getMapping())
             a = msgbox("The Bridge " + #selectedBridge!.getMapping() + " was deleted from Context "+#selected!.getName()+"." )
             #btnRemoveBridge!.setEnabled(0)
             #btnAddBridge!.setEnabled(0)
-            
+
             #removeBridge(#selectedBridge!)
             #selected!.removeBridge(#selectedBridge!)
             #selectedBridge! = null()
@@ -534,20 +534,20 @@ class public RestBridgeConfigurationWindow
             a = msgbox("No Bridge selected")
         endif
     methodend
-    
+
     method private void removeBridge(Bridge bridge!)
         #treeContext!.removeNode(bridge!.getID())
     methodend
-    
+
     method private void addContext(String name!)
-        #node!= #node!+1 
+        #node!= #node!+1
         #treeContext!.addExpandableNode(#node!,0,name!)
         #contexts!.add(new Context(name!,#node!))
     methodend
-    
+
     method private void addBridge(String name!, int id!)
         #treeContext!.addNode(id!,#selected!.getID(),name!)
-        
+
         #treeContext!.selectNode(id!)
         #onNodeSelect(id!)
     methodend
@@ -558,14 +558,14 @@ class public RestBridgeConfigurationWindow
         declare BBjspServletConfiguration bbjspServletConfiguration!
 
         #contexts!.clear()
-        
+
         #treeContext!.removeNode(0)
         #node! = 0
         #treeContext!.setRoot(#node!,"contexts")
-        
+
         vector! = #admin!.getJettyServerConfig().getContextNames()
         for i= 0 to vector!.size()-1
-        
+
             #node! = #node! +1
 
             #treeContext!.addExpandableNode(#node!,parent,vector!.getItem(i).toString())
@@ -584,7 +584,7 @@ class public RestBridgeConfigurationWindow
                 next y
             endif
         next i
-        
+
         for i = 1 to #node!
             if (#treeContext!.getNodeText(i) = #selectedBridge!) then
                 if (#treeContext!.getNodeText(#treeContext!.getParentNode(i)) = #selected!) then
@@ -593,7 +593,7 @@ class public RestBridgeConfigurationWindow
                     break
                 endif
             endif
-        next i 
+        next i
     methodend
 
     method public void browseConfigFileButtonPush(BBjButtonPushEvent event!)
@@ -665,7 +665,7 @@ class public RestBridgeConfigurationWindow
     method private String assembleCode()
         declare java.lang.StringBuilder builder!
         builder! = new java.lang.StringBuilder()
-        
+
         builder!.append("use java.io.File"+$0A$+$0A$)
         builder!.append("declare File restBridgeFile!"+$0A$)
         builder!.append("declare File directory!"+$0A$)
@@ -725,17 +725,17 @@ class public RestBridgeConfigurationWindow
 
         methodret builder!.toString()
     methodend
-    
+
     method public void okOnClick(BBjButtonPushEvent e!)
         if !( #selected! = null() OR #selectedBridge! = null()) then
             #saveClicked(null())
-        endif    
+        endif
 
         BBjAPI().postCustomEvent("CloseWindowEvent", "")
-    methodend 
-    
-    
-    
+    methodend
+
+
+
     rem /**
     rem  * Returns the user entered value for the Timeout property.
     rem  * 
@@ -763,10 +763,10 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method public void setProgramPrefix(String prefix!)
-        if (prefix! = null()) then 
+        if (prefix! = null()) then
             prefix! = ""
         endif
-        
+
         #inpeProgramPrefix!.setText(prefix!)
     methodend
 
@@ -775,7 +775,7 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method public void setProgramSuffix(String suffix!)
-        if (suffix! = null()) then 
+        if (suffix! = null()) then
             suffix! = ""
         endif
         #inpeProgramSuffix!.setText(suffix!)
@@ -786,7 +786,7 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method public void setConfigFilePath(String path!)
-        if (path! = null()) then 
+        if (path! = null()) then
             path! = ""
         endif
         #inpeConfigFile!.setText(path!)
@@ -797,7 +797,7 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method public void setWorkingDirectoryPath(String path!)
-        if (path! = null()) then 
+        if (path! = null()) then
             path! = ""
         endif
         #inpeWorkingDirectory!.setText(path!)
@@ -808,10 +808,10 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method public void setAuthProgramPath(String path!)
-        if (path! = null()) then 
+        if (path! = null()) then
             path! = ""
         endif
-        
+
         #inpeAuthProgram!.setText(path!)
     methodend
 
@@ -832,10 +832,10 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method public void setRequestLogPath(String path!)
-        if (path! = null()) then 
+        if (path! = null()) then
             path! = ""
         endif
-    
+
         #inpeRequestLog!.setText(path!)
     methodend
 
