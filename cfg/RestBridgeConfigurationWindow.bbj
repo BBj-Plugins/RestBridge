@@ -67,14 +67,14 @@ class public RestBridgeConfigurationWindow
         screenWidth = #sysGui!.getSystemMetrics().getScreenBounds().getWidth()
         screenHeight = #sysGui!.getSystemMetrics().getScreenSize().getHeight()
 
-        #window! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), (screenWidth/2)-200, (screenHeight/2)-250, 760, 400, "Bridge Configuration", $00000002$)
+        #window! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), (screenWidth/2)-200, (screenHeight/2)-250, 760, 400, "REST Endpoint Configuration", $00000002$)
 
         labelWidth = 115
         controlHeight = 25
         space = 10
         y = 25
 
-        controlWidth = 350
+        controlWidth = 400
 
         xorig = 340
         x = xorig
@@ -148,7 +148,7 @@ class public RestBridgeConfigurationWindow
 
         controlWidth = 75
         controlID = #window!.getAvailableControlID()
-        #btnBrowseConfigFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
+        #btnBrowseConfigFile! = #window!.addButton(controlID, x, y-5, 30, controlHeight, "...")
         #btnBrowseConfigFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseConfigFileButtonPush")
 
         x = xorig
@@ -166,7 +166,7 @@ class public RestBridgeConfigurationWindow
 
         controlWidth = 75
         controlID = #window!.getAvailableControlID()
-        #btnBrowseWorkingDirectory! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
+        #btnBrowseWorkingDirectory! = #window!.addButton(controlID, x, y-5, 30, controlHeight, "...")
         #btnBrowseWorkingDirectory!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseWorkingDirectoryButtonPush")
 
         x = xorig
@@ -184,7 +184,7 @@ class public RestBridgeConfigurationWindow
 
         controlWidth = 75
         controlID = #window!.getAvailableControlID()
-        #btnBrowseAuthenticationFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
+        #btnBrowseAuthenticationFile! = #window!.addButton(controlID, x, y-5, 30, controlHeight, "...")
         #btnBrowseAuthenticationFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseAuthFileButtonPush")
 
         x = xorig
@@ -200,26 +200,26 @@ class public RestBridgeConfigurationWindow
         #inpeRequestLog!.setInsertMode(1)
         x = x + controlWidth + space
 
-        controlWidth = 75
+        controlWidth = 100
         controlID = #window!.getAvailableControlID()
-        #btnBrowseRequestLogFile! = #window!.addButton(controlID, x, y-5, controlWidth, controlHeight, "Browse")
+        #btnBrowseRequestLogFile! = #window!.addButton(controlID, x, y-5, 30, controlHeight, "...")
         #btnBrowseRequestLogFile!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "browseRequestLogButtonPush")
 
         controlID = #window!.getAvailableControlID()
-        #btnPreviewCode! = #window!.addButton(controlID, x -50, 20, controlWidth, controlHeight, "Preview Code")
+        #btnPreviewCode! = #window!.addButton(controlID, x -30, 20, controlWidth, controlHeight, "Preview Code")
         #btnPreviewCode!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "previewCode")
 
         controlID = #window!.getAvailableControlID()
-        #btnOK! = #window!.addButton(controlID,x,365,controlWidth,controlHeight,"OK")
+        #btnOK! = #window!.addButton(controlID,x-30,365,controlWidth,controlHeight,"OK")
         #btnOK!.setCallback(BBjButton.ON_BUTTON_PUSH,#this!,"okOnClick")
 
         controlID = #window!.getAvailableControlID()
-        #btnSave! = #window!.addButton(controlID, x - controlWidth - space, 365, controlWidth, controlHeight, "Save")
+        #btnSave! = #window!.addButton(controlID, x - 30-controlWidth - space, 365, controlWidth, controlHeight, "Save")
         #btnSave!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "saveClicked")
         x = x - controlWidth - space
 
         controlID = #window!.getAvailableControlID()
-        #btnCancel! = #window!.addButton(controlID, x- controlWidth - space, 365, controlWidth, controlHeight, "Cancel")
+        #btnCancel! = #window!.addButton(controlID, x- 30-controlWidth - space, 365, controlWidth, controlHeight, "Cancel")
         #btnCancel!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "cancelClicked")
 
         controlID = #window!.getAvailableControlID()
@@ -227,12 +227,12 @@ class public RestBridgeConfigurationWindow
         #btnAddContext!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!, "addContextButtonPush")
 
         controlID = #window!.getAvailableControlID()
-        #btnAddBridge! = #window!.addButton(controlID,105,365,controlWidth,controlHeight, "Add  Bridge")
+        #btnAddBridge! = #window!.addButton(controlID,130,365,controlWidth,controlHeight, "Add Endpoint")
         #btnAddBridge!.setCallback(BBjAPI.ON_BUTTON_PUSH, #this!,"addBridge")
         #btnAddBridge!.setEnabled(0)
 
         controlID = #window!.getAvailableControlID()
-        #btnRemoveBridge! = #window!.addButton(controlID,190, 365, controlWidth+10, controlHeight, "Remove Bridge")
+        #btnRemoveBridge! = #window!.addButton(controlID,240, 365, controlWidth, controlHeight, "Remove Endpoint")
         #btnRemoveBridge!.setCallback(BBjButton.ON_BUTTON_PUSH,#this!,"removeBridge")
         #btnRemoveBridge!.setEnabled(0)
 
@@ -391,7 +391,7 @@ class public RestBridgeConfigurationWindow
         declare HashMap params!
 
         if (#selected! = null() OR #selectedBridge! = null()) then
-            a = msgbox("No Bridge selected!")
+            a = msgbox("No Endpoint selected!")
             methodret
         endif
 
@@ -408,7 +408,7 @@ class public RestBridgeConfigurationWindow
         #configurate!.editRestBridgeConfiguration(#selected!.getName(), #selectedBridge!.getMapping(), params!, #getConfigFilePath())
         #window!.setCursor(32512)
 
-        a = msgbox("Bridge configurations saved successfully!")
+        a = msgbox("Endpoint configurations saved successfully!")
     methodend
 
     method public void windowKeypressEvent(BBjKeypressEvent e!)
@@ -468,7 +468,7 @@ class public RestBridgeConfigurationWindow
        declare ContextNameInputWindow wnd!
        declare java.lang.String name!
        declare File bbjHome!
-        wnd! = new ContextNameInputWindow(#sysGui!,#window!.getX()+#window!.getWidth()/2,#window!.getY()+#window!.getHeight()/2,"Bridge Mapping Input","Bridge Mapping:")
+        wnd! = new ContextNameInputWindow(#sysGui!,#window!.getX()+#window!.getWidth()/2,#window!.getY()+#window!.getHeight()/2,"Endpoint Mapping Input","Endpoint Mapping:")
         wnd!.show()
 
         if(!wnd!.cancelled()) then
@@ -490,7 +490,7 @@ class public RestBridgeConfigurationWindow
 
             buffer! = System.getProperty("basis.BBjHome") + "\plugins\RestBridge\authenticate.bbj"
             bbjHome! = new File(buffer!)
-            auth! = bbjHome!.getAbsolutePath().replaceAll("\\|\/", java.io.File.separator)
+            auth! = bbjHome!.getAbsolutePath().replaceAll("\\|\/", java.io.File.separator,err=*next)
 
             params! = new HashMap()
             params!.put("REST_TIMEOUT","1000")
@@ -507,7 +507,7 @@ class public RestBridgeConfigurationWindow
                 #node! = #node! +1
                 #selectedBridge! = new Bridge(name!,#node!)
                 #selected!.addBridge(#selectedBridge!)
-                a = msgbox("Bridge successfully created!")
+                a = msgbox("Endpoint successfully created!")
                 #addBridge(name!,#node!)
             else
                 a = msgbox("Mapping already exists!")
@@ -522,7 +522,7 @@ class public RestBridgeConfigurationWindow
                 methodret
             endif
             #configurate!.removeRestBridgeFromContext(#selected!.getName(),#selectedBridge!.getMapping())
-            a = msgbox("The Bridge " + #selectedBridge!.getMapping() + " was deleted from Context "+#selected!.getName()+"." )
+            a = msgbox("The Endpoint " + #selectedBridge!.getMapping() + " was deleted from Context "+#selected!.getName()+"." )
             #btnRemoveBridge!.setEnabled(0)
             #btnAddBridge!.setEnabled(0)
 

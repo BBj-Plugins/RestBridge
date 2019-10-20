@@ -1,0 +1,217 @@
+rem /**
+rem  * ChileCustomerBCTest.bbjt
+rem  */
+
+use ::ChileCustomerBC.bbj::ChileCustomerBC
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.DataRow
+
+
+class public ChileCustomerBCTest
+
+    field private ChileCustomerBC bc!
+
+    rem @BeforeClass
+    method public void setUp()
+        #bc! = new ChileCustomerBC()
+    methodend
+
+    rem @Test
+    method public void AttributesRecordsTest()
+        declare DataRow attrRecords!
+        declare BBjVector names!
+
+        attrRecords! = #bc!.getAttributesRecord()
+        names! = new BBjVector(attrRecords!.getFieldNames())
+
+        Assert.Equals(names!.size(),26)
+        Assert.Equals(names!.contains("CUST_NUM"),1)
+        Assert.Equals(attrRecords!.getFieldAttribute("CUST_NUM","EDITABLE"),"2")
+        Assert.Equals(attrRecords!.getFieldAttribute("CUST_NUM","LABEL"),"Cust No.")
+    methodend
+
+    rem @Test
+    method public void FilterTest()
+        declare ResultSet rs!
+        declare DataRow filter!
+
+        #bc!.setScope("D")
+        filter! = new DataRow()
+
+        filter!.setFieldValue("CUST_NUM","XXXXXX")
+        #bc!.setFilter(filter!)
+        rs! = #bc!.retrieve()
+        Assert.Equals(rs!.size(),0)
+
+        filter!.setFieldValue("CUST_NUM","000002")
+        #bc!.setFilter(filter!)
+        rs! = #bc!.retrieve()
+        Assert.Equals(rs!.size(),1)
+    methodend
+
+    rem @Test
+    method public void FieldSelectionTest()
+        declare ResultSet rs!
+        declare BBjVector fields!
+
+        fields! = new BBjVector()
+        fields!.addItem("FIRST_NAME")
+        fields!.addItem("LAST_NAME")
+
+        #bc!.setFilter(null())
+        #bc!.setScope("B")
+        #bc!.setFieldSelection(fields!)
+        rs! = #bc!.retrieve()
+
+        Assert.Equals(rs!.getColumnCount(),4)
+    methodend
+
+    rem @Test
+    method public void ScopeTest()
+        declare ResultSet rs!
+
+        #bc!.setScope("")
+        #bc!.setFilter(null())
+        #bc!.setFieldSelection(null())
+        rs! = #bc!.retrieve()
+        Assert.NotEquals(rs!.size(),0)
+        Assert.Equals(rs!.getColumnCount(),26)
+
+        #bc!.setScope("A")
+        rs! = #bc!.retrieve()
+        Assert.Equals(rs!.getColumnCount(),10)
+
+        #bc!.setScope("B")
+        rs! = #bc!.retrieve()
+        Assert.Equals(rs!.getColumnCount(),2)
+
+        #bc!.setScope("D")
+        rs! = #bc!.retrieve()
+        Assert.Equals(rs!.getColumnCount(),26)
+
+        #bc!.setScope("")
+        rs! = #bc!.retrieve()
+        Assert.Equals(rs!.getColumnCount(),26)
+    methodend
+
+    rem @Test
+    method public void RetrieveTest()
+        declare ResultSet rs1!
+        declare ResultSet rs2!
+
+        #bc!.setFilter(null())
+        #bc!.setScope("B")
+        #bc!.setFieldSelection(null())
+
+        rs1! = #bc!.retrieve(1,10)
+        Assert.Equals(rs1!.size(),10)
+
+        rs2! = #bc!.retrieve(11,30)
+        Assert.Equals(rs2!.size(),20)
+
+        Assert.NotEquals(rs1!.get(0).getFieldAsString("CUST_NUM"),rs2!.get(0).getFieldAsString("CUST_NUM"))
+    methodend
+
+    rem @Test
+    method public void ValidateWriteTest()
+        declare DataRow dr!
+
+        vec! = #bc!.validateWrite(null())
+        Assert.Equals(vec!.size(),1)
+        Assert.Equals(vec!.getItem(0),"Missing data to write!")
+
+        dr! = new DataRow()
+        vec! = #bc!.validateWrite(dr!)
+        Assert.Equals(vec!.size(),2)
+        Assert.Equals(vec!.getItem(0),"Missing field: CUST_NUM")
+        Assert.Equals(vec!.getItem(1),"Missing field: LAST_NAME")
+
+        dr!.setFieldValue("CUST_NUM","1234567")
+        dr!.setFieldValue("LAST_NAME","XYZ")
+        vec! = #bc!.validateWrite(dr!)
+        Assert.Equals(vec!.size(),1)
+        Assert.Equals(vec!.getItem(0),"CUST_NUM value too long!")
+    methodend
+
+    rem @Test
+    method public void WriteTest()
+        declare DataRow dr!
+        declare DataRow filter!
+        declare ResultSet rs!
+
+        Assert.Expect(#bc!.write(null()),999)
+
+        dr! = new DataRow()
+        dr!.setFieldValue("CUST_NUM","999999")
+        dr!.setFieldValue("COMPANY","Company XYZ")
+        dr!.setFieldValue("LAST_NAME","Musterman")
+        #bc!.write(dr!)
+        dr! = null()
+
+        filter! = new DataRow()
+        filter!.setFieldValue("CUST_NUM","999999")
+        #bc!.setFilter(filter!)
+        #bc!.setScope("")
+        #bc!.setFieldSelection(new BBjVector())
+        rs! = #bc!.retrieve()
+        Assert.Equals(rs!.size(),1)
+        dr! = rs!.get(0)
+        Assert.Equals(dr!.getFieldAsString("CUST_NUM"),"999999")
+        Assert.Equals(dr!.getFieldAsString("COMPANY").trim(),"Company XYZ")
+        Assert.Equals(dr!.getFieldAsString("LAST_NAME").trim(),"Musterman")
+
+        rem Remove the new created customer
+        #bc!.remove(dr!)
+    methodend
+
+    rem @Test
+    method public void ValidateRemoveTest()
+        declare DataRow dr!
+
+        vec! = #bc!.validateRemove(null())
+        Assert.Equals(vec!.size(),1)
+        Assert.Equals(vec!.getItem(0),"Missing data for delete!")
+
+        dr! = new DataRow()
+        vec! = #bc!.validateRemove(dr!)
+        Assert.Equals(vec!.size(),1)
+        Assert.Equals(vec!.getItem(0),"Missing field: CUST_NUM")
+
+        dr!.setFieldValue("CUST_NUM","1234567")
+        vec! = #bc!.validateRemove(dr!)
+        Assert.Equals(vec!.size(),1)
+        Assert.Equals(vec!.getItem(0),"CUST_NUM value too long!")
+    methodend
+
+    rem @Test
+    method public void RemoveTest()
+        declare DataRow dr!
+        declare ResultSet rs!
+
+        Assert.Expect(#bc!.remove(null()),999)
+
+        dr! = new DataRow()
+        Assert.Expect(#bc!.remove(dr!),999)
+
+        rem Add a new customer
+        dr!.setFieldValue("CUST_NUM","999999")
+        dr!.setFieldValue("COMPANY","Company XYZ")
+        dr!.setFieldValue("LAST_NAME","Musterman")
+        #bc!.write(dr!)
+
+        rem Remove it
+        #bc!.remove(dr!)
+
+        rem Check if deleted
+        dr! = new DataRow()
+        dr!.setFieldValue("CUST_NUM","999999")
+        #bc!.setFilter(dr!)
+        rs! = #bc!.retrieve()
+        Assert.Equals(rs!.size(),0)
+    methodend
+
+    rem @AfterClass
+    method public void tearDown()
+    methodend
+
+classend

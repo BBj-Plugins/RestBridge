@@ -1,0 +1,418 @@
+REM /**
+REM  * ChileCompanyTableBC.bbj
+REM  * @author vkolarov
+REM  *
+REM  */
+
+use com.basiscomponents.bc.SqlTableBC
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+
+use java.util.HashMap
+use java.util.LinkedHashSet
+use java.sql.Connection
+use java.sql.PreparedStatement
+
+
+class public ChileCustomerTableBC
+
+    field private SqlTableBC jbc!
+
+
+    rem /**
+    rem  * Default constructor.
+    rem  * A business component class for customers.
+    rem  * It can read, write and delete customers.
+    rem  * The default constructor initializes following scopes:
+    rem  * A (address), B (basic) and * (default - all fields)
+    rem  */
+    method public ChileCustomerTableBC()
+
+        #jbc!=new SqlTableBC("jdbc:basis:localhost?database=ChileCompany&user=admin&password=admin123")
+        #init()
+
+    methodend
+
+
+    rem /**
+    rem  * A business component class for customers.
+    rem  * Constructor with an already opened connection and a custom SELECT statement which joined tables.
+    rem  * It can read, write and delete customers.
+    rem  * This constructor initializes following scopes:
+    rem  * A (address), B (basic) and * (default - all fields)
+    rem  * @param  conn! A java.sql.Connection to a database.
+    rem  */
+    method public ChileCustomerTableBC(Connection conn!)
+
+        #jbc!=new SqlTableBC(conn!)
+        #init()
+
+    methodend
+
+
+    method private void init()
+
+       
+        sql$ =        "SELECT "
+        sql$ = sql$ +     "CUST_NUM,FIRST_NAME,LAST_NAME,COMPANY,BILL_ADDR1,BILL_ADDR2,CITY,STATE,COUNTRY,POST_CODE,"
+        sql$ = sql$ +     "SALESPERSON AS SALESPERSONID,SHIP_ZONE AS SHIPZONEID,SHIP_METHOD AS SHIPMETHODID,"
+        sql$ = sql$ +     "SALESREP.NAME AS SALESPERSONDESC,SHIP_ZONE.DESC AS SHIPZONEDESC,SHIP_METHOD.DESC AS SHIPMETHODDESC "
+        sql$ = sql$ + "FROM "
+        sql$ = sql$ +     "CUSTOMER "
+        sql$ = sql$ +     "LEFT JOIN SALESREP ON CUSTOMER.SALESPERSON=SALESREP.SALESPERSON "
+        sql$ = sql$ +     "LEFT JOIN SHIP_ZONE ON CUSTOMER.SHIP_ZONE=SHIP_ZONE.CODE "
+        sql$ = sql$ +     "LEFT JOIN SHIP_METHOD ON CUSTOMER.SHIP_METHOD=SHIP_METHOD.CODE"
+        #jbc!.setRetrieveSql(sql$)
+
+        #jbc!.addMapping("SALESPERSONID","SALESPERSON")
+        #jbc!.addMapping("SHIPZONEID","SHIP_ZONE")
+        #jbc!.addMapping("SHIPMETHODID","SHIP_METHOD")
+
+        #jbc!.setTable("CUSTOMER")
+
+
+        rem Define scopes
+        declare java.util.HashMap scopes!
+        scopes! = new HashMap()
+
+        rem Scope A - address fields (CUST_NUM, COMPANY, FIRST_NAME, LAST_NAME, BILL_ADDR1, BILL_ADDR2, CITY, STATE, COUNTRY, POST_CODE)
+        declare BBjVector vec!
+        vec! = new BBjVector()
+        vec!.addItem("CUST_NUM")
+        vec!.addItem("COMPANY")
+        vec!.addItem("FIRST_NAME")
+        vec!.addItem("LAST_NAME")
+        vec!.addItem("BILL_ADDR1")
+        vec!.addItem("BILL_ADDR2")
+        vec!.addItem("CITY")
+        vec!.addItem("STATE")
+        vec!.addItem("COUNTRY")
+        vec!.addItem("POST_CODE")
+        scopes!.put("A",vec!)
+
+        rem Scope B - basic scope (CUST_NUM, COMPANY)
+        vec! = new BBjVector()
+        vec!.addItem("CUST_NUM")
+        vec!.addItem("COMPANY")
+        scopes!.put("B",vec!)
+
+        rem Scope * - default (all fields)
+        vec! = new BBjVector()
+        vec!.addItem("*")
+        scopes!.put("*",vec!)
+
+        #jbc!.setScopeDef(scopes!)
+
+    methodend
+
+
+    rem /**
+    rem  * Returns an empty DataRow including all field attributes (like field name, editable, label etc.)
+    rem  * @return the empty DataRow with the field attributes
+    rem  */
+    method public DataRow getAttributesRecord()
+
+        declare auto DataRow ar!
+
+        ar! = #jbc!.getAttributesRecord()
+        
+            rem add / modify ar! to comply with special need
+
+        methodret ar! 
+
+    methodend
+
+
+    rem /**
+    rem  * Returns a new (predifined) DataRow including all field attributes (like field name, editable, label etc.)
+    rem  * @param  DataRow conditions!  a DataRow with predifined fields
+    rem  * @return a new predifined DataRow with the field attributes
+    rem  */
+    method public DataRow getNewObjectTemplate(DataRow conditions!)
+
+        declare auto DataRow ot!
+         
+        ot! = #jbc!.getNewObjectTemplate(conditions!)
+        
+            rem set field values with defaults or even under the circumstances of conditions!, 
+            rem e.g. if conditions! contains a customer number, you may set the correct payment 
+            rem terms for the customer already here
+
+        methodret ot! 
+
+    methodend
+
+
+    rem /**
+    rem  * Set a filter to filter the search result.
+    rem  * The filter is used in the retrieve method.
+    rem  * If no filter is set, the retrieve method will return all customers.
+    rem  * @see    #retrieve()
+    rem  * @param  DataRow filter!  a DataRow object including field names and values to filter for.
+    rem  *                          Filters are AND combined.
+    rem  */
+    method public void setFilter(DataRow filter!)
+
+        #jbc!.setFilter(filter!)
+
+    methodend
+
+
+    rem /**
+    rem  * Retrieves a ResultSet with customer DataRow's.
+    rem  * If a filter is set, this will be applied to filter the result.
+    rem  * If a scope and/or a field selecetion are set, they will be used to retrieve the desired fields.
+    rem  * @return ResultSet  a ResultSet with customer DataRows (may be empty).
+    rem  */
+    method public ResultSet retrieve()
+
+        methodret #jbc!.retrieve()
+
+    methodend
+
+
+    rem /**
+    rem  * Retrieves a ResultSet with a subset of customer DataRow's.
+    rem  * If a filter is set, this will be applied to filter the result.
+    rem  * If a scope and/or a field selecetion are set, they will be used to retrieve the desired fields.
+    rem  * @param  BBjInt    first%  the index of the first element in the subset (0 based)
+    rem  * @param  BBjInt    last%   the index of the last element in the subset.
+    rem  * @return ResultSet         a ResultSet with customer DataRows (may be empty).
+    rem  */
+    method public ResultSet retrieve(BBjInt first%, BBjInt last%)
+
+        methodret #jbc!.retrieve(first%,last%)
+
+    methodend
+
+
+    rem /**
+    rem  * Set a field selection to retrieve a custom set of fields.
+    rem  * The default scope will be used if no field selection is set.
+    rem  * @param  BBjVector fieldSelection!  a BBjVector containig the field names for retrieving.
+    rem  */
+    method public void setFieldSelection(BBjVector fieldSelection!)
+
+        #jbc!.setFieldSelection(fieldSelection!)
+
+    methodend
+
+
+    rem /**
+    rem  * Set a field selection to retrieve a custom set of fields.
+    rem  * @param  DataRow fieldSelection!  a DataRow containig the field names for retrieving.
+    rem  */
+    method public void setFieldSelection(DataRow fieldSelection!)
+
+        #jbc!.setFieldSelection(fieldSelection!)
+
+    methodend
+
+
+    rem /**
+    rem  * Set a field selection scope (f.g. A, B, C, ...).
+    rem  * One of the scopes from the scope definition.
+    rem  * @param  BBjString scope$  the scope to set.
+    rem  */
+    method public void setScope(BBjString scope$)
+
+        #jbc!.setScope(scope$)
+
+    methodend
+
+
+    rem /**
+    rem  * Validates a customer DataRow object before it can be written.
+    rem  * This method is internally used by the write method.
+    rem  * But it can also be called from the frontend to check for required or missing data.
+    rem  * @param  DataRow dr!  a customer DataRow that will be validated
+    rem  * @return BBjVector    List with validation error messages (empty list means no validation errors).
+    rem  */
+    method public BBjVector validateWrite(DataRow dr!)
+
+        declare BBjVector vecErrors!
+        vecErrors! = new BBjVector()
+
+        if dr! = null() then
+            vecErrors!.addItem("Missing data to write!")
+            methodret vecErrors!
+        endif
+
+        rem Check required fields
+        if !dr!.contains("CUST_NUM") or dr!.getFieldAsString("CUST_NUM").trim() = "" then
+            vecErrors!.addItem("Missing field: CUST_NUM")
+        else
+            if dr!.getFieldAsString("CUST_NUM").length() <> 6 then
+                vecErrors!.addItem("CUST_NUM value too long!")
+            endif
+        endif
+
+        if !dr!.contains("LAST_NAME") or dr!.getFieldAsString("LAST_NAME").trim() = "" then
+            vecErrors!.addItem("Missing field: LAST_NAME")
+        else
+            if dr!.getFieldAsString("LAST_NAME").length() > 30 then
+                vecErrors!.addItem("LAST_NAME too long!")
+            endif
+        endif
+
+        rem Place other contraints here...
+
+        methodret vecErrors!
+
+    methodend
+
+
+    rem /**
+    rem  * Write/persist a customer.
+    rem  * @see    #validateWrite(DataRow dr!)
+    rem  * @param  DataRow dr!  a customer DataRow to be persist.
+    rem  * @return DataRow      the customer DataRow (may contain auto generated values/ID's)
+    rem  */
+    method public DataRow write(DataRow dr!)
+
+        vecErrors! = #validateWrite(dr!)
+        if vecErrors!.size() then
+            it! = vecErrors!.iterator()
+            while it!.hasNext()
+                errormsg$ = errormsg$ + it!.next() + $0a$
+            wend
+            errormsg$ = errormsg$(1,len(errormsg$)-1)
+            throw errormsg$,999
+        endif
+
+        methodret #jbc!.write(dr!)
+
+    methodend
+
+
+    rem /**
+    rem  * Validates a customer DataRow object before it can be removed.
+    rem  * This method is internally used by the remove method.
+    rem  * But it can also be called from the frontend to check for dependencies before it can be removed.
+    rem  * @param  DataRow dr!  a customer DataRow that should be removed
+    rem  * @return BBjVector    List with validation error messages (empty list means no validation errors).
+    rem  */
+    method public BBjVector validateRemove(DataRow dr!)
+
+        declare BBjVector vecErrors!
+        vecErrors! = new BBjVector()
+
+        if dr! = null() then
+            vecErrors!.addItem("Missing data for delete!")
+            methodret vecErrors!
+        endif
+
+        rem Check required fields
+        if !dr!.contains("CUST_NUM") or dr!.getFieldAsString("CUST_NUM").trim() = "" then
+            vecErrors!.addItem("Missing field: CUST_NUM")
+        else
+            if dr!.getFieldAsString("CUST_NUM").length() <> 6 then
+                vecErrors!.addItem("CUST_NUM value too long!")
+            endif
+        endif
+
+        rem Place other contraints here...
+
+        methodret vecErrors!
+
+    methodend
+
+
+    rem /**
+    rem  * Remove a customer.
+    rem  * @see    #validateRemove(DataRow dr!)
+    rem  * @param  DataRow dr!  a customer DataRow to be removed.
+    rem  * @throws an exception if the customer does not exists.
+    rem  */
+    method public void remove(DataRow dr!)
+
+        vecErrors! = #validateRemove(dr!)
+        if vecErrors!.size() then
+            it! = vecErrors!.iterator()
+            while it!.hasNext()
+                errormsg$ = errormsg$ + it!.next() + $0a$
+            wend
+            errormsg$ = errormsg$(1,len(errormsg$)-1)
+            throw errormsg$,999
+        endif
+
+        #jbc!.remove(dr!)
+
+    methodend
+
+classend
+
+
+
+declare java.sql.Connection con!
+declare ChileCustomerTableBC bc!
+declare DataRow filter!
+declare DataRow dr!
+declare BBjVector fieldSelection!
+
+REM Create a new sql connection
+con! = java.sql.DriverManager.getConnection("jdbc:basis:localhost?DATABASE=ChileCompany&USER=admin&PASSWORD=admin123")
+bc! = new ChileCustomerTableBC(con!)
+
+REM Set field selection (to reord the fields or to get a subset of them)
+fieldSelection! = new BBjVector()
+fieldSelection!.addItem("CUST_NUM")
+fieldSelection!.addItem("FIRST_NAME")
+fieldSelection!.addItem("LAST_NAME")
+fieldSelection!.addItem("COMPANY")
+fieldSelection!.addItem("BILL_ADDR1")
+fieldSelection!.addItem("BILL_ADDR2")
+fieldSelection!.addItem("CITY")
+fieldSelection!.addItem("STATE")
+fieldSelection!.addItem("COUNTRY")
+fieldSelection!.addItem("POST_CODE")
+fieldSelection!.addItem("SALESPERSONID")
+fieldSelection!.addItem("SALESPERSONDESC")
+fieldSelection!.addItem("SHIPZONEID")
+fieldSelection!.addItem("SHIPZONEDESC")
+fieldSelection!.addItem("SHIPMETHODID")
+fieldSelection!.addItem("SHIPMETHODDESC")
+bc!.setFieldSelection(fieldSelection!)
+
+
+REM Add a new customer
+dr! = bc!.getNewObjectTemplate(null())
+
+
+dr!.setFieldValue("CUST_NUM","999999")
+dr!.setFieldValue("FIRST_NAME","Jon")
+dr!.setFieldValue("LAST_NAME","Doe")
+dr!.setFieldValue("CITY","Albuquerque")
+dr!.setFieldValue("STATE","NM")
+dr!.setFieldValue("COUNTRY","US")
+dr!.setFieldValue("POST_CODE","87111")
+dr!.setFieldValue("SALESPERSONID","BAR")
+dr!.setFieldValue("SHIPZONEID","01")
+dr!.setFieldValue("SHIPMETHODID","CPU")
+dr! = bc!.write(dr!)
+print dr!
+REM write() saves and reads the customer from the DB.
+REM So that joined and auto generated fields are also available in the DataRow after the write.
+REM See SALESPERSONDESC,SHIPZONEDESC AND SHIPMETHODDESC
+escape
+
+
+REM Read the new created customer
+filter! = new DataRow()
+filter!.setFieldValue("CUST_NUM","999999")
+bc!.setFilter(filter!)
+rs! = bc!.retrieve()
+print rs!.get(0)
+escape
+
+
+REM Removing/Deleting a customer
+dr! = new DataRow()
+dr!.setFieldValue("CUST_NUM","999999")
+bc!.remove(dr!)
+rs! = bc!.retrieve()
+print str(rs!.size())+" customers found with the ID "+dr!.getFieldAsString("CUST_NUM")
+
+con!.close()
+
+END
