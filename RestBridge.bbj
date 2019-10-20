@@ -295,7 +295,7 @@ class public RestBridge
             fi
             d$=System.getProperty("basis.cacheDirectory")+"/_output_/"
             mkdir d$,err=*next            
-            if rs!.size() = 1 then 
+            if rs!.size() = 1 and cvs(accept$,4)<>"APPLICATION/ZIP" then 
                 wr! = new java.io.StringWriter()
                 f! = java.io.File.createTempFile("output_", ext$, new java.io.File(d$))
                 ch=unt
