@@ -1,0 +1,601 @@
+REM /**
+REM  * ChileCustomerBC.bbj
+REM  * @author vkolarov
+REM  *
+REM  */
+
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.DataRow
+use java.sql.Connection
+use java.sql.PreparedStatement
+use java.sql.Statement
+use java.sql.Types
+use java.util.HashMap
+use java.util.HashSet
+
+
+class public ChileCustomerBC
+
+    field private DataRow   Filter!
+    field private DataRow   AttributesRecord!
+    field private ResultSet ResultSet!
+    field private BBjVector FieldSelection!
+    field private BBjString Scope$
+    field private HashMap   Scopes!
+
+    field private BBjString Database$ = "ChileCompany"
+    field private BBjString TableName$ = "CUSTOMER"
+
+
+    rem /**
+    rem  * Default constructor.
+    rem  * A business component class for customers.
+    rem  * It can read, write and delete customers.
+    rem  * The default constructor initializes following scopes:
+    rem  * A (address), B (basic) and D (default - all fields)
+    rem  */
+    method public ChileCustomerBC()
+
+        rem Define scopes
+        #Scopes! = new HashMap()
+
+        rem Scope A - address fields (CUST_NUM, COMPANY, FIRST_NAME, LAST_NAME, BILL_ADDR1, BILL_ADDR2, CITY, STATE, COUNTRY, POST_CODE)
+        vec! = new BBjVector()
+        vec!.addItem("CUST_NUM")
+        vec!.addItem("COMPANY")
+        vec!.addItem("FIRST_NAME")
+        vec!.addItem("LAST_NAME")
+        vec!.addItem("BILL_ADDR1")
+        vec!.addItem("BILL_ADDR2")
+        vec!.addItem("CITY")
+        vec!.addItem("STATE")
+        vec!.addItem("COUNTRY")
+        vec!.addItem("POST_CODE")
+        #Scopes!.put("A",vec!)
+
+        rem Scope B - basic scope (CUST_NUM, COMPANY)
+        vec! = new BBjVector()
+        vec!.addItem("CUST_NUM")
+        vec!.addItem("COMPANY")
+        #Scopes!.put("B",vec!)
+
+        rem Scope D - default (*)
+        vec! = new BBjVector()
+        vec!.addItem("*")
+        #Scopes!.put("D",vec!)
+
+
+        rem Fill the attributes record
+    methodend
+
+
+    rem /**
+    rem  * Returns an empty DataRow including all field attributes (like field name, editable, label etc.)
+    rem  * @return the empty DataRow with the field attributes
+    rem  */
+    method public DataRow getAttributesRecord()
+
+        if #AttributesRecord! <> null() then
+            methodret #AttributesRecord!
+        endif
+
+        declare ResultSet rs!
+        declare DataRow   dr!
+
+        dr! = new DataRow()
+
+        con! = BBjAPI().getJDBCConnection(#Database$)
+        stmt! = con!.createStatement()
+        rs! = new ResultSet(stmt!.executeQuery("SELECT TOP 1 * FROM "+#TableName$))
+        con!.close()
+
+        if rs!.size() then
+            dr! = rs!.get(0)
+            dr!.clear()
+            it! = rs!.getColumnNames().iterator()
+            while it!.hasNext()
+                field$ = it!.next()
+                attr! = rs!.getColumnMetaData(field$)
+                ita! = attr!.keySet().iterator()
+                while ita!.hasNext()
+                    attr$ = ita!.next()
+                    dr!.setFieldAttribute(field$,attr$,str(attr!.get(attr$)))
+                wend
+            wend
+        endif
+
+
+REM         dr!.setFieldValue("CUST_NUM",null())
+        dr!.setFieldAttribute("CUST_NUM","EDITABLE","2")
+        dr!.setFieldAttribute("CUST_NUM","LABEL","Cust No.")
+REM         dr!.setFieldValue("FIRST_NAME",null())
+        dr!.setFieldAttribute("FIRST_NAME","EDITABLE","1")
+        dr!.setFieldAttribute("FIRST_NAME","LABEL","First name")
+REM         dr!.setFieldValue("LAST_NAME",null())
+        dr!.setFieldAttribute("LAST_NAME","EDITABLE","1")
+        dr!.setFieldAttribute("LAST_NAME","LABEL","Last name")
+REM         dr!.setFieldValue("COMPANY",null())
+        dr!.setFieldAttribute("COMPANY","EDITABLE","1")
+        dr!.setFieldAttribute("COMPANY","LABEL","Company")
+REM         dr!.setFieldValue("BILL_ADDR1",null())
+        dr!.setFieldAttribute("BILL_ADDR1","EDITABLE","1")
+        dr!.setFieldAttribute("BILL_ADDR1","LABEL","Billing Addr 1")
+REM         dr!.setFieldValue("BILL_ADDR2",null())
+        dr!.setFieldAttribute("BILL_ADDR2","EDITABLE","1")
+        dr!.setFieldAttribute("BILL_ADDR2","LABEL","Billing Addr 2")
+REM         dr!.setFieldValue("CITY",null())
+        dr!.setFieldAttribute("CITY","EDITABLE","1")
+        dr!.setFieldAttribute("CITY","LABEL","City")
+REM         dr!.setFieldValue("STATE",null())
+        dr!.setFieldAttribute("STATE","EDITABLE","1")
+        dr!.setFieldAttribute("STATE","LABEL","State")
+REM         dr!.setFieldValue("COUNTRY",null())
+        dr!.setFieldAttribute("COUNTRY","EDITABLE","1")
+        dr!.setFieldAttribute("COUNTRY","LABEL","Country")
+REM         dr!.setFieldValue("POST_CODE",null())
+        dr!.setFieldAttribute("POST_CODE","EDITABLE","1")
+        dr!.setFieldAttribute("POST_CODE","LABEL","Postal code")
+REM         dr!.setFieldValue("PHONE",null())
+        dr!.setFieldAttribute("PHONE","EDITABLE","1")
+        dr!.setFieldAttribute("PHONE","LABEL","Phone")
+REM         dr!.setFieldValue("FAX",null())
+        dr!.setFieldAttribute("FAX","EDITABLE","1")
+        dr!.setFieldAttribute("FAX","LABEL","Fax")
+REM         dr!.setFieldValue("SALESPERSON",null())
+        dr!.setFieldAttribute("SALESPERSON","EDITABLE","1")
+        dr!.setFieldAttribute("SALESPERSON","LABEL","Sales person")
+REM         dr!.setFieldValue("SHIP_ZONE",null())
+        dr!.setFieldAttribute("SHIP_ZONE","EDITABLE","1")
+        dr!.setFieldAttribute("SHIP_ZONE","LABEL","Ship zone")
+REM         dr!.setFieldValue("SHIP_METHOD",null())
+        dr!.setFieldAttribute("SHIP_METHOD","EDITABLE","1")
+        dr!.setFieldAttribute("SHIP_METHOD","LABEL","Ship method")
+REM         dr!.setFieldValue("CURRENT_BAL",null())
+        dr!.setFieldAttribute("CURRENT_BAL","EDITABLE","1")
+        dr!.setFieldAttribute("CURRENT_BAL","LABEL","Current balance")
+REM         dr!.setFieldValue("OVER_30",null())
+        dr!.setFieldAttribute("OVER_30","EDITABLE","1")
+        dr!.setFieldAttribute("OVER_30","LABEL","Past 30")
+REM         dr!.setFieldValue("OVER_60",null())
+        dr!.setFieldAttribute("OVER_60","EDITABLE","1")
+        dr!.setFieldAttribute("OVER_60","LABEL","Past 60")
+REM         dr!.setFieldValue("OVER_90",null())
+        dr!.setFieldAttribute("OVER_90","EDITABLE","1")
+        dr!.setFieldAttribute("OVER_90","LABEL","Past 90")
+REM         dr!.setFieldValue("OVER_120",null())
+        dr!.setFieldAttribute("OVER_120","EDITABLE","1")
+        dr!.setFieldAttribute("OVER_120","LABEL","Past 120")
+REM         dr!.setFieldValue("SALES_MTD",null())
+        dr!.setFieldAttribute("SALES_MTD","EDITABLE","1")
+        dr!.setFieldAttribute("SALES_MTD","LABEL","MTD Sales")
+REM         dr!.setFieldValue("SALES_YTD",null())
+        dr!.setFieldAttribute("SALES_YTD","EDITABLE","1")
+        dr!.setFieldAttribute("SALES_YTD","LABEL","YTD Sales")
+REM         dr!.setFieldValue("SALES_LY",null())
+        dr!.setFieldAttribute("SALES_LY","EDITABLE","1")
+        dr!.setFieldAttribute("SALES_LY","LABEL","LY Sales")
+REM         dr!.setFieldValue("LAST_PURCH_DATE",null())
+        dr!.setFieldAttribute("LAST_PURCH_DATE","EDITABLE","1")
+        dr!.setFieldAttribute("LAST_PURCH_DATE","LABEL","Last Purchase")
+REM         dr!.setFieldValue("LAST_PAY_DATE",null())
+        dr!.setFieldAttribute("LAST_PAY_DATE","EDITABLE","1")
+        dr!.setFieldAttribute("LAST_PAY_DATE","LABEL","Last Payment")
+REM         dr!.setFieldValue("CREDIT_CODE",null())
+        dr!.setFieldAttribute("CREDIT_CODE","EDITABLE","1")
+        dr!.setFieldAttribute("CREDIT_CODE","LABEL","Terms")
+
+        #AttributesRecord! = dr!
+        methodret dr!
+
+    methodend
+
+
+    rem /**
+    rem  * Set a filter to filter the search result.
+    rem  * The filter is used in the retrieve method.
+    rem  * If no filter is set, the retrieve method will return all customers.
+    rem  * @see    #retrieve()
+    rem  * @param  DataRow filter!  a DataRow object including field names and values to filter for.
+    rem  *                          Filters are AND combined.
+    rem  */
+    method public void setFilter(DataRow filter!)
+
+REM         equal = 0
+REM 
+REM         if #Filter! <> null() and filter! <> null() then
+REM             equal = filter!.equals(#Filter!)
+REM         endif
+REM 
+REM         if !equal then
+            if filter! = null() then
+                #Filter! = filter!
+            else
+                #Filter! = filter!.clone()
+            endif
+            #ResultSet! = null()
+REM         endif
+
+    methodend
+
+
+    rem /**
+    rem  * Set a field selection to retrieve a custom set of fields.
+    rem  * The default scope will be used if no field selection is set.
+    rem  * @param  BBjVector fieldSelection!  a BBjVector containing the field names for retrieving.
+    rem  */
+    method public void setFieldSelection(BBjVector fieldSelection!)
+
+REM         if #FieldSelection! <> null() and fieldSelection! <> null() and #FieldSelection!.equals(fieldSelection!) then
+REM             methodret
+REM         endif
+
+        if fieldSelection! = null() then
+            #FieldSelection! = fieldSelection!
+        else
+            #FieldSelection! = cast(BBjVector,fieldSelection!.clone())
+        endif
+        #ResultSet! = null()
+
+    methodend
+
+
+    rem /**
+    rem  * Set a field selection scope (A, B or D).
+    rem  * If no or a wrong scope is set then the default scope (D) will be used.
+    rem  * @param  BBjString scope$  the scope to set.
+    rem  */
+    method public void setScope(BBjString scope$)
+
+REM         if #Scope$ <> scope$ then
+            #Scope$ = scope$
+            #ResultSet! = null()
+REM         endif
+
+    methodend
+
+
+    rem /**
+    rem  * Retrieves a ResultSet with customer DataRow's.
+    rem  * If a filter is set, this will be applied to filter the result.
+    rem  * If a scope and/or a field selection is set, it will be used to retrieve the desired fields.
+    rem  * @return ResultSet  a ResultSet with customer DataRows (may be empty).
+    rem  */
+    method public ResultSet retrieve()
+
+        declare ResultSet rs!
+        declare DataRow filter!
+        declare DataRow attributes!
+        declare Connection con!
+        declare PreparedStatement stmt!
+        declare HashSet fields!
+
+        if #ResultSet! <> null() then
+            methodret #ResultSet!
+        endif
+
+        rem Initiate full text search if parameter %SEARCH exists
+        if #Filter! <> null() and #Filter!.contains("%SEARCH") then
+            throw "Full text search not implemented yet",999
+        endif
+
+        attributes! = #getAttributesRecord()
+
+        rem Determine the fields to read
+        fields! = new HashSet()
+        if (#FieldSelection! = null() or #FieldSelection!.size() = 0) and #Scope$ = "" then
+            fields!.addAll(cast(BBjVector,#Scopes!.get("D")))
+        endif
+        if len(#Scope$) then
+            scope$ = #Scope$
+            while scope$ > ""
+                s$ = scope$(1,1)
+                scope$ = scope$(2)
+                fields!.addAll(cast(BBjVector,#Scopes!.get(s$)))
+            wend
+        endif
+        if #FieldSelection! <> null() then
+            fields!.addAll(#FieldSelection!)
+        endif
+        it! = fields!.iterator()
+        while it!.hasNext()
+            field$ = it!.next()
+            if attributes!.contains(field$) then
+                fields$ = fields$ + field$ + ","
+            else
+                post = mask(field$,"(?i)^\s*distinct\s*$")
+                if post and pos(fields$="DISTINCT ") = 0 then
+                    fields$ = "DISTINCT " + fields$
+                endif
+                post = mask(field$,"(?i)^\s*top\s+\d+\s*$")
+                if post and (fields$ = "" or fields$ = "DISTINCT ") then
+                    fields$ = fields$ + cvs(field$,39) + " "
+                endif
+                if cvs(field$,3) = "*" then
+                    fields$ = fields$ + "*"
+                endif
+            endif
+        wend
+        if fields$ > "" and fields$(len(fields$))="," then
+            fields$ = fields$(1,len(fields$)-1)
+        endif
+
+
+        rem Build the SQL query
+        sql$ = "SELECT " + fields$ + " FROM " + #TableName$
+
+        if #Filter! <> null() then
+            filter! = #Filter!
+            sql$ = sql$ + " WHERE "
+            it! = filter!.getFieldNames().iterator()
+            while it!.hasNext()
+                fieldName$ = it!.next()
+                if fieldName$(1,1) = "_" then
+                    continue
+                endif
+                sql$ = sql$ + fieldName$ + "=? AND "
+            wend
+            sql$ = sql$(1,len(sql$)-5)
+        endif
+
+        rem Prepare the statement
+        con! = BBjAPI().getJDBCConnection(#Database$)
+        stmt! = con!.prepareStatement(sql$)
+
+        if #Filter! <> null() then
+            i%=1
+            it! = filter!.getFieldNames().iterator()
+            while it!.hasNext()
+                fieldName$ = it!.next()
+                if fieldName$(1,1) = "_" then
+                    continue
+                endif
+                stmt!.setObject(i%,filter!.getField(fieldName$).getValue(),filter!.getFieldType(fieldName$))
+                i% = i% + 1
+            wend
+        endif
+
+        rem Execute
+        rs! = new ResultSet(stmt!.executeQuery())
+        con!.close()
+
+        #ResultSet! = rs!
+        methodret rs!
+
+    methodend
+
+
+    rem /**
+    rem  * Retrieves a ResultSet with a subset of customer DataRow's.
+    rem  * If a filter is set, this will be applied to filter the result.
+    rem  * If a scope and/or a field selecetion are set, they will be used to retrieve the desired fields.
+    rem  * @param  BBjInt    first%  the index of the first element in the subset (1 based)
+    rem  * @param  BBjInt    last%   the index of the last element in the subset.
+    rem  * @return ResultSet         a ResultSet with customer DataRows (may be empty).
+    rem  */
+    method public ResultSet retrieve(BBjInt first%, BBjInt last%)
+
+        declare ResultSet rs!
+        rs! = new ResultSet()
+
+        if #ResultSet! = null() then
+            #retrieve()
+        endif
+
+        if #ResultSet!.size() and last% <= #ResultSet!.size() then
+            for i=first% to min(last%,#ResultSet!.size()-1)
+                rs!.addItem(#ResultSet!.get(i))
+            next i
+        endif
+        methodret rs!
+
+    methodend
+
+
+    rem /**
+    rem  * Validates a customer DataRow object before it can be written.
+    rem  * This method is internally used by the write method.
+    rem  * But it can also be called from the frontend to check for required or missing data.
+    rem  * @param  DataRow dr!  a customer DataRow that will be validated
+    rem  * @return BBjVector    List with validation error messages (empty list means no validation errors).
+    rem  */
+    method public BBjVector validateWrite(DataRow dr!)
+
+        declare BBjVector vecErrors!
+        vecErrors! = new BBjVector()
+
+        if dr! = null() then
+            vecErrors!.addItem("Missing data to write!")
+            methodret vecErrors!
+        endif
+
+        rem Check required fields
+        if !dr!.contains("CUST_NUM") or dr!.getFieldAsString("CUST_NUM").trim() = "" then
+            vecErrors!.addItem("Missing field: CUST_NUM")
+        else
+            if dr!.getFieldAsString("CUST_NUM").length() <> 6 then
+                vecErrors!.addItem("CUST_NUM value too long!")
+            endif
+        endif
+
+        if !dr!.contains("LAST_NAME") or dr!.getFieldAsString("LAST_NAME").trim() = "" then
+            vecErrors!.addItem("Missing field: LAST_NAME")
+        else
+            if dr!.getFieldAsString("LAST_NAME").length() > 30 then
+                vecErrors!.addItem("LAST_NAME too long!")
+            endif
+        endif
+
+        rem etc.
+
+        methodret vecErrors!
+
+    methodend
+
+
+    rem /**
+    rem  * Write/persist a customer.
+    rem  * @see    #validateWrite(DataRow dr!)
+    rem  * @param  DataRow dr!  a customer DataRow to be persist.
+    rem  * @return DataRow      the customer DataRow (may contain auto generated values/ID's)
+    rem  */
+    method public DataRow write(DataRow dr!)
+
+        vecErrors! = #validateWrite(dr!)
+        if vecErrors!.size() then
+            it! = vecErrors!.iterator()
+            while it!.hasNext()
+                errormsg$ = errormsg$ + it!.next() + $0a$
+            wend
+            errormsg$ = errormsg$(1,len(errormsg$)-1)
+            throw errormsg$,999
+        endif
+
+
+        sql$="SELECT CUST_NUM FROM " + #TableName$ + " WHERE CUST_NUM=?"
+        ch = sqlunt
+        sqlopen(ch)#Database$
+        sqlprep(ch)sql$
+        sqlexec(ch)dr!.getFieldAsString("CUST_NUM")
+        dim row$:sqltmpl(ch)
+        row$ = sqlfetch(ch,err=*next); recordExists=1
+
+        if recordExists then
+            rem UPDATE
+            sql$ = "UPDATE " + #TableName$ + " SET "
+            it! = dr!.getFieldNames().iterator()
+            while it!.hasNext()
+                fieldName$ = it!.next()
+                if fieldName$ = "CUST_NUM" then
+                    continue
+                endif
+                sql$ = sql$ + fieldName$ + "=?,"
+            wend
+            sql$ = sql$(1,len(sql$)-1) + " WHERE CUST_NUM=?"
+            sqlprep(ch)sql$
+
+            i=1
+            it! = dr!.getFieldNames().iterator()
+            while it!.hasNext()
+                fieldName$ = it!.next()
+                if fieldName$ = "CUST_NUM" then
+                    continue
+                endif
+                sqlset(ch)i,dr!.getField(fieldName$).getValue()
+                i = i + 1
+            wend
+            sqlset(ch)i,dr!.getFieldAsString("CUST_NUM")
+        else
+            rem INSERT
+            sql$ = "INSERT INTO " + #TableName$ + "("
+            it! = dr!.getFieldNames().iterator()
+            while it!.hasNext()
+                sql$ = sql$ + it!.next() + ","
+            wend
+            sql$ = sql$(1,len(sql$)-1) + ") VALUES(" + fill(dr!.getColumnCount()*2,"?,")
+            sql$ = sql$(1,len(sql$)-1) + ")"
+            sqlprep(ch)sql$
+
+            i=1
+            it! = dr!.getFieldNames().iterator()
+            while it!.hasNext()
+                sqlset(ch)i,dr!.getField(it!.next()).getValue()
+                i = i + 1
+            wend
+        endif
+
+        sqlexec(ch)
+        dim a$:sqltmpl(ch,ind=1)
+        a$ = sqlfetch(ch,ind=1)
+        sqlclose(ch)
+        if !a.ROWS_AFFECTED then
+            throw "Could not update record!",999
+        endif
+
+        methodret dr!
+
+    methodend
+
+
+    rem /**
+    rem  * Validates a customer DataRow object before it can be removed.
+    rem  * This method is internally used by the remove method.
+    rem  * But it can also be called from the frontend to check for dependencies before it can be removed.
+    rem  * @param  DataRow dr!  a customer DataRow that should be removed
+    rem  * @return BBjVector    List with validation error messages (empty list means no validation errors).
+    rem  */
+    method public BBjVector validateRemove(DataRow dr!)
+
+        declare BBjVector vecErrors!
+        vecErrors! = new BBjVector()
+
+        if dr! = null() then
+            vecErrors!.addItem("Missing data for delete!")
+            methodret vecErrors!
+        endif
+
+        rem Check required fields
+        if !dr!.contains("CUST_NUM") or dr!.getFieldAsString("CUST_NUM").trim() = "" then
+            vecErrors!.addItem("Missing field: CUST_NUM")
+        else
+            if dr!.getFieldAsString("CUST_NUM").length() <> 6 then
+                vecErrors!.addItem("CUST_NUM value too long!")
+            endif
+        endif
+
+        methodret vecErrors!
+
+    methodend
+
+
+    rem /**
+    rem  * Remove a customer.
+    rem  * @see    #validateRemove(DataRow dr!)
+    rem  * @param  DataRow dr!  a customer DataRow to be removed.
+    rem  * @throws an exception if the customer does not exists.
+    rem  */
+    method public void remove(DataRow dr!)
+
+        vecErrors! = #validateRemove(dr!)
+        if vecErrors!.size() then
+            it! = vecErrors!.iterator()
+            while it!.hasNext()
+                errormsg$ = errormsg$ + it!.next() + $0a$
+            wend
+            errormsg$ = errormsg$(1,len(errormsg$)-1)
+            throw errormsg$,999
+        endif
+
+
+        sql$ = "DELETE FROM " + #TableName$ + " WHERE CUST_NUM=?"
+
+        ch = sqlunt
+        sqlopen(ch)#Database$
+        sqlprep(ch)sql$
+        sqlexec(ch)dr!.getFieldAsString("CUST_NUM")
+        dim a$:sqltmpl(ch,ind=1)
+        a$ = sqlfetch(ch,ind=1)
+        sqlclose(ch)
+        if !a.ROWS_AFFECTED then
+            throw "Record doesn't exists",999
+        endif
+
+    methodend
+
+classend
+
+
+
+
+declare ChileCustomerBC bc!
+declare DataRow dr!
+
+bc! = new ChileCustomerBC()
+dr! = bc!.getAttributesRecord()
+
+fields! = new BBjVector()
+fields!.addItem("TOP 2")
+fields!.addItem("*")
+bc!.setFieldSelection(fields!)
+rs!=bc!.retrieve()
+
+print rs!.size()
