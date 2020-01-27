@@ -1,7 +1,8 @@
 use java.util.HashMap
 use com.basiscomponents.db.ResultSet
 use com.basiscomponents.db.DataRow
-
+use java.io.File
+use org.apache.commons.io.FilenameUtils
 seterr execerr
 
 debug=0
@@ -20,6 +21,8 @@ ses$=stbl("SESSIONID",ses$)
 
 servletParams! = new HashMap()
 servletParams! = BBjAPI().getGlobalNamespace().getValue(ses$+"_SERVLET_PARAMETERS",err=*next)
+
+REM if debug then System.out.println(servletParams!)
 
 if debug then System.out.println("Got auth header: "+authtype$+" "+auth$)
 authtype$=cvs(authtype$,4)
@@ -181,11 +184,27 @@ main_loop:
 
 
     method$ = request!.get("method")
+    
+    if servletParams!.containsKey("REST_INPUTHANDLER") then
+        inputhandlerPath! = servletParams!.get("REST_INPUTHANDLER").toString()
+        inputhandlerFile! = null()
+        inputhandlerFile! = new File(inputhandlerPath!,err=*next)
+        if inputhandlerFile! <> null() then
+            inputhandlerName! = FilenameUtils.removeExtension(inputhandlerFile!.getName())
+            evaluation! = "new ::"+inputhandlerPath!+"::"+inputhandlerName!+"()"
+            inputhandler! = eval(evaluation!)
+        endif
+    endif
+    
     switch method$
         case "POST"
             if request!.get("invoke") <> null() then
                 invoke$ = request!.get("invoke")
-                dr! = DataRow.fromJson(request!.get("body"))
+                if inputhandler! = null() then
+                    dr! = DataRow.fromJson(request!.get("body"))
+                else
+                    dr! = inputhandler!.parsePostInvoke(request!.get("body"))
+                endif
                 if dr! <> null() and dr!.getColumnCount() > 0 then
                     variableNamePrefix! = new String(user$)
                     variableNamePrefix! = variableNamePrefix!.replaceAll("\W", "_")
@@ -243,8 +262,11 @@ main_loop:
 				if b1$>"" and b1$(1,1)<>"[" then
 					b1$="["+b1$+"]"
 				fi
-				System.out.println(b1$)
-                res! = ResultSet.fromJson(b1$)
+				if inputhandler! = null() then
+                    res! = ResultSet.fromJson(b1$)
+				else
+                    res! = inputhandler!.parsePost(b1$)
+				endif
                 k! = java.util.Arrays.asList(new String(filterf$).split("/"))
                 v! = java.util.Arrays.asList(new String(sel$).split("/",-1))
                 it! = res!.iterator()
@@ -288,12 +310,24 @@ main_loop:
         case "DELETE"
         case "PUT"
             if method$ = "PUT" and cvs(sel$,4) = "IGNOREKEYS" then
-                dr! = DataRow.fromJson(request!.get("body"))
+                if inputhandler! = null() then
+                    dr! = DataRow.fromJson(request!.get("body"))
+                else
+                    dr! = inputhandler!.parsePut(request!.get("body"))
+                endif
             else
                 if sel$ = "" or filterf$ = "" then
                     throw "Missing resource ID",999
                 endif
-                dr! = DataRow.fromJson(request!.get("body"))
+                if inputhandler! = null() then
+                    dr! = DataRow.fromJson(request!.get("body"))
+                else
+                    if method$="PUT" then
+                        dr! = inputhandler!.parsePut(request!.get("body"))
+                    else
+                        dr! = inputhandler!.parseDelete(request!.get("body"))
+                    endif
+                endif
                 k! = java.util.Arrays.asList(new String(filterf$).split("/"))
                 v! = java.util.Arrays.asList(new String(sel$).split("/",-1))
                 if v!.size() < k!.size() then
@@ -337,9 +371,25 @@ main_loop:
             response!.put("sel",sel$)
             response!.put("primarykey",filterf$)
         break
-
+        
+REM         case "GET"
+REM         case "HEAD"
+REM         case "CONNECT"
+REM         case "TRACE"
+REM         case "PATCH"
         case default
-            params! = request!.get("params",err=*next)
+        
+            if inputhandler! = null() then
+                params! = request!.get("params",err=*next)
+            else
+                paramsParsed = 0
+                if method$ = "GET"      then params! = inputhandler!.parseGet(  request!);paramsParsed=1
+                if method$ = "HEAD"     then params! = inputhandler!.parseHead(request!);paramsParsed=1
+                if method$ = "CONNECT"  then params! = inputhandler!.parseConnect(request!);paramsParsed=1
+                if method$ = "TRACE"    then params! = inputhandler!.parseTrace(request!);paramsParsed=1
+                if method$ = "PATCH"    then params! = inputhandler!.parsePatch(request!);paramsParsed=1
+                if !paramsParsed then params! = inputhandler!.parseDefault(request!)
+            endif
 
             if sel$ = "_meta" then
                 rs! = new ResultSet()
