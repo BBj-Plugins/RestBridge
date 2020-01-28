@@ -1,0 +1,82 @@
+REM /**
+REM  * RestOutputHandler.bbj
+REM  * @author jcorea@basis.com
+REM  *
+REM  * handles output in the response for the application/json in the RestBridge
+REM  * DEFAULT has always to be defined. other methods can be defined as well. If the bridge can't find
+REM  * the label for the method in here, DEFAULT label will be used.
+REM  * this file path has to be set as servlet parameter "REST_OUTPUTHANDLER"
+REM  */
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+GET:
+REM System.out.println("GET")
+declare BBjspWebResponse response!
+declare ResultSet rs!
+declare String responseString!
+enter rs!, responseString!, restbridge_opt_jsonmeta, method$, response!
+wr! = new java.io.StringWriter()
+response!.setContentType("application/json")
+ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+wr!.flush()
+wr!.close()
+responseString!=cast(String, wr!.toString())
+EXIT
+
+POST:
+REM System.out.println("POST")
+declare BBjspWebResponse response!
+declare ResultSet rs!
+declare String responseString!
+enter rs!, responseString!, restbridge_opt_jsonmeta, method$, response!
+wr! = new java.io.StringWriter()
+response!.setContentType("application/json")
+ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+wr!.flush()
+wr!.close()
+responseString!=cast(String, wr!.toString())
+EXIT
+
+DELETE:
+REM System.out.println("DELETE")
+declare BBjspWebResponse response!
+declare ResultSet rs!
+declare String responseString!
+enter rs!, responseString!, restbridge_opt_jsonmeta, method$, response!
+wr! = new java.io.StringWriter()
+response!.setContentType("application/json")
+ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+wr!.flush()
+wr!.close()
+responseString!=cast(String, wr!.toString())
+EXIT
+
+PUT:
+REM System.out.println("PUT")
+declare BBjspWebResponse response!
+declare ResultSet rs!
+declare String responseString!
+enter rs!, responseString!, restbridge_opt_jsonmeta, method$, response!
+wr! = new java.io.StringWriter()
+response!.setContentType("application/json")
+ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+wr!.flush()
+wr!.close()
+responseString!=cast(String, wr!.toString())
+EXIT
+
+DEFAULT:
+REM System.out.println("DEFAULT")
+declare BBjspWebResponse response!
+declare ResultSet rs!
+declare String responseString!
+enter rs!, responseString!, restbridge_opt_jsonmeta, method$, response!
+wr! = new java.io.StringWriter()
+response!.setContentType("application/json")
+ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
+wr!.flush()
+wr!.close()
+responseString!=cast(String, wr!.toString())
+EXIT
+

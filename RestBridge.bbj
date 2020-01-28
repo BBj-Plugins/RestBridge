@@ -583,6 +583,7 @@ class public RestBridge
             methodret
         else
             if pos("text/xml"=accept$) >0 or pos("application/xml"=accept$) >0  then
+                
                 if pos("application/xml"=accept$) >0  then
                     response!.setContentType("application/xml")
                 else
@@ -606,8 +607,29 @@ class public RestBridge
                 methodret
             else
                 if pos("application/json"=accept$) > 0 then
-                    response!.setContentType("application/json")
+                    System.out.println(servletParams!)
                     wr! = new java.io.StringWriter()
+                    if servletParams!.containsKey("REST_OUTPUTHANDLER") then
+                        outputhandlerPath! = servletParams!.get("REST_OUTPUTHANDLER").toString()
+                        outputhandlerFile! = null()
+                        outputhandlerFile! = new File(outputhandlerPath!,err=*next)
+                        if outputhandlerFile! <> null() then
+                            responseString! = ""
+                            ok=0; call outputhandlerPath! + "::" + method$, err=*next, rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebResponse, response!) ;ok=1
+                            if !ok then call outputhandlerPath! + "::DEFAULT", rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebResponse, response!)
+                            if (restbridge_opt_enablegzip>0 and do_gzip) then
+                                #writeGZipCompressedData(response!, responseString!.getBytes())
+                            else
+                                s! = response!.getOutputStream()    
+                                s!.write(responseString!)
+                                s!.close()
+                            fi
+                            #logResponse(req_id$,response!)
+                            methodret
+                        endif
+                    endif
+
+                    response!.setContentType("application/json")
                     ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
                     wr!.flush()
                     wr!.close()
@@ -1015,6 +1037,7 @@ class public RestBridge
         parameterNames!.add("REST_AUTHPGM")
         parameterNames!.add("REST_REQUESTLOG")
         parameterNames!.add("USE_GET_ALLOWED_FILTER")
+        parameterNames!.add("REST_OUTPUTHANDLER")
 
         rem the list of parameter names that must be set as STBL 
         declare BBjVector parameterNamesToSetAsSTBL!
