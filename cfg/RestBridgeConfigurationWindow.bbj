@@ -598,11 +598,11 @@ class public RestBridgeConfigurationWindow
 
     method public void browseConfigFileButtonPush(BBjButtonPushEvent event!)
         path! = #inpeConfigFile!.getText()
-        configFilePath! = #browse(path!,"Configuration File Selection", Boolean.FALSE, "bbx")
+        configFilePath! = #browse(path!,"Configuration File Selection", Boolean.FALSE, "","BBx config files"+$0a$+"*.bbx;*.cfg"+$0a$+"All files"+$0a$+"*.*")
         #inpeConfigFile!.setText(configFilePath!)
     methodend
 
-    method public String browse(String path!, String title!, Boolean directorySelection!, String fileExtension!)
+    method public String browse(String path!, String title!, Boolean directorySelection!, String fileExtension!, String filter!)
         fileOpenPath! = dsk("")
 
         if(path! <> "") then
@@ -614,7 +614,8 @@ class public RestBridgeConfigurationWindow
             endif
         endif
 
-        directoryPath$ = FILEOPEN("Configuration File Selection", fileOpenPath!,"",fileExtension!,"",directorySelection!)
+        
+        directoryPath$ = FILEOPEN("Configuration File Selection", fileOpenPath!,"",fileExtension!,filter!,directorySelection!)
         if(directoryPath$ <> "::CANCEL::") then
             methodret directoryPath$
         endif
@@ -624,19 +625,19 @@ class public RestBridgeConfigurationWindow
 
     method public void browseRequestLogButtonPush(BBjButtonPushEvent event!)
         path! = #inpeRequestLog!.getText()
-        logPath! = #browse(path!,"Request Log File Selection", Boolean.FALSE, "")
+        logPath! = #browse(path!,"Request Log File Selection", Boolean.FALSE, "","All files"+$0a$+"*.*")
         #inpeRequestLog!.setText(logPath!)
     methodend
 
     method public void browseWorkingDirectoryButtonPush(BBjButtonPushEvent event!)
         path! = #inpeWorkingDirectory!.getText()
-        wdPath! = #browse(path!,"Working Directory Selection", Boolean.TRUE, "")
+        wdPath! = #browse(path!,"Working Directory Selection", Boolean.TRUE, "","")
         #inpeWorkingDirectory!.setText(wdPath!)
     methodend
 
     method public void browseAuthFileButtonPush(BBjButtonPushEvent event!)
         path! = #inpeAuthProgram!.getText()
-        authProgramPath! = #browse(path!,"Authentication File Selection", Boolean.FALSE, "bbj")
+        authProgramPath! = #browse(path!,"Authentication File Selection", Boolean.FALSE, "bbj","All Files"+$0a$+"*.*")
         #inpeAuthProgram!.setText(authProgramPath!)
     methodend
 
