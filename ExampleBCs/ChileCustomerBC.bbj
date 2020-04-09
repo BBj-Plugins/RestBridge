@@ -25,7 +25,6 @@ class public ChileCustomerBC implements BusinessComponent
     field private HashMap   Scopes!
 
     field private BBjString Database$ = "ChileCompany"
-REM     field private BBjString dataFile$ = "C:\bbj\demos\chiledd\data\CUSTOMER"
     field private BBjString TableName$ = "CUSTOMER"
     field private BBjString template$ = "CUST_NUM:C(6):LABEL=CUST_NUM:,FIRST_NAME:C(20):LABEL=FIRST_NAME:,LAST_NAME:C(30):LABEL=Last:,COMPANY:C(30):LABEL=Company:,BILL_ADDR1:C(30):LABEL=BILL_ADDR1:,BILL_ADDR2:C(30):LABEL=BILL_ADDR2:,CITY:C(20):LABEL=CITY:,STATE:C(2):LABEL=STATE:,COUNTRY:C(20):LABEL=COUNTRY:,POST_CODE:C(12):LABEL=POST_CODE:,PHONE:C(15):LABEL=PHONE:,FAX:C(15):LABEL=FAX:,SALESPERSON:C(3):LABEL=SALESPERSON:,SHIP_ZONE:C(2):LABEL=SHIP_ZONE:,SHIP_METHOD:C(5):LABEL=SHIP_METHOD:,CURRENT_BAL:N(12):LABEL=CURRENT_BAL:,OVER_30:N(12):LABEL=OVER_30:,OVER_60:N(12):LABEL=OVER_60:,OVER_90:N(12):LABEL=OVER_90:,OVER_120:N(12):LABEL=OVER_120:,SALES_MTD:N(12):LABEL=SALES_MTD:,SALES_YTD:N(12):LABEL=SALES_YTD:,SALES_LY:N(12):LABEL=SALES_LY:,LAST_PURCH_DATE:N(7):LABEL=LAST_PURCH_DATE:,LAST_PAY_DATE:N(7):LABEL=LAST_PAY_DATE:,CREDIT_CODE:C(2):LABEL=CREDIT_CODE:"
 
@@ -256,78 +255,6 @@ REM         endif
 
     methodend
     
-    method protected ResultSet fullTextSearch()
-        declare ResultSet rs!
-        declare DataRow filter!
-        declare DataRow attributes!
-        declare Connection con!
-        declare PreparedStatement stmt!
-        declare HashSet fields!
-        
-        if #Filter! = null() or !#Filter!.contains("_SEARCH") then
-            methodret null()
-        endif
-        
-        search$ = #Filter!.getFieldAsString("_SEARCH")
-        
-        rem Build the SQL query
-        sql$ = "SELECT * FROM (CALL BBJ_INDEX('" + #TableName$ + "', ?, 0))"
-
-        if #Filter! <> null() then
-            filter! = #Filter!
-            sql$ = sql$ + " WHERE "
-            it! = filter!.getFieldNames().iterator()
-            while it!.hasNext()
-                fieldName$ = it!.next()
-                if fieldName$(1,1) = "_" then
-                    continue
-                endif
-                sql$ = sql$ + fieldName$ + "=? AND "
-            wend
-            sql$ = sql$(1,len(sql$)-5)
-        endif
-
-        rem Prepare the statement
-        con! = BBjAPI().getJDBCConnection(#Database$)
-        stmt! = con!.prepareStatement(sql$)
-        
-        stmt!.setString(1,"*" + search$ + "*")
-        
-        if #Filter! <> null() then
-            i%=2
-            it! = filter!.getFieldNames().iterator()
-            while it!.hasNext()
-                fieldName$ = it!.next()
-                if fieldName$(1,1) = "_" then
-                    continue
-                endif
-                stmt!.setObject(i%,filter!.getField(fieldName$).getValue(),filter!.getFieldType(fieldName$))
-                i% = i% + 1
-            wend
-        endif
-
-        rem Execute
-        rs! = new ResultSet(stmt!.executeQuery())
-        con!.close()
-
-        #ResultSet! = rs!
-        methodret rs!
-REM         search$ = "*" + search$ + "*"
-REM         ch = unt
-REM         
-REM         open(ch)#dataFile$
-REM         DIM rec$:#template$
-REM REM         templatedString! = bbjapi().makeTemplatedString(#template$)
-REM         
-REM         READ RECORD (ch, KNUM=1, KEY=search$) rec$
-REM REM         templatedString!.setString(rec$)
-REM         dr! = DataRow.fromTemplate(rec$)
-REM         rs! = new ResultSet()
-REM         rs!.add(dr!)
-REM         methodret rs!
-    methodend
-
-
     rem /**
     rem  * Retrieves a ResultSet with customer DataRow's.
     rem  * If a filter is set, this will be applied to filter the result.
@@ -349,7 +276,6 @@ REM         methodret rs!
 
         rem Initiate full text search if parameter _SEARCH exists
         if #Filter! <> null() and #Filter!.contains("_SEARCH") then
-REM             methodret #fullTextSearch()
             search! = #Filter!.getFieldAsString("_SEARCH")
         endif
 
@@ -422,7 +348,7 @@ REM             methodret #fullTextSearch()
         
         i%=1
         if search! <> null() then
-            stmt!.setString(i%,"*" + search! + "*")
+            stmt!.setString(i%,search!)
             rem prepared statement parameter added before WHERE, so index for other parameters shifts by one
             i% = i% + 1
         endif
@@ -682,7 +608,7 @@ REM fields!.addItem("TOP 2")
 REM fields!.addItem("*")
 REM bc!.setFieldSelection(fields!)
 filter! = new DataRow()
-filter!.setFieldValue("_SEARCH", "ry")
+filter!.setFieldValue("_SEARCH", "*ry*")
 filter!.setFieldValue("BILL_ADDR2", "")
 bc!.setFilter(filter!)
 
