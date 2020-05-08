@@ -1,0 +1,304 @@
+use java.io.File
+use java.io.StringWriter
+
+use java.nio.file.Files
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+rem /**
+rem  * This class is used to convert the BC's return values (ResultSet)
+rem  * into the client requested format. The following types are currently 
+rem  * supported:
+rem  * <ul>
+rem  *     <li>TXT</li>
+rem  *     <li>XML</li>
+rem  *     <li>HTML</li>
+rem  *     <li>JSON</li>
+rem  *     <li>XLSX</li>
+rem  * </ul>
+rem  */
+class public OutputHandler
+
+    rem defines whether the RESTBridge is running in Debug mode
+    field private BBjNumber debug
+    
+    rem The ResultSet to be converted
+    field private ResultSet rs!
+    
+    field private String primaryKey!
+    
+    field private String accept!
+    
+    rem The actual request object which contains infromation about the client request
+    field private BBjspWebRequest request!
+    
+    rem The actual response object used to write the response  
+    field private BBjspWebResponse response!
+
+    method public OutputHandler(BBjNumber debug)
+        #debug = debug
+    methodend
+
+    rem /**
+    rem  * 
+    rem  * 
+    rem  */
+    method public String createOutput(String accept!)    
+        if pos("text/html"=accept!) > 0 OR pos("*/*"=accept!) > 0  then
+            methodret #createHTML()
+        endif
+        
+        if pos("text/xml"=accept!) >0 or pos("application/xml"=accept!) >0  then
+            methodret #createXML()
+        endif
+        
+        if pos("application/json"=accept!) > 0 then
+            methodret #createJSON()
+        endif
+        
+        if pos("text/csv"=accept!) >0 OR pos("text/plain"=accept!) >0 then
+            methodret #createTXT()
+        endif
+        
+        if pos("application/xls"=accept!) > 0 then
+            #createXLSX()
+            methodret ""
+        else
+                            
+        if pos("debug"=accept!)>0 then
+            #createDebug()
+            methodret ""
+        endif
+        
+        throw "Unsupported content type requested in Accept header: " + accept!, 406
+    methodend
+    
+    method public String createHTML()
+        if !#rs!.isEmpty() then
+            custom_css! = #rs!.get(0).getAttribute("CUSTOM_CSS")
+        endif
+        
+        #response!.setContentType("text/html; charset=" + info(1,2))
+          
+        if custom_css! <> null() then
+            resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;} "+str(custom_css!)+"</style></head><body>"
+        else
+            resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;}</style></head><body>"
+        endif
+          
+        single = num(answer!.get("single",err=*next),err=*next)
+        if single>0 AND #rs!.size()=1 then
+            rem TODO move this pivoted display into the writer
+            rec! = #rs!.get(0)
+            it! = rec!.getFieldNames().iterator()
+              
+            resp_str! = resp_str!+"<table>"
+            if #request!.getPathInfo().endsWith("/_meta") then
+                attrSet! = new java.util.HashSet()
+                while it!.hasNext()
+                    f$ = it!.next()
+                    attrSet!.addAll(#rs!.getColumnMetaData(f$).keySet())
+                wend
+                  
+                it! = attrSet!.iterator()
+                resp_str! = resp_str!+"<tr><td></td>"
+                while it!.hasNext()
+                    metaName$ = it!.next()
+                    resp_str! = resp_str! + "<td><b>" + metaName$ + "</b></td>"
+                wend
+                  
+                resp_str! = resp_str! + "</tr>"
+                it! = rec!.getFieldNames().iterator()
+                while it!.hasNext()
+                    f$ = it!.next()
+                    metaMap! = #rs!.getColumnMetaData(f$)
+                    resp_str! = resp_str! + "<tr><td><b>" + f$ + "</b></td>"
+                    it2! = attrSet!.iterator()
+                    while it2!.hasNext()
+                        metaName$ = it2!.next()
+                        if metaMap!.containsKey(metaName$) then
+                            resp_str! = resp_str!+"<td>" + str(metaMap!.get(metaName$)) + "</td>"
+                        else
+                            resp_str! = resp_str! + "<td></td>"
+                        endif
+                    wend
+                    resp_str! = resp_str!+"</tr>"
+                wend
+            else
+                while it!.hasNext()
+                    f$=it!.next()
+                    resp_str! = resp_str!+"<tr><td><b>"+f$+"</b></td><td>"+rec!.getFieldAsString(f$)+"</td></tr>"
+                wend
+            endif
+            resp_str! = resp_str!+"</table>"
+        else
+            links! = null()
+            if (#primaryKey! <> null() ) then
+                pk$=str(#primaryKey!)
+                links! = new java.util.HashMap()
+                link$ = request!.getContextPath()+request!.getServletPath()+request!.getPathInfo().replaceAll("(/[^/]+)/.*|$","$1")
+        
+                while pk$>""
+                    if pos("/"=pk$)>0 then
+                        f$=pk$(1,pos("/"=pk$)-1)
+                        pk$=pk$(pos("/"=pk$)+1)
+                    else
+                        f$=pk$
+                        pk$=""
+                    fi
+                    link$=link$+"/{"+f$+"}"
+                    links!.put(f$,link$)
+                wend
+            fi
+            
+            declare StringWriter writer!
+            writer! = new StringWriter()
+        
+            ResultSetExporter.writeHTML(#rs!, writer!, links!)
+            writer!.flush()
+            writer!.close()
+            
+            resp_str! = resp_str! + writer!.toString()
+        fi
+        resp_str! = resp_str!+"</body></html>"
+        
+        methodret resp_str!
+    methodend
+    
+    method public void createTextXML()
+        declare StringWriter writer!
+        writer! = new StringWriter()
+
+        rem Set the content type of the returned content
+        #response!.setContentType("text/xml")
+        
+        rem convert the ResultSet using the ResultSetExporter
+        ResultSetExporter.writeXML(#rs!, "root", "entity", writer!)
+        
+        writer!.flush()
+        writer!.close()
+        
+        methodret writer!.toString()
+    methodend
+    
+    method public String createJSON()
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem Set the content type to JSON
+        #response!.setContentType("application/json")
+        
+        ResultSetExporter.writeJSON(#rs!, writer!, restbridge_opt_jsonmeta)
+        
+        writer!.flush()
+        writer!.close()
+        
+        methodret writer!.toString()
+    methodend
+    
+    method public void createDebug()
+            s! = response!.getOutputStream()
+            s!.write(str(req!))
+            s!.write($0a$)
+            
+            s!.write(str(answer!))
+            s!.write($0a$)
+            s!.write("Debug: ")
+            s!.write($0a$)
+            s!.write("getAttributeNames:"+str(request!.getAttributeNames()))
+            s!.write($0a$)
+            s!.write("getHeaderNames:"+str(request!.getHeaderNames()))
+            s!.write($0a$)
+            s!.write("getParameterNames:"+str(request!.getParameterNames()))
+            s!.write($0a$)
+            s!.write("getMethod:"+str(request!.getMethod()))
+            s!.write($0a$)
+            s!.write("getRequestURL:"+str(request!.getRequestURL()))
+            s!.write($0a$)
+            s!.write("getRequestURI:"+str(request!.getRequestURI()))
+            s!.write($0a$)
+            s!.write("Accept:"+str(request!.getHeader("Accept")))
+            s!.write($0a$)
+            EXIT
+    methodend
+    
+    method public void createXLSX()
+        #response!.setContentType("application/xls")
+        
+        if #request!.getPathInfo().matches("/[^/]+/_output_/([^/]+)$") then
+            filename$ = #request!.getPathInfo().replaceAll("/[^/]+/_output_/([^/]+)$","$1")
+        else
+            filename$ = #request!.getPathInfo().replaceAll("/([^/]+).*","$1")+".xlsx"
+        endif
+         
+        #response!.setHeader("content-disposition","attachment; filename=""" + filename$ + """")
+        directoryPath$ = System.getProperty("basis.cacheDirectory") + "/_output_/"
+        mkdir directoryPath$, err=*next
+
+        tempFile! = File.createTempFile("output_", ".xlsx", new File(directoryPath$))
+        
+        ResultSetExporter.writeXLSX(#rs!, tempFile!, 1)
+        
+        if #debug then
+            System.out.println("REST: WRITING Excel to " + directoryPath$)
+            System.out.println(tempFile!.getAbsolutePath())
+            System.out.println(str(#rs!.size())+" Records written")
+        fi
+        
+        java.nio.file.Files.copy(tempFile!.toPath(), #response!.getOutputStream())
+        tempFile!.delete()
+    methodend
+    
+    rem /**
+    rem  * Creates and returns the ResultSet in TXT format.
+    rem  */
+    method private String createTXT()
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem Set the content type of the returned content
+        #response!.setContentType("text/csv")
+        
+        rem let the ResultSetExporter to the actual data conversion
+        ResultSetExporter.writeTXT(#rs!, writer!)
+        
+        writer!.flush()
+        writer!.close()
+        
+        methodret writer!.toString()
+    methodend 
+    
+    method public String createXML()
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem Set the content type to the
+        #response!.setContentType("application/xml")
+        
+        ResultSetExporter.writeXML(#rs!,"root","entity",writer!)
+        
+        writer!.flush()
+        writer!.close()
+        
+        methodret writer!.toString()
+    methodend
+
+    method public void setResultSet(ResultSet rs!)
+        #rs! = rs!
+    methodend
+    
+    method public void setPrimaryKey(String primaryKey!)
+        #primaryKey! = primaryKey!
+    methodend
+    
+    method public void setRequest(BBjspWebRequest request!)
+        #request! = request!
+    methodend
+    
+    method public void setResponse(BBjspWebResponse response!)
+        #response! = response!
+    methodend
+    
+classend

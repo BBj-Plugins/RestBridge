@@ -7,6 +7,8 @@ use javax.servlet.ServletOutputStream
 use com.basiscomponents.db.ResultSet
 use com.basiscomponents.db.ResultSetExporter
 
+use ::RestBridge/OutputHandler.bbj::OutputHandler
+
 use java.io.File
 use java.io.FileInputStream
 use java.io.FileOutputStream
@@ -52,6 +54,7 @@ class public RestBridge
     	else
 	        response!.setHeader("Access-Control-Allow-Origin","*")
         endif
+        
         response!.setHeader("Access-Control-Allow-Credentials","true")
         response!.setHeader("Access-Control-Allow-Methods","GET, POST, PUT, DELETE, OPTIONS")
         response!.setHeader("Access-Control-Allow-Headers",request!.getHeader("Access-Control-Request-Headers"))
@@ -189,6 +192,7 @@ class public RestBridge
                 if !servletParams!.containsKey("REST_WD") then
                     goto setup_err
                 endif
+                
                 if !servletParams!.containsKey("REST_ADAPTERPGM") then
                     goto setup_err
                 endif
@@ -203,11 +207,14 @@ class public RestBridge
             endif
         wend
         
-        if servletParams!.containsKey("REST_OUTPUTHANDLER") then
-            outputhandlerPath! = servletParams!.get("REST_OUTPUTHANDLER").toString()
-            outputhandlerFile! = null()
-            outputhandlerFile! = new File(outputhandlerPath!,err=*next)
-        endif
+REM         if servletParams!.containsKey("REST_OUTPUTHANDLER") then
+REM             outputhandlerPath! = servletParams!.get("REST_OUTPUTHANDLER").toString()
+REM             outputhandlerFile! = null()
+REM             outputhandlerFile! = new File(outputhandlerPath!,err=*next)
+REM             REM TODO - Check if the file actually exists
+REM         endif
+        
+        rem standardOutputHandler! = new File("RestBridge/RestOutputHandler.bbj")
 
         params! = new HashMap()
         it! = request!.getParameterNames().iterator()
@@ -492,285 +499,42 @@ class public RestBridge
             charset! = request!.getHeader("Accept-Charset")
             #setCharacterSet(rs!, charset!)
         endif
+        
+        rem Handling the output format
+        
+        seterr output_creation_error
 
-        if pos("text/html"=accept$) > 0 OR pos("*/*"=accept$) > 0  then
-            if outputhandlerFile! <> null() then
-                resp_str! = ""
-                call outputhandlerPath! + "::TEXT_HTML", rs!, resp_str!, restbridge_opt_jsonmeta, method$, cast(BBjspWebRequest, request!), cast(BBjspWebResponse, response!), pk!, answer!, debug
-            else
-                if rs!.size() then
-                    custom_css! = rs!.get(0).getAttribute("CUSTOM_CSS")
-                endif
-                response!.setContentType("text/html; charset="+info(1,2))
-                
-                if custom_css! <> null() then
-                    resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;} "+str(custom_css!)+"</style></head><body>"
-                else
-                    resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;}</style></head><body>"
-                endif
-                
-                single = num(answer!.get("single",err=*next),err=*next)
-                if single>0 AND rs!.size()=1 then
-                    rem TODO move this pivoted display into the writer
-                    rec! = rs!.get(0)
-                    it! = rec!.getFieldNames().iterator()
-                    resp_str! = resp_str!+"<table>"
-                    if request!.getPathInfo().endsWith("/_meta") then
-                        attrSet! = new java.util.HashSet()
-                        while it!.hasNext()
-                            f$ = it!.next()
-                            attrSet!.addAll(rs!.getColumnMetaData(f$).keySet())
-                        wend
-                        it! = attrSet!.iterator()
-                        resp_str! = resp_str!+"<tr><td></td>"
-                        while it!.hasNext()
-                            metaName$ = it!.next()
-                            resp_str! = resp_str!+"<td><b>"+metaName$+"</b></td>"
-                        wend
-                        resp_str! = resp_str!+"</tr>"
-                        it! = rec!.getFieldNames().iterator()
-                        while it!.hasNext()
-                            f$ = it!.next()
-                            metaMap! = rs!.getColumnMetaData(f$)
-                            resp_str! = resp_str!+"<tr><td><b>"+f$+"</b></td>"
-                            it2! = attrSet!.iterator()
-                            while it2!.hasNext()
-                                metaName$ = it2!.next()
-                                if metaMap!.containsKey(metaName$) then
-                                    resp_str! = resp_str!+"<td>"+str(metaMap!.get(metaName$))+"</td>"
-                                else
-                                    resp_str! = resp_str!+"<td></td>"
-                                endif
-                            wend
-                            resp_str! = resp_str!+"</tr>"
-                        wend
-                    else
-                        while it!.hasNext()
-                            f$=it!.next()
-                            resp_str! = resp_str!+"<tr><td><b>"+f$+"</b></td><td>"+rec!.getFieldAsString(f$)+"</td></tr>"
-                        wend
-                    endif
-                    resp_str! = resp_str!+"</table>"
-                else
-                    if (pk! <> null() ) then
-                        pk$=str(pk!)
-                        links! = new java.util.HashMap()
-                        link$ = request!.getContextPath()+request!.getServletPath()+request!.getPathInfo().replaceAll("(/[^/]+)/.*|$","$1")
-    
-                        while pk$>""
-                            if pos("/"=pk$)>0 then
-                                f$=pk$(1,pos("/"=pk$)-1)
-                                pk$=pk$(pos("/"=pk$)+1)
-                            else
-                                f$=pk$
-                                pk$=""
-                            fi
-                            link$=link$+"/{"+f$+"}"
-                            links!.put(f$,link$)
-                        wend
-                    else
-                        links! = null()
-                    fi
-                    wr! = new java.io.StringWriter()
-    
-                    ResultSetExporter.writeHTML(rs!,wr!,links!)
-                    wr!.flush()
-                    wr!.close()
-                    resp_str! = resp_str!+wr!.toString()
-                fi
-                resp_str! = resp_str!+"</body></html>"
-            endif
+        outputHandler! = new OutputHandler()
+        outputHandler!.setResultSet(rs!)
+        
+        outputHandler!.setResponse(response!)
+        outputHandler!.setRequest(request!)
+        
+        rem final call
+        responseString! = outputHandler!.createOutput(accept$)
+        
+        rem Check whether the output is in a String form i.e. it can be gzip-compressed
+        if responseString! <> null() then
             if (restbridge_opt_enablegzip>0 and do_gzip) then
-                #writeGZipCompressedData(response!, resp_str!.getBytes())
+                #writeGZipCompressedData(response!, responseString!.getBytes())
             else
-                s! = response!.getOutputStream()   
-                s!.write(resp_str!)
-                s!.close()
+                declare ServletOutputStream outputStream!
+                outputStream! = response!.getOutputStream()   
+                outputStream!.write(responseString!)
+                outputStream!.close()
             fi
-
-            response!.setStatus(200)
-            #logResponse(req_id$,response!)
-            methodret
-        else
-            if pos("text/xml"=accept$) >0 or pos("application/xml"=accept$) >0  then
-                if pos("application/xml"=accept$) >0  then
-                    if outputhandlerFile! <> null() then
-                        responseString! = ""
-                        call outputhandlerPath! + "::APPLICATION_XML", rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebRequest, request!), cast(BBjspWebResponse, response!), pk!, answer!, debug
-                    else
-                        response!.setContentType("application/xml")
-                        wr! = new java.io.StringWriter()
-                        ResultSetExporter.writeXML(rs!,"root","entity",wr!)
-                        
-                        wr!.flush()
-                        wr!.close()
-                        responseString!=wr!.toString()
-                    endif
-                else
-                    if outputhandlerFile! <> null() then
-                        responseString! = ""
-                        call outputhandlerPath! + "::TEXT_XML", rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebRequest, request!), cast(BBjspWebResponse, response!), pk!, answer!, debug
-                    else
-                        response!.setContentType("text/xml")
-                        wr! = new java.io.StringWriter()
-                        ResultSetExporter.writeXML(rs!,"root","entity",wr!)
-                        
-                        wr!.flush()
-                        wr!.close()
-                        responseString!=wr!.toString()
-                    endif
-                endif
-                    
-                if (restbridge_opt_enablegzip>0 and do_gzip) then
-                    #writeGZipCompressedData(response!, responseString!.getBytes())
-                else
-                    s! = response!.getOutputStream()
-                    s!.write(responseString!)
-                    s!.close()
-                fi
-                
-                #logResponse(req_id$,response!)
-                methodret
-            else
-                if pos("application/json"=accept$) > 0 then
-                    wr! = new java.io.StringWriter()
-                    if outputhandlerFile! <> null() then
-                        responseString! = ""
-                        call outputhandlerPath! + "::APPLICATION_JSON", rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebRequest, request!), cast(BBjspWebResponse, response!), pk!, answer!, debug
-                        if (restbridge_opt_enablegzip>0 and do_gzip) then
-                            #writeGZipCompressedData(response!, responseString!.getBytes())
-                        else
-                            s! = response!.getOutputStream()    
-                            s!.write(responseString!)
-                            s!.close()
-                        fi
-                        #logResponse(req_id$,response!)
-                        methodret
-                    endif
-
-                    response!.setContentType("application/json")
-                    ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
-                    wr!.flush()
-                    wr!.close()
-                    
-                    if (restbridge_opt_enablegzip>0 and do_gzip) then
-                        #writeGZipCompressedData(response!, wr!.toString().getBytes())
-                    else
-                        s! = response!.getOutputStream()    
-                        s!.write(wr!.toString())
-                        s!.close()
-                    fi
-
-                    #logResponse(req_id$,response!)
-                    methodret
-                else
-                    if pos("text/csv"=accept$) >0 OR pos("text/plain"=accept$) >0 then
-                        if outputhandlerFile! <> null() then
-                            responseString! = ""
-                            if pos("text/csv"=accept$) >0 then
-                                call outputhandlerPath! + "::TEXT_CSV", rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebRequest, request!), cast(BBjspWebResponse, response!), pk!, answer!, debug
-                            else
-                                call outputhandlerPath! + "::TEXT_PLAIN", rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebRequest, request!), cast(BBjspWebResponse, response!), pk!, answer!, debug
-                            endif
-                        else
-                            response!.setContentType("text/csv")
-                            wr! = new java.io.StringWriter()
-                            ResultSetExporter.writeTXT(rs!,wr!)
-    
-                            wr!.flush()
-                            wr!.close()
-                            responseString!=wr!.toString()
-                        endif
-
-                        if (restbridge_opt_enablegzip>0 and do_gzip) then
-                            #writeGZipCompressedData(response!, responseString!.getBytes())
-                        else
-                            s! = response!.getOutputStream()    
-                            s!.write(responseString!)
-                            s!.close()
-                        fi
-
-                        #logResponse(req_id$,response!)
-                        methodret
-                    else
-                        if pos("application/xls"=accept$) >0 then
-                            if outputhandlerFile! <> null() then
-                                responseString! = ""
-                                call outputhandlerPath! + "::APPLICATION_XLS", rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebRequest, request!), cast(BBjspWebResponse, response!), pk!, answer!, debug
-                            else
-                                response!.setContentType("application/xls")
-                                if request!.getPathInfo().matches("/[^/]+/_output_/([^/]+)$") then
-                                    filename$ = request!.getPathInfo().replaceAll("/[^/]+/_output_/([^/]+)$","$1")
-                                else
-                                    filename$ = request!.getPathInfo().replaceAll("/([^/]+).*","$1")+".xlsx"
-                                endif
-                               
-                                response!.setHeader("content-disposition","attachment; filename="""+filename$+"""")
-                                d$=System.getProperty("basis.cacheDirectory")+"/_output_/"
-                                mkdir d$,err=*next
-    
-                                wr! = new java.io.StringWriter()
-                                f! = java.io.File.createTempFile("output_", "xls", new java.io.File(d$))
-                                ResultSetExporter.writeXLSX(rs!, f!, 1)
-    
-                                if debug then
-                                    System.out.println("REST: WRITING Excel to "+d$)
-                                    System.out.println(f!.getAbsolutePath())
-                                    System.out.println(str(rs!.size())+" Records written")
-                                fi
-    
-                                java.nio.file.Files.copy(f!.toPath(), response!.getOutputStream())
-                                f!.delete()
-                            endif
-                            #logResponse(req_id$,response!)
-                            methodret
-                        else
-                            if pos("debug"=accept$)>0 then
-                                if outputhandlerFile! <> null() then
-                                    responseString! = ""
-                                    call outputhandlerPath! + "::DEBUG", rs!, responseString!, restbridge_opt_jsonmeta, method$, cast(BBjspWebRequest, request!), cast(BBjspWebResponse, response!), pk!, answer!, debug
-                                else
-                                    response!.setContentType("text/plain")
-                                    s! = response!.getOutputStream()
-                                    s!.write(str(req!))
-                                    s!.write($0a$)
-    
-                                    s!.write(str(answer!))
-                                    s!.write($0a$)
-                                    s!.write("Debug: ")
-                                    s!.write($0a$)
-                                    s!.write("getAttributeNames:"+str(request!.getAttributeNames()))
-                                    s!.write($0a$)
-                                    s!.write("getHeaderNames:"+str(request!.getHeaderNames()))
-                                    s!.write($0a$)
-                                    s!.write("getParameterNames:"+str(request!.getParameterNames()))
-                                    s!.write($0a$)
-                                    s!.write("getMethod:"+str(request!.getMethod()))
-                                    s!.write($0a$)
-                                    s!.write("getRequestURL:"+str(request!.getRequestURL()))
-                                    s!.write($0a$)
-                                    s!.write("getRequestURI:"+str(request!.getRequestURI()))
-                                    s!.write($0a$)
-                                    s!.write("Accept:"+str(request!.getHeader("Accept")))
-                                    s!.write($0a$)
-                                endif
-                                #logResponse(req_id$,response!)
-                                methodret
-                            else
-                                if debug then
-                                    System.out.println("REST: error 406 Unsupported content type requested in Accept header: "+accept$)
-                                fi
-                                response!.sendError(406, "Unsupported content type requested in Accept header: "+accept$)
-                                #logResponse(req_id$,response!)
-                                methodret
-                            fi
-                        fi
-                    fi
-                fi
-            fi
-        fi
+        endif
+        
+        response!.setStatus(200)
         #logResponse(req_id$,response!)
         methodret
+        
+        output_creation_error:
+            rem Set the output type to plain to display the error message properly
+            response!.setContentType("text/plain")
+            response!.sendError(500, "Failed to create the request output type: " + errmes(-1))
+            #logResponse(req_id$,response!)
+            methodret
 
         setup_err:
             response!.setContentType("text/plain")
@@ -779,7 +543,7 @@ class public RestBridge
             System.out.println("REST: error 500 STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
             response!.sendError(500,"STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
             #logResponse(req_id$,response!)
-    METHODEND
+    methodend
 
 
     method private Boolean checkSession(BBjString ses$)
@@ -1075,7 +839,7 @@ class public RestBridge
         parameterNames!.add("REST_AUTHPGM")
         parameterNames!.add("REST_REQUESTLOG")
         parameterNames!.add("USE_GET_ALLOWED_FILTER")
-        parameterNames!.add("REST_OUTPUTHANDLER")
+REM         parameterNames!.add("REST_OUTPUTHANDLER")
 
         rem the list of parameter names that must be set as STBL 
         declare BBjVector parameterNamesToSetAsSTBL!
