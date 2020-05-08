@@ -572,7 +572,7 @@ class public RestBridgeConfigurationWindow
             #contexts!.add(new Context(vector!.getItem(i).toString(),#node!))
             vector2! = #admin!.getJettyServerConfig().getCustomContext(vector!.getItem(i).toString()).getBBjspServlets()
             branch_node! = #node!
-            if vector2!.size > 0 then
+            if vector2!.size() > 0 then
                 for y=0 to vector2!.size()-1
                     bbjspServletConfiguration! = cast(BBjspServletConfiguration ,vector2!.getItem(y))
                     if bbjspServletConfiguration!.getClassName() = "RestBridge" then
