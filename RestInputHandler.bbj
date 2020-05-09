@@ -1,0 +1,83 @@
+REM /**
+REM  * RestInputHandler.bbj
+REM  * @author Jan Corea
+REM  * In this class, input from HTTP requests will be parsed and validated for each HTTP method
+REM  * in the RestBridge BBjsp parameter "REST_INPUTHANDLER", the path of this class is set. Change this parameter when implementing
+REM  * a different class to handle the input
+REM  * 
+REM  */
+
+
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.DataRow
+
+class public RestInputHandler
+
+    REM Data structure parsers
+    
+    method protected DataRow parseDataRow(String body!)
+        dr! = DataRow.fromJson(body!,err=errhandler)
+        methodret dr!
+        errhandler:
+            throw errmes(-1), 252
+    methodend
+
+    method protected ResultSet parseResultSet(String body!)
+        rs! = ResultSet.fromJson(body!,err=errhandler)
+        methodret rs!
+        errhandler:
+            throw errmes(-1), 252
+    methodend
+    
+    method protected java.util.HashMap parseParams(java.util.HashMap request!)
+        hm! = cast(java.util.HashMap, request!.get("params",err=*next))
+        methodret hm!
+    methodend
+    
+    REM HTTP method parsers
+
+    method public java.util.HashMap parseDefault(java.util.HashMap request!)
+        methodret #parseParams(request!)
+    methodend
+
+    method public java.util.HashMap parseGet(java.util.HashMap request!)
+        methodret #parseParams(request!)
+    methodend
+
+    method public ResultSet parsePost(String body!)
+        methodret #parseResultSet(body!,err=errhandler)
+        errhandler:
+            throw errmes(-1), 252
+    methodend
+    
+    method public DataRow parsePostInvoke(String body!)
+        methodret #parseDataRow(body!,err=errhandler)
+        errhandler:
+            throw errmes(-1), 252
+    methodend
+    
+    method public DataRow parsePut(String body!)
+        methodret #parseDataRow(body!,err=errhandler)
+        errhandler:
+            throw errmes(-1), 252
+    methodend
+    
+    method public DataRow parseDelete(String body!)
+        methodret #parseDataRow(body!,err=errhandler)
+        errhandler:
+            throw errmes(-1), 252
+    methodend
+
+    method public java.util.HashMap parseConnect(java.util.HashMap request!)
+        methodret #parseParams(request!)
+    methodend
+
+    method public java.util.HashMap parseTrace(java.util.HashMap request!)
+        methodret #parseParams(request!)
+    methodend
+
+    method public java.util.HashMap parsePatch(java.util.HashMap request!)
+        methodret #parseParams(request!)
+    methodend
+    
+classend
