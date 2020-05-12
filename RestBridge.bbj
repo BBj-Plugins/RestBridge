@@ -1,9 +1,5 @@
 use java.util.HashMap
 
-use java.io.ByteArrayOutputStream
-use java.util.zip.GZIPOutputStream
-use javax.servlet.ServletOutputStream
-
 use com.basiscomponents.db.ResultSet
 use com.basiscomponents.db.ResultSetExporter
 
@@ -28,13 +24,7 @@ class public RestBridge
         request! = context!.getRequest()
         response! = context!.getResponse()
 
-        debug = num(stbl("DEBUG",err=*next),err=*next)
-        restbridge_opt_jsonmeta=1
-        restbridge_opt_jsonmeta=int(num(stbl("RESTBRIDGE_OPT_JSONMETA",err=*next),err=*next))
-        
-        restbridge_opt_enablegzip=1
-        restbridge_opt_enablegzip=int(num(stbl("RESTBRIDGE_OPT_ENABLEGZIP",err=*next),err=*next))
-        
+        debug = num(stbl("DEBUG",err=*next),err=*next)        
         if debug then
             System.out.println("REST request --------------------------")
             System.out.println("REST request METHOD "+request!.getMethod())
@@ -51,8 +41,8 @@ class public RestBridge
 
         if request!.getHeader("Origin") <> null() then
             response!.setHeader("Access-Control-Allow-Origin",request!.getHeader("Origin"))
-    	else
-	        response!.setHeader("Access-Control-Allow-Origin","*")
+        else
+            response!.setHeader("Access-Control-Allow-Origin","*")
         endif
         
         response!.setHeader("Access-Control-Allow-Credentials","true")
@@ -175,8 +165,8 @@ class public RestBridge
             #logResponse(req_id$,response!)
             methodret
         else
-			rem create uid$ as a unique representant of the user
-			rem this needs to contain the config file and the prefix!
+            rem create uid$ as a unique representant of the user
+            rem this needs to contain the config file and the prefix!
             uid$ = hta(java.security.MessageDigest.getInstance("MD5").digest(auth$+BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()+pfx))
         fi
 
@@ -197,7 +187,7 @@ class public RestBridge
                     goto setup_err
                 endif
 
-                ses$=#newSession(auth$,servletParams!)
+                ses$ = #newSession(auth$,servletParams!)
                 break
             else
                 ses$=ses_list!.pop()
@@ -206,15 +196,6 @@ class public RestBridge
                 endif
             endif
         wend
-        
-REM         if servletParams!.containsKey("REST_OUTPUTHANDLER") then
-REM             outputhandlerPath! = servletParams!.get("REST_OUTPUTHANDLER").toString()
-REM             outputhandlerFile! = null()
-REM             outputhandlerFile! = new File(outputhandlerPath!,err=*next)
-REM             REM TODO - Check if the file actually exists
-REM         endif
-        
-        rem standardOutputHandler! = new File("RestBridge/RestOutputHandler.bbj")
 
         params! = new HashMap()
         it! = request!.getParameterNames().iterator()
@@ -237,7 +218,7 @@ REM         endif
         if str(uri!)="/admin/requestlog" then
             answer! = #getRequestLog(request!)
         else
-            answer!=#invoke(ses$,req!)
+            answer! = #invoke(ses$,req!)
         fi
         ses_list!.push(ses$)
 
@@ -252,11 +233,6 @@ REM         endif
             fi
         fi
         
-        accept_enc$=str(request!.getHeader("Accept-Encoding"))
-        if pos("gzip"=accept_enc$) > 0 then
-            do_gzip=1
-        fi
-
         rem check for multi-value accept headers
         atmp$=accept$
         alist!=new java.util.ArrayList()
@@ -463,7 +439,6 @@ REM         endif
             methodret
         fi
 
-
         rs! = answer!.get("resultset",err=*next)
         pk! = answer!.get("primarykey",err=*next)
         if rs! = null()
@@ -503,31 +478,21 @@ REM         endif
         rem Handling the output format
         
         seterr output_creation_error
-
-        outputHandler! = new OutputHandler()
-        outputHandler!.setResultSet(rs!)
-        
-        outputHandler!.setResponse(response!)
-        outputHandler!.setRequest(request!)
-        
-        rem final call
-        responseString! = outputHandler!.createOutput(accept$)
-        
-        rem Check whether the output is in a String form i.e. it can be gzip-compressed
-        if responseString! <> null() then
-            if (restbridge_opt_enablegzip>0 and do_gzip) then
-                #writeGZipCompressedData(response!, responseString!.getBytes())
-            else
-                declare ServletOutputStream outputStream!
-                outputStream! = response!.getOutputStream()   
-                outputStream!.write(responseString!)
-                outputStream!.close()
-            fi
-        endif
-        
-        response!.setStatus(200)
-        #logResponse(req_id$,response!)
-        methodret
+            namespace! = BBjAPI().getGlobalNamespace()
+            outputHandler! = cast(OutputHandler, namespace!.getValue(ses$ + "_OUTPUT_HANDLER"))
+            
+            outputHandler!.setResultSet(rs!)
+            outputHandler!.setInvokeResult(answer!)
+            
+            outputHandler!.setResponse(response!)
+            outputHandler!.setRequest(request!)
+            
+            rem final call
+            outputHandler!.createOutput(accept$)
+                        
+            response!.setStatus(200)
+            #logResponse(req_id$,response!)
+            methodret
         
         output_creation_error:
             rem Set the output type to plain to display the error message properly
@@ -551,20 +516,22 @@ REM         endif
         requestSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_REQUEST_SEM",err=noSes)
         responseSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE_SEM")
 
-        BBjAPI().getGlobalNamespace().setValue(ses$+"_REQUEST","PING")
+        namespace! = BBjAPI().getGlobalNamespace() 
+        namespace!.setValue(ses$+"_REQUEST","PING")
 
         requestSemaphore!.release()
         if !responseSemaphore!.tryAcquire(1,1,java.util.concurrent.TimeUnit.SECONDS) then
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_REQUEST")
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_RESPONSE")
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_REQUEST_SEM")
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_RESPONSE_SEM")
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_SERVLET_PARAMETERS")
+            namespace!.removeValue(ses$+"_REQUEST")
+            namespace!.removeValue(ses$+"_RESPONSE")
+            namespace!.removeValue(ses$+"_REQUEST_SEM")
+            namespace!.removeValue(ses$+"_RESPONSE_SEM")
+            namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
+            namespace!.removeValue(ses$+"_OUTPUT_HANDLER")
+            
             methodret Boolean.FALSE
         fi
 
         methodret Boolean.TRUE
-
 
         noSes:
             methodret Boolean.FALSE
@@ -615,23 +582,42 @@ REM         endif
     methodend
 
     method public static BBjString newSession(BBjString auth$, HashMap servletParams!)
+        namespace! = BBjAPI().getGlobalNamespace()
 
         rem create a new session
         while 1
             ses$=str(java.util.UUID.randomUUID())
             print "trying to create session "+ses$
-            BBjAPI().getGlobalNamespace().getValue(ses$+"_REQUEST",err=*next); continue
+            namespace!.getValue(ses$+"_REQUEST",err=*next); continue
             break
         wend
+        
         System.out.println("REST: create "+ses$)
-        BBjAPI().getGlobalNamespace().setValue(ses$+"_REQUEST","")
-        BBjAPI().getGlobalNamespace().setValue(ses$+"_RESPONSE","")
-        BBjAPI().getGlobalNamespace().setValue(ses$+"_SERVLET_PARAMETERS",servletParams!)
+        namespace!.setValue(ses$+"_REQUEST","")
+        namespace!.setValue(ses$+"_RESPONSE","")
+        namespace!.setValue(ses$+"_SERVLET_PARAMETERS",servletParams!)
+        
+        seterr custom_output_handler_error
+            if servletParams!.containsKey("REST_OUTPUT_HANDLER") then               
+                customOutputHandler! = new File(str(servletParams!.get("REST_OUTPUT_HANDLER")))
+                className! = org.apache.commons.io.FilenameUtils.removeExtension(customOutputHandler!.getName())
+                outputHandler! = eval("new ::" + customOutputHandler!.getPath() + "::" + className! + "()")
+            endif 
+          
+        custom_output_handler_error:
+        seterr 0
+        
+        rem fallback to the default output handler if no custom handler has been defined
+        if outputHandler! = null() then
+            outputHandler! = new OutputHandler()
+        endif
+        
+        namespace!.setValue(ses$ + "_OUTPUT_HANDLER", outputHandler!)
 
         requestSemaphore! = new java.util.concurrent.Semaphore(0)
         responseSemaphore! = new java.util.concurrent.Semaphore(0)
-        BBjAPI().getGlobalNamespace().setValue(ses$+"_REQUEST_SEM",requestSemaphore!)
-        BBjAPI().getGlobalNamespace().setValue(ses$+"_RESPONSE_SEM",responseSemaphore!)
+        namespace!.setValue(ses$+"_REQUEST_SEM",requestSemaphore!)
+        namespace!.setValue(ses$+"_RESPONSE_SEM",responseSemaphore!)
 
         cp$=BBjAPI().getConfig().getCurrentCommandLineObject().getOriginalClasspathName()
         if cp$>"" cp$=" -CP"+cp$
@@ -660,22 +646,25 @@ REM         endif
         requestSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_REQUEST_SEM",err=noSes)
         responseSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE_SEM")
 
-        BBjAPI().getGlobalNamespace().setValue(ses$+"_REQUEST",instructions!)
+        namespace! = BBjAPI().getGlobalNamespace()
+        namespace!.setValue(ses$+"_REQUEST",instructions!)
         requestSemaphore!.release()
         rem here's the remote session active
 
         if !responseSemaphore!.tryAcquire(1,60,java.util.concurrent.TimeUnit.SECONDS) then
             rem System.out.println("Bridge: Timeout waiting on "+ses$)
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_REQUEST")
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_RESPONSE")
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_REQUEST_SEM")
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_RESPONSE_SEM")
-            BBjAPI().getGlobalNamespace().removeValue(ses$+"_SERVLET_PARAMETERS")
-            System.out.println("REST: timeout on invoke "+ses$)
+            namespace!.removeValue(ses$+"_REQUEST")
+            namespace!.removeValue(ses$+"_RESPONSE")
+            namespace!.removeValue(ses$+"_REQUEST_SEM")
+            namespace!.removeValue(ses$+"_RESPONSE_SEM")
+            namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
+            namespace!.removeValue(ses$+"_OUTPUT_HANDLER")
+            
+            rem System.out.println("REST: timeout on invoke "+ses$)
             throw "Timeout occurred",0
         fi
 
-        response! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE",err=*next)
+        response! = namespace!.getValue(ses$+"_RESPONSE",err=*next)
 
         System.out.println("REST: invoke done "+ses$)
         methodret response!
@@ -746,9 +735,9 @@ REM         endif
 
         dim log$:#LOGTPL$
         log.id$=id$
-		System.out.println("------------------------")
-		System.out.println(log.id$)
-		System.out.println("------------------------")
+        System.out.println("------------------------")
+        System.out.println(log.id$)
+        System.out.println("------------------------")
         read record (ch,dom=skip,key=log.id$)log$
         log.END=System.currentTimeMillis()
         log.DURATION = log.END-log.START
@@ -817,6 +806,7 @@ REM         endif
     rem  *     <li>REST_AUTHPGM</li>
     rem  *     <li>REST_REQUESTLOG</li>
     rem  *     <li>USE_GET_ALLOWED_FILTER</li>
+    rem  *     <li>REST_OUTPUT_HANDLER</li>
     rem  * </ul>
     rem  * <br>
     rem  * Some of these parameters are explicitly required to be set as STBLs. This method will set them 
@@ -839,7 +829,7 @@ REM         endif
         parameterNames!.add("REST_AUTHPGM")
         parameterNames!.add("REST_REQUESTLOG")
         parameterNames!.add("USE_GET_ALLOWED_FILTER")
-REM         parameterNames!.add("REST_OUTPUTHANDLER")
+        parameterNames!.add("REST_OUTPUT_HANDLER")
 
         rem the list of parameter names that must be set as STBL 
         declare BBjVector parameterNamesToSetAsSTBL!
@@ -870,32 +860,6 @@ REM         parameterNames!.add("REST_OUTPUTHANDLER")
         next i
 
         methodret parameterMap!
-    methodend
-
-    rem /**
-    rem  * Writes the given content in GZIP format into the given response
-    rem  * 
-    rem  * @param response! The response object to write the content into
-    rem  * @param content! The byte array content to write as response
-    rem  */
-    method private void writeGZipCompressedData(BBjspWebResponse response!, byte[] content!)
-        rem Setting the correct header
-        response!.setHeader("content-encoding","gzip")
-
-        declare byte[] compressedData!
-        declare GZIPOutputStream gzipOutputStream!
-        declare ByteArrayOutputStream byteArrayOutputStream!
-
-        outputStream! = response!.getOutputStream()
-        byteArrayOutputStream! = new ByteArrayOutputStream()
-
-        gzipOutputStream! = new GZIPOutputStream(byteArrayOutputStream!)
-        gzipOutputStream!.write(content!)
-        gzipOutputStream!.close()
-
-        compressedData! = byteArrayOutputStream!.toByteArray()
-        outputStream!.write(compressedData!)
-        outputStream!.close()
     methodend
 
 classend

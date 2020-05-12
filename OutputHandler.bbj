@@ -1,7 +1,15 @@
+use java.lang.StringBuilder
+use java.util.HashMap
+
 use java.io.File
 use java.io.StringWriter
 
 use java.nio.file.Files
+
+use javax.servlet.ServletOutputStream
+
+use java.io.ByteArrayOutputStream
+use java.util.zip.GZIPOutputStream
 
 use com.basiscomponents.db.DataRow
 use com.basiscomponents.db.ResultSet
@@ -27,9 +35,7 @@ class public OutputHandler
     rem The ResultSet to be converted
     field private ResultSet rs!
     
-    field private String primaryKey!
-    
-    field private String accept!
+    field private HashMap invokeResult!
     
     rem The actual request object which contains infromation about the client request
     field private BBjspWebRequest request!
@@ -37,44 +43,139 @@ class public OutputHandler
     rem The actual response object used to write the response  
     field private BBjspWebResponse response!
 
+    rem /**
+    rem  * The default constructor used to create an instance of the OutputHandler.
+    rem  * The debug value passed to this constructor indicates whether the RESTBridge
+    rem  * is running in the debug mode or not.
+    rem  * 
+    rem  * @param debug This value indicated wheter the RESTBridge is running in
+    rem  *              the debug mode or not.
+    rem  */
     method public OutputHandler(BBjNumber debug)
         #debug = debug
     methodend
+    
+    rem /**
+    rem  * This method gets called by the RestBridge.bbj file and is responsible 
+    rem  * for creating the requested output. The method itself invokes the createContent(String)
+    rem  * method and compressed the content returned from that method.
+    rem  * 
+    rem  * <b>Note: </b> Do not overwrite this method in your custom output handler class,
+    rem  * but rather overwrite the createContent(String) method. This method invokes the 
+    rem  * createContent(String) method and uses the content String returned from it. 
+    rem  * 
+    rem  * @param accept! The accept header of the request
+    rem  */
+    method public void createOutput(String accept!)
+        content! = #createContent(accept!, err=*next)
+        
+        if content! = null() then
+            methodret
+        endif
+    
+        restbridge_opt_enablegzip = 1
+        restbridge_opt_enablegzip = int(num(stbl("RESTBRIDGE_OPT_ENABLEGZIP",err=*next),err=*next))
+        
+        rem Check if the client requests the gzip encoding
+        accept_enc$ = str(#request!.getHeader("Accept-Encoding"))
+        if pos("gzip" = accept_enc$) > 0 then
+            do_gzip = 1
+        fi
+        
+        if restbridge_opt_enablegzip AND do_gzip then
+            #createGZipCompressedResponse(content!)
+            methodret
+        endif 
+    
+        rem the non-GZIP response
+        rem declare ServletOutputStream outputStream!
+        outputStream! = #response!.getOutputStream()
+        outputStream!.write(content!)
+        outputStream!.close()
+    methodend
 
     rem /**
+    rem  * Creates the output based on the given accept header and returns it 
+    rem  * as String. The method return an empty String if the content is returned 
+    rem  * in a different way, for example per file download.
     rem  * 
+    rem  * <b>Note: </b> The method throws an !ERROR=406 if the accept header 
+    rem  * doesn't match any of the supported types.
+    rem  * 
+    rem  * @param accept! The accept header sent by the client for the given request
+    rem  * 
+    rem  * @return the content in the requested format or an empty string if the 
+    rem  *         content was returned using a file download for instance.
     rem  * 
     rem  */
-    method public String createOutput(String accept!)    
+    method public String createContent(String accept!)
+        rem JSON export
+        if pos("application/json" = accept!) > 0 then
+            methodret #createJSON()
+        endif
+        
+        rem HTML export
         if pos("text/html"=accept!) > 0 OR pos("*/*"=accept!) > 0  then
             methodret #createHTML()
         endif
         
-        if pos("text/xml"=accept!) >0 or pos("application/xml"=accept!) >0  then
+        rem XML export
+        if pos("text/xml"=accept!) > 0 or pos("application/xml" = accept!) >0  then
             methodret #createXML()
         endif
         
-        if pos("application/json"=accept!) > 0 then
-            methodret #createJSON()
-        endif
-        
-        if pos("text/csv"=accept!) >0 OR pos("text/plain"=accept!) >0 then
+        rem TXT export
+        if pos("text/csv" = accept!) > 0 OR pos("text/plain" = accept!) > 0 then
             methodret #createTXT()
         endif
         
-        if pos("application/xls"=accept!) > 0 then
+        rem Excel export
+        if pos("application/xls" = accept!) > 0 then
             #createXLSX()
             methodret ""
-        else
-                            
-        if pos("debug"=accept!)>0 then
-            #createDebug()
-            methodret ""
+        endif
+                        
+        rem Printing some debug information    
+        if pos("debug" = accept!) > 0 then
+            methodret #createDebug()
         endif
         
         throw "Unsupported content type requested in Accept header: " + accept!, 406
     methodend
     
+    rem /**
+    rem  * Writes the given content in GZIP format into the given response
+    rem  * 
+    rem  * @param response! The response object to write the content into
+    rem  * @param content! The byte array content to write as response
+    rem  */
+    method private void createGZipCompressedResponse(byte[] content!)
+        rem Setting the correct header
+        #response!.setHeader("content-encoding","gzip")
+
+        declare byte[] compressedData!
+        declare GZIPOutputStream gzipOutputStream!
+        declare ByteArrayOutputStream byteArrayOutputStream!
+
+        outputStream! = #response!.getOutputStream()
+        byteArrayOutputStream! = new ByteArrayOutputStream()
+
+        gzipOutputStream! = new GZIPOutputStream(byteArrayOutputStream!)
+        gzipOutputStream!.write(content!)
+        gzipOutputStream!.close()
+
+        compressedData! = byteArrayOutputStream!.toByteArray()
+        outputStream!.write(compressedData!)
+        outputStream!.close()
+    methodend
+    
+    rem /**
+    rem  * Creates the HTML output based on the ResultSet, and sets the response's 
+    rem  * content type header to text/HTML to inform the client that the 
+    rem  * response he's receiving is in the HTML format.
+    rem  * 
+    rem  * @return the HMTL content to return to the client
+    rem  */
     method public String createHTML()
         if !#rs!.isEmpty() then
             custom_css! = #rs!.get(0).getAttribute("CUSTOM_CSS")
@@ -82,13 +183,13 @@ class public OutputHandler
         
         #response!.setContentType("text/html; charset=" + info(1,2))
           
+        resp_str! = "<html><head><style>table, th, td {padding:5px;border: 1px solid black;}"
         if custom_css! <> null() then
-            resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;} "+str(custom_css!)+"</style></head><body>"
-        else
-            resp_str!="<html><head><style>table, th, td {padding:5px;border: 1px solid black;}</style></head><body>"
+            resp_str!= resp_str! + str(custom_css!)
         endif
-          
-        single = num(answer!.get("single",err=*next),err=*next)
+        resp_str! = resp_str! + "</style></head><body>"
+        
+        single = num(#invokeResult!.get("single",err=*next),err=*next)
         if single>0 AND #rs!.size()=1 then
             rem TODO move this pivoted display into the writer
             rec! = #rs!.get(0)
@@ -134,11 +235,13 @@ class public OutputHandler
             endif
             resp_str! = resp_str!+"</table>"
         else
+            primaryKey! = #invokeResult!.get("primarykey", err=*next)
+            System.out.println("key: " + primaryKey!)
             links! = null()
-            if (#primaryKey! <> null() ) then
-                pk$=str(#primaryKey!)
+            if (primaryKey! <> null() ) then
+                pk$=str(primaryKey!)
                 links! = new java.util.HashMap()
-                link$ = request!.getContextPath()+request!.getServletPath()+request!.getPathInfo().replaceAll("(/[^/]+)/.*|$","$1")
+                link$ = #request!.getContextPath() + #request!.getServletPath() + #request!.getPathInfo().replaceAll("(/[^/]+)/.*|$","$1")
         
                 while pk$>""
                     if pos("/"=pk$)>0 then
@@ -167,6 +270,13 @@ class public OutputHandler
         methodret resp_str!
     methodend
     
+    rem /**
+    rem  * Creates the JSON output based on the ResultSet, and sets the response's 
+    rem  * content type header to application/JSON to inform the client that the 
+    rem  * response he's receiving is in the JSON format.
+    rem  * 
+    rem  * @return the JSON content to return to the client
+    rem  */
     method public void createTextXML()
         declare StringWriter writer!
         writer! = new StringWriter()
@@ -183,13 +293,22 @@ class public OutputHandler
         methodret writer!.toString()
     methodend
     
+    rem /**
+    rem  * Creates the JSON output based on the ResultSet, and sets the response's 
+    rem  * content type header to application/JSON to inform the client that the 
+    rem  * response he's receiving is in the JSON format.
+    rem  * 
+    rem  * @return the JSON content to return to the client
+    rem  */
     method public String createJSON()
         declare StringWriter writer!
         writer! = new StringWriter()
         
         rem Set the content type to JSON
         #response!.setContentType("application/json")
-        
+
+        restbridge_opt_jsonmeta=1
+        restbridge_opt_jsonmeta=int(num(stbl("RESTBRIDGE_OPT_JSONMETA",err=*next),err=*next))
         ResultSetExporter.writeJSON(#rs!, writer!, restbridge_opt_jsonmeta)
         
         writer!.flush()
@@ -198,33 +317,50 @@ class public OutputHandler
         methodret writer!.toString()
     methodend
     
-    method public void createDebug()
-            s! = response!.getOutputStream()
-            s!.write(str(req!))
-            s!.write($0a$)
-            
-            s!.write(str(answer!))
-            s!.write($0a$)
-            s!.write("Debug: ")
-            s!.write($0a$)
-            s!.write("getAttributeNames:"+str(request!.getAttributeNames()))
-            s!.write($0a$)
-            s!.write("getHeaderNames:"+str(request!.getHeaderNames()))
-            s!.write($0a$)
-            s!.write("getParameterNames:"+str(request!.getParameterNames()))
-            s!.write($0a$)
-            s!.write("getMethod:"+str(request!.getMethod()))
-            s!.write($0a$)
-            s!.write("getRequestURL:"+str(request!.getRequestURL()))
-            s!.write($0a$)
-            s!.write("getRequestURI:"+str(request!.getRequestURI()))
-            s!.write($0a$)
-            s!.write("Accept:"+str(request!.getHeader("Accept")))
-            s!.write($0a$)
-            EXIT
+    rem /**
+    rem  * Creates a 
+    rem  * 
+    rem  * @return a string which contains usefull debug output  
+    rem  */
+    method public String createDebug()
+        declare StringBuilder builder!
+        builder! = new StringBuilder()
+        
+        builder!.append(str(#request!))
+        builder!.append($0A$)
+        builder!.append(str(#invokeResult!))
+        builder!.append($0A$)
+        builder!.append("Debug: ")
+        builder!.append($0A$)
+        builder!.append("getAttributeNames:"+str(#request!.getAttributeNames()))
+        builder!.append($0A$)
+        builder!.append("getHeaderNames:"+str(#request!.getHeaderNames()))
+        builder!.append($0A$)
+        builder!.append("getParameterNames:"+str(#request!.getParameterNames()))
+        builder!.append($0A$)
+        builder!.append("getMethod:"+str(#request!.getMethod()))
+        builder!.append($0A$)
+        builder!.append("getRequestURL:"+str(#request!.getRequestURL()))
+        builder!.append($0A$)
+        builder!.append("getRequestURI:"+str(#request!.getRequestURI()))
+        builder!.append($0A$)
+        builder!.append("Accept:"+str(#request!.getHeader("Accept")))
+        builder!.append($0A$)
+           
+        methodret builder!.toString()
     methodend
     
+    rem /**
+    rem  * Creates an Excel(.xlsx) file based on the ResultSet and offers the file for download.
+    rem  * The methods sets the response's content type and its headers accordingly to inform the client 
+    rem  * about the file download. 
+    rem  * 
+    rem  * <b>Note:</b> This method doesn't return raw data in the response but rather provides 
+    rem  * a file download and therefore doesn't have a return value 
+    rem  * 
+    rem  */
     method public void createXLSX()
+        rem set the content type to XLSX
         #response!.setContentType("application/xls")
         
         if #request!.getPathInfo().matches("/[^/]+/_output_/([^/]+)$") then
@@ -233,12 +369,17 @@ class public OutputHandler
             filename$ = #request!.getPathInfo().replaceAll("/([^/]+).*","$1")+".xlsx"
         endif
          
+        rem Add the specific header indicating that this is a file download
         #response!.setHeader("content-disposition","attachment; filename=""" + filename$ + """")
+        
+        rem Create the cache directory(_output_) for this file into the basis/cache/ directory
         directoryPath$ = System.getProperty("basis.cacheDirectory") + "/_output_/"
         mkdir directoryPath$, err=*next
 
+        rem create the XLSX temp file on the system
         tempFile! = File.createTempFile("output_", ".xlsx", new File(directoryPath$))
         
+        rem write the data into the temp XLSX file
         ResultSetExporter.writeXLSX(#rs!, tempFile!, 1)
         
         if #debug then
@@ -247,12 +388,19 @@ class public OutputHandler
             System.out.println(str(#rs!.size())+" Records written")
         fi
         
+        rem copy the bytes into the result stream
         java.nio.file.Files.copy(tempFile!.toPath(), #response!.getOutputStream())
+        
+        rem Delete the temp file from the cache/_output_/ directory
         tempFile!.delete()
     methodend
     
     rem /**
-    rem  * Creates and returns the ResultSet in TXT format.
+    rem  * Creates the TXT output based on the ResultSet, and sets the response's 
+    rem  * content type header to text/csv to inform the client that the 
+    rem  * response he's receiving is in the text format.
+    rem  * 
+    rem  * @return the CSV-String content to return to the client
     rem  */
     method private String createTXT()
         declare StringWriter writer!
@@ -270,6 +418,13 @@ class public OutputHandler
         methodret writer!.toString()
     methodend 
     
+    rem /**
+    rem  * Creates the XML output based on the ResultSet, and sets the response's 
+    rem  * content type header to application/xml to inform the client that the 
+    rem  * response he's receiving is in the XML format.
+    rem  * 
+    rem  * @return the XML-String content to return to the client
+    rem  */
     method public String createXML()
         declare StringWriter writer!
         writer! = new StringWriter()
@@ -285,20 +440,42 @@ class public OutputHandler
         methodret writer!.toString()
     methodend
 
+    rem /**
+    rem  * Set the ResultSet to use when creating the output.
+    rem  * The given ResultSet is usually the direct value from the BCs.
+    rem  * 
+    rem  * @param rs! The ResultSet to export.
+    rem  */
     method public void setResultSet(ResultSet rs!)
         #rs! = rs!
     methodend
     
-    method public void setPrimaryKey(String primaryKey!)
-        #primaryKey! = primaryKey!
-    methodend
-    
+    rem /**
+    rem  * Set the BBjspWebRequest object to use when handling the output.
+    rem  * 
+    rem  * @param request! The request object to use.
+    rem  */
     method public void setRequest(BBjspWebRequest request!)
         #request! = request!
     methodend
     
+    rem /**
+    rem  * Set the BBjspWebResponse object to use when handling the output.
+    rem  * 
+    rem  * @param response! The response object to use.
+    rem  */
     method public void setResponse(BBjspWebResponse response!)
         #response! = response!
+    methodend
+    
+    rem /**
+    rem  * Sets the result of the BC invoke which contains infomation about 
+    rem  * the bc method invocation.
+    rem  * 
+    rem  * @param invokeResult! the result of the bc call executed by the RestBridge.
+    rem  */
+    method public void setInvokeResult(HashMap invokeResult!)
+        #invokeResult! = invokeResult!
     methodend
     
 classend
