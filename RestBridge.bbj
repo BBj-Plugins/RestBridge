@@ -479,7 +479,12 @@ class public RestBridge
         
         seterr output_creation_error
             namespace! = BBjAPI().getGlobalNamespace()
-            outputHandler! = cast(OutputHandler, namespace!.getValue(ses$ + "_OUTPUT_HANDLER"))
+            handler! = namespace!.getValue(ses$ + "_OUTPUT_HANDLER", err=*next)
+            if handler! <> null() then
+                outputHandler! = eval(handler!)
+            else
+                outputHandler! = new OutputHandler()
+            endif
             
             outputHandler!.setResultSet(rs!)
             outputHandler!.setInvokeResult(answer!)
@@ -601,18 +606,12 @@ class public RestBridge
             if servletParams!.containsKey("REST_OUTPUT_HANDLER") then               
                 customOutputHandler! = new File(str(servletParams!.get("REST_OUTPUT_HANDLER")))
                 className! = org.apache.commons.io.FilenameUtils.removeExtension(customOutputHandler!.getName())
-                outputHandler! = eval("new ::" + customOutputHandler!.getPath() + "::" + className! + "()")
+                outputHandler! = "new ::" + customOutputHandler!.getPath() + "::" + className! + "()"
+                namespace!.setValue(ses$ + "_OUTPUT_HANDLER", outputHandler!)
             endif 
           
         custom_output_handler_error:
         seterr 0
-        
-        rem fallback to the default output handler if no custom handler has been defined
-        if outputHandler! = null() then
-            outputHandler! = new OutputHandler()
-        endif
-        
-        namespace!.setValue(ses$ + "_OUTPUT_HANDLER", outputHandler!)
 
         requestSemaphore! = new java.util.concurrent.Semaphore(0)
         responseSemaphore! = new java.util.concurrent.Semaphore(0)
