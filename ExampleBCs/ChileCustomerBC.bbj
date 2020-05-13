@@ -11,7 +11,8 @@ use java.sql.PreparedStatement
 use java.sql.Statement
 use java.sql.Types
 use java.util.HashMap
-use java.util.HashSet
+rem use java.util.HashSet
+use java.util.LinkedHashSet
 
 
 class public ChileCustomerBC
@@ -42,9 +43,9 @@ class public ChileCustomerBC
         rem Scope A - address fields (CUST_NUM, COMPANY, FIRST_NAME, LAST_NAME, BILL_ADDR1, BILL_ADDR2, CITY, STATE, COUNTRY, POST_CODE)
         vec! = new BBjVector()
         vec!.addItem("CUST_NUM")
-        vec!.addItem("COMPANY")
         vec!.addItem("FIRST_NAME")
         vec!.addItem("LAST_NAME")
+        vec!.addItem("COMPANY")
         vec!.addItem("BILL_ADDR1")
         vec!.addItem("BILL_ADDR2")
         vec!.addItem("CITY")
@@ -238,7 +239,6 @@ REM         endif
 
     methodend
 
-
     rem /**
     rem  * Set a field selection scope (A, B or D).
     rem  * If no or a wrong scope is set then the default scope (D) will be used.
@@ -267,7 +267,7 @@ REM         endif
         declare DataRow attributes!
         declare Connection con!
         declare PreparedStatement stmt!
-        declare HashSet fields!
+        declare LinkedHashSet fields!
 
         if #ResultSet! <> null() then
             methodret #ResultSet!
@@ -281,7 +281,7 @@ REM         endif
         attributes! = #getAttributesRecord()
 
         rem Determine the fields to read
-        fields! = new HashSet()
+        fields! = new LinkedHashSet()
         if (#FieldSelection! = null() or #FieldSelection!.size() = 0) and #Scope$ = "" then
             fields!.addAll(cast(BBjVector,#Scopes!.get("D")))
         endif
@@ -293,6 +293,7 @@ REM         endif
                 fields!.addAll(cast(BBjVector,#Scopes!.get(s$)))
             wend
         endif
+
         if #FieldSelection! <> null() then
             fields!.addAll(#FieldSelection!)
         endif
@@ -593,8 +594,14 @@ bc! = new ChileCustomerBC()
 dr! = bc!.getAttributesRecord()
 
 fields! = new BBjVector()
-fields!.addItem("TOP 2")
-fields!.addItem("*")
+fields!.addItem("CUST_NUM")
+fields!.addItem("FIRST_NAME")
+fields!.addItem("LAST_NAME")
+
+filter! = new DataRow()
+filter!.setFieldValue("CUST_NUM", "000001")
+bc!.setFilter(filter!)
+
 bc!.setFieldSelection(fields!)
 rs!=bc!.retrieve()
 
