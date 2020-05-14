@@ -437,7 +437,9 @@ main_loop:
 			if fieldsel! <> null() AND scope! <> null() then
 				ok=0
 				vec! = new BBjVector(java.util.Arrays.asList(fieldsel!.split(",")))
-				bc!.setFieldSelection(scope!, vec!,err=*next); ok=1
+				bc!.setScope(scope!)
+				bc!.setFieldSelection(vec!); ok=1
+				rem bc!.setFieldSelection(scope!, vec!,err=*next); ok=1
 				if !ok then
 					if pos("no match for method"=cvs(errmes(-1),8)) then
 						fs! = new DataRow()

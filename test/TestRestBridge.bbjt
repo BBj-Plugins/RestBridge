@@ -1,0 +1,293 @@
+use org.apache.http.client.HttpClient
+use org.apache.http.client.methods.HttpGet
+use org.apache.http.impl.client.HttpClientBuilder
+
+use org.apache.http.auth.UsernamePasswordCredentials
+use org.apache.http.impl.auth.BasicScheme
+
+use java.io.ByteArrayOutputStream
+
+use java.util.zip.GZIPOutputStream
+
+use org.apache.http.HttpResponse
+
+use java.io.File
+use java.io.StringWriter
+
+use org.apache.http.client.utils.URIBuilder
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+use ::RestBridge/ExampleBCs/ChileCustomerBC.bbj::ChileCustomerBC
+
+rem /**
+rem  * This class tests the various data formats returned by the RestBridge.
+rem  * The class provides unit tests methods which are used to guarantee that the 
+rem  * RestBridge's returns the data in the expected format: XML, TXT, JSON, HTML, XLSX 
+rem  */
+class public RestBridgeTest
+
+    field private String username! = "admin"
+    field private String password! = "admin123"
+    
+    field private String mapping!
+    field private ResultSet expectedRS!
+    
+    rem @BeforeClass
+    method public void setupTestEnvironment()     
+        bc! = new ChileCustomerBC()
+        
+        filter! = new DataRow()
+        filter!.setFieldValue("CUST_NUM", "000001")
+        bc!.setFilter(filter!)
+        
+        fieldSel! = new BBjVector()
+        fieldSel!.add("CUST_NUM")
+        fieldSel!.add("FIRST_NAME") 
+        fieldSel!.add("LAST_NAME")
+        bc!.setFieldSelection(fieldSel!)
+        
+        #expectedRS! = cast(ResultSet, bc!.retrieve())
+        
+        admin! = BBJAPI().getAdmin(#username!, #password!)
+        context! = admin!.getJettyServerConfig().getRootContextInfo()
+        
+        path! = bbjapi().getFileSystem().resolvePath("RestBridge/RestBridge.bbj")
+       
+        directory! = new File(path!).getParent()
+        bcDir! = new File(directory!, "ExampleBCs")
+        
+        #mapping! = "/rest" + str(System.currentTimeMillis()) + "/"
+        
+        config! = context!.addBBjspServlet("RestBridge", #mapping! + "*", path!)
+        config!.addParam("REST_TIMEOUT", "100")
+        config!.addParam("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
+        config!.addParam("REST_WD", bcDir!.getAbsolutePath())
+        config!.addParam("REST_PGM_SUFFIX", ".bbj")
+        config!.addParam("USE_GET_ALLOWED_FILTER", "0")
+        config!.addParam("REST_ADAPTERPGM", new File(directory!, "RestBCAdapter.bbj").getAbsolutePath())
+        admin!.getJettyServerConfig().saveConfig()
+    methodend
+    
+    rem @AfterClass
+    method public void cleanUpRestBridge()
+        admin! = BBJAPI().getAdmin(#username!, #password!)
+        context! = admin!.getJettyServerConfig().getRootContextInfo()
+        context!.removeBBjspServlet(#mapping! + "*")
+        admin!.getJettyServerConfig().saveConfig()
+    methodend
+
+    rem @Test
+    method public void requestTextCSVTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "text/csv")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem convert the expected result into the txt format
+        ResultSetExporter.writeTXT(#expectedRS!, writer!)
+        
+        rem compare the result to the expected result
+        Assert.Equals(writer!.toString(), #getResultAsString(response!))
+    methodend
+    
+    rem @Test
+    method public void requestTextPlainTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "text/plain")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem convert the expected result into the txt format
+        ResultSetExporter.writeTXT(#expectedRS!, writer!)
+        
+        rem compare the result to the expected result
+        Assert.Equals(writer!.toString(), #getResultAsString(response!))
+    methodend
+    
+    rem @Test
+    method public void requestApplicationXMLTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "application/xml")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem convert the expected result into the txt format
+        ResultSetExporter.writeXML(#expectedRS!, "root", "entity", writer!)
+        
+        rem compare the result to the expected result
+        Assert.Equals(writer!.toString(), #getResultAsString(response!))
+    methodend
+    
+    rem @Test
+    method public void requestTextXMLTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "text/xml")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem convert the expected result into the txt format
+        ResultSetExporter.writeXML(#expectedRS!, "root", "entity", writer!)
+        
+        rem compare the result to the expected result
+        Assert.Equals(writer!.toString(), #getResultAsString(response!))
+    methodend
+    
+    method public HttpClient getHttpClient()
+        declare HttpClientBuilder builder!
+        builder! = HttpClientBuilder.create()
+        builder!.useSystemProperties()
+        
+        methodret builder!.build()
+    methodend
+    
+    method private HttpGet getRequest(HttpClient client!)
+        declare URIBuilder uriBuilder!
+        uriBuilder! = new URIBuilder()
+        uriBuilder!.setScheme("http").setHost("localhost").setPath(#mapping! +"ChileCustomer/000001").setPort(8888)
+        rem uriBuilder!.setParameter("CUST_NUM", "000001")
+        uriBuilder!.setParameter("_FIELDSEL", "CUST_NUM,FIRST_NAME,LAST_NAME")
+
+        declare HttpGet request!
+        request! = new HttpGet(uriBuilder!.build())
+        
+        declare UsernamePasswordCredentials credentials!
+        credentials! = new UsernamePasswordCredentials("admin", "admin123")
+        
+        declare BasicScheme scheme!
+        scheme! =  new BasicScheme()
+        header! = scheme!.authenticate(credentials!, request!)
+        request!.setHeader(header!)
+        
+        methodret request!
+    methodend
+    
+    method private String getResultAsString(HttpResponse response!)
+        declare byte[] bytes!
+        declare ByteArrayOutputStream outputStream!
+        
+        outputStream! = new ByteArrayOutputStream()
+        bytes! = new byte[1024]
+        inputStream! = response!.getEntity().getContent()
+        while 1
+            length = inputStream!.read(bytes!, err=*break)
+            if length = -1 then
+                break
+            endif
+            
+            outputStream!.write(bytes!, 0, length)
+        wend
+        
+        methodret outputStream!.toString()
+    methodend
+    
+    rem @Test
+    method public void requestJSONTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet rs!
+        rs! = ResultSet.fromJson(#getResultAsString(response!))
+        
+        rem Check that the ResultSet created from the Json is not null
+        Assert.IsNotNull(rs!)
+        
+        rem check that the ResultSet returned by the bridge matches the one returned by the bc
+        Assert.Equals(rs!.toJson(0), #expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void requestHTMLTest()
+        rem TODO - Compare the HTML  
+    methodend
+    
+    rem @Test
+    method public void requestXLSXTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "application/xls")
+        request!.setHeader("Accept-Encoding", "deflate")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ByteArrayOutputStream downloadOutputStream!
+        declare ByteArrayOutputStream expectedOutputStream!
+
+        downloadOutputStream! = new ByteArrayOutputStream()
+        expectedOutputStream! = new ByteArrayOutputStream()
+        
+        response!.getEntity().writeTo(downloadOutputStream!)
+        
+        content! = #getResultAsString(response!)
+        Assert.IsNotNull(content!)
+        Assert.Equals(content!.isEmpty(), Boolean.TRUE)
+ 
+        ResultSetExporter.writeXLSX(#expectedRS!, expectedOutputStream!, Boolean.TRUE)
+        
+        Assert.Equals(downloadOutputStream!.toString(), expectedOutputStream!.toString())
+    methodend
+
+classend
