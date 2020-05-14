@@ -7,17 +7,26 @@ use org.apache.http.impl.auth.BasicScheme
 
 use java.io.ByteArrayOutputStream
 
+use java.util.zip.GZIPOutputStream
+
 use org.apache.http.HttpResponse
 
 use java.io.File
+use java.io.StringWriter
 
 use org.apache.http.client.utils.URIBuilder
 
 use com.basiscomponents.db.DataRow
 use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
 
 use ::RestBridge/ExampleBCs/ChileCustomerBC.bbj::ChileCustomerBC
 
+rem /**
+rem  * This class tests the various data formats returned by the RestBridge.
+rem  * The class provides unit tests methods which are used to guarantee that the 
+rem  * RestBridge's returns the data in the expected format: XML, TXT, JSON, HTML, XLSX 
+rem  */
 class public RestBridgeTest
 
     field private String username! = "admin"
@@ -71,7 +80,7 @@ class public RestBridgeTest
     methodend
 
     rem @Test
-    method public void requestTXTTest()
+    method public void requestTextCSVTest()
         declare HttpClient client!
         client! = #getHttpClient()
     
@@ -85,11 +94,68 @@ class public RestBridgeTest
         rem verify that the request was executed successfully
         Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
         
-        rem Compare the results of the returned 
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem convert the expected result into the txt format
+        ResultSetExporter.writeTXT(#expectedRS!, writer!)
+        
+        rem compare the result to the expected result
+        Assert.Equals(writer!.toString(), #getResultAsString(response!))
     methodend
     
     rem @Test
-    method public void requestXMLTest()
+    method public void requestTextPlainTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "text/plain")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem convert the expected result into the txt format
+        ResultSetExporter.writeTXT(#expectedRS!, writer!)
+        
+        rem compare the result to the expected result
+        Assert.Equals(writer!.toString(), #getResultAsString(response!))
+    methodend
+    
+    rem @Test
+    method public void requestApplicationXMLTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "application/xml")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem convert the expected result into the txt format
+        ResultSetExporter.writeXML(#expectedRS!, "root", "entity", writer!)
+        
+        rem compare the result to the expected result
+        Assert.Equals(writer!.toString(), #getResultAsString(response!))
+    methodend
+    
+    rem @Test
+    method public void requestTextXMLTest()
         declare HttpClient client!
         client! = #getHttpClient()
     
@@ -103,7 +169,14 @@ class public RestBridgeTest
         rem verify that the request was executed successfully
         Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
         
-        responseString! = #getResultAsString(response!)
+        declare StringWriter writer!
+        writer! = new StringWriter()
+        
+        rem convert the expected result into the txt format
+        ResultSetExporter.writeXML(#expectedRS!, "root", "entity", writer!)
+        
+        rem compare the result to the expected result
+        Assert.Equals(writer!.toString(), #getResultAsString(response!))
     methodend
     
     method public HttpClient getHttpClient()
@@ -177,13 +250,44 @@ class public RestBridgeTest
         
         rem check that the ResultSet returned by the bridge matches the one returned by the bc
         Assert.Equals(rs!.toJson(0), #expectedRS!.toJson(0))
-        
-        response!.getEntity().consumeContent()
     methodend
     
     rem @Test
     method public void requestHTMLTest()
-        rem 
+        rem TODO - Compare the HTML  
+    methodend
+    
+    rem @Test
+    method public void requestXLSXTest()
+        declare HttpClient client!
+        client! = #getHttpClient()
+    
+        declare HttpGet request!
+        request! = #getRequest(client!)
+        request!.setHeader("accept", "application/xls")
+        request!.setHeader("Accept-Encoding", "deflate")
+        
+        declare HttpResponse response!
+        response! = client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ByteArrayOutputStream downloadOutputStream!
+        declare ByteArrayOutputStream expectedOutputStream!
+
+        downloadOutputStream! = new ByteArrayOutputStream()
+        expectedOutputStream! = new ByteArrayOutputStream()
+        
+        response!.getEntity().writeTo(downloadOutputStream!)
+        
+        content! = #getResultAsString(response!)
+        Assert.IsNotNull(content!)
+        Assert.Equals(content!.isEmpty(), Boolean.TRUE)
+ 
+        ResultSetExporter.writeXLSX(#expectedRS!, expectedOutputStream!, Boolean.TRUE)
+        
+        Assert.Equals(downloadOutputStream!.toString(), expectedOutputStream!.toString())
     methodend
 
 classend
