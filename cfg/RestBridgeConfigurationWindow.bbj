@@ -743,7 +743,7 @@ class public RestBridgeConfigurationWindow
     rem  * @return the timeout property value set by the user.
     rem  */
     method public BBjInt getTimeout()
-        methodret #inpnTimeout!.getValue()
+        methodret int(#inpnTimeout!.getValue())
     methodend
 
     method public void setTimeout(BBjInt timeout%)
