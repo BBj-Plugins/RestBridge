@@ -396,7 +396,7 @@ class public RestBridgeConfigurationWindow
         endif
 
         params! = new HashMap()
-        params!.put("REST_TIMEOUT", str(int(#getTimeout())))
+        params!.put("REST_TIMEOUT", str(#getTimeout()))
         params!.put("REST_WD", #getWorkingDirectoryPath())
         params!.put("REST_AUTHPGM", #getAuthProgramPath())
         params!.put("REST_PGM_PREFIX", #getProgramPrefix())
@@ -572,7 +572,7 @@ class public RestBridgeConfigurationWindow
             #contexts!.add(new Context(vector!.getItem(i).toString(),#node!))
             vector2! = #admin!.getJettyServerConfig().getCustomContext(vector!.getItem(i).toString()).getBBjspServlets()
             branch_node! = #node!
-            if vector2!.size > 0 then
+            if vector2!.size() > 0 then
                 for y=0 to vector2!.size()-1
                     bbjspServletConfiguration! = cast(BBjspServletConfiguration ,vector2!.getItem(y))
                     if bbjspServletConfiguration!.getClassName() = "RestBridge" then
@@ -614,7 +614,7 @@ class public RestBridgeConfigurationWindow
             endif
         endif
 
-        
+
         directoryPath$ = FILEOPEN("Configuration File Selection", fileOpenPath!,"",fileExtension!,filter!,directorySelection!)
         if(directoryPath$ <> "::CANCEL::") then
             methodret directoryPath$
@@ -739,11 +739,11 @@ class public RestBridgeConfigurationWindow
 
     rem /**
     rem  * Returns the user entered value for the Timeout property.
-    rem  * 
+    rem  *
     rem  * @return the timeout property value set by the user.
     rem  */
     method public BBjInt getTimeout()
-        methodret int(#inpnTimeout!.getValue())
+        methodret #inpnTimeout!.getValue()
     methodend
 
     method public void setTimeout(BBjInt timeout%)
