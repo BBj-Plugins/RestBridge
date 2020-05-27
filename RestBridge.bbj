@@ -141,10 +141,16 @@ class public RestBridge
             break
         swend
 
+		auth$=""
         token$=request!.getParameter("_TOKEN")
         if token$>"" then
             auth$="Basic "+token$
-        else
+        fi
+        token$=request!.getParameter("_JTOKEN")
+        if token$>"" then
+            auth$="Bearer "+token$
+        fi
+		if auth$="" then 
             auth$=str(request!.getHeader("authorization",err=*next))
         fi
 
