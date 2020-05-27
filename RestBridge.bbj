@@ -39,6 +39,14 @@ class public RestBridge
 
         req_id$ = #logRequest(request!)
 
+		rem respond to ping
+		tmp$=request!.getRequestURL()+$0000$
+		if pos("/ping"+$0000$=tmp$)>0 then
+            response!.getOutputStream().write("pong")
+            response!.setStatus(200)		
+			methodret
+		fi
+
         if request!.getHeader("Origin") <> null() then
             response!.setHeader("Access-Control-Allow-Origin",request!.getHeader("Origin"))
         else
