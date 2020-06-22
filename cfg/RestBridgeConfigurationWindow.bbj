@@ -238,6 +238,7 @@ class public RestBridgeConfigurationWindow
 
         controlID = #window!.getAvailableControlID()
         #treeContext! = #window!.addTree(controlID, 20,20,300,335)
+        #treeContext!.setSelectionMode(BBjTree.SINGLE_TREE_SELECTION)
         #treeContext!.setCallback(BBjTree.ON_TREE_SELECT,#this!,"onSelect")
         #treeContext!.setRoot(0,"contexts")
         #loadTree()
@@ -308,7 +309,6 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method private void enableUI(Boolean enable!)
-
         #inpeRequestLog!.setEnabled(enable!)
         #inpeConfigFile!.setEnabled(enable!)
         #inpeAuthProgram!.setEnabled(enable!)
