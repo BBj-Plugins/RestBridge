@@ -324,6 +324,11 @@ class public RestBridgeConfigurationWindow
         #chbUseGetAllowedFilters!.setEnabled(enable!)
         #btnSave!.setEnabled(enable!)
     methodend
+    
+    method private void enableSubmitters(Boolean enable!)
+        #btnOK!.setEnabled(enable!)
+        #btnCancel!.setEnabled(enable!)
+    methodend
 
     method private void updateUI()
         declare BBjspServletConfiguration servlet!
@@ -347,8 +352,10 @@ class public RestBridgeConfigurationWindow
 
             #setConfigFilePath(servlet!.getConfig())
             #enableUI(1)
+            #enableSubmitters(1)
         else
             #enableUI(0)
+            #enableSubmitters(1)
             #inpeMapping!.setText("")
             #inpeRequestLog!.setText("")
             #inpeConfigFile!.setText("")
@@ -359,7 +366,6 @@ class public RestBridgeConfigurationWindow
             #inpnTimeout!.setText("")
             #chbUseGetAllowedFilters!.setSelected(0)
         endif
-
     methodend
 
     method public Context getContext()
@@ -423,6 +429,11 @@ class public RestBridgeConfigurationWindow
     method public void addContextButtonPush(BBjButtonPushEvent event!)
         declare ContextNameInputWindow wnd!
         declare Boolean contains!
+        
+        #enableUI(0)
+        #enableSubmitters(0)
+        #btnRemoveBridge!.setEnabled(0)
+        #btnAddBridge!.setEnabled(0)
 
         wnd! = new ContextNameInputWindow(#sysGui!,#window!.getX()+#window!.getWidth()/2,#window!.getY()+#window!.getHeight()/2,"Context Name Input","Context Name:")
         wnd!.show()
@@ -462,6 +473,8 @@ class public RestBridgeConfigurationWindow
                     a = msgbox("Context was created")
               endif
         endif
+        
+        #updateUI()
     methodend
 
     method public void addBridge (BBjButtonPushEvent e!)
@@ -526,10 +539,14 @@ class public RestBridgeConfigurationWindow
             #btnRemoveBridge!.setEnabled(0)
             #btnAddBridge!.setEnabled(0)
 
+            parentNodeID! = #treeContext!.getParentNode(#selectedBridge!.getID())
+
             #removeBridge(#selectedBridge!)
             #selected!.removeBridge(#selectedBridge!)
             #selectedBridge! = null()
             #updateUI()
+            
+            #treeContext!.selectNode(parentNodeID!)
         else
             a = msgbox("No Bridge selected")
         endif
@@ -542,7 +559,9 @@ class public RestBridgeConfigurationWindow
     method private void addContext(String name!)
         #node!= #node!+1
         #treeContext!.addExpandableNode(#node!,0,name!)
-        #contexts!.add(new Context(name!,#node!))
+        #selected! = new Context(name!,#node!)
+        #contexts!.add(#selected!)
+        #treeContext!.selectNode(#node!)
     methodend
 
     method private void addBridge(String name!, int id!)
