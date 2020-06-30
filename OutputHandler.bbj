@@ -32,6 +32,8 @@ class public OutputHandler
     rem defines whether the RESTBridge is running in Debug mode
     field private BBjNumber debug
     
+    field private String charset!
+    
     rem The ResultSet to be converted
     field private ResultSet rs!
     
@@ -54,6 +56,10 @@ class public OutputHandler
     method public OutputHandler(BBjNumber debug)
         #debug = debug
     methodend
+    
+    method public void setCharset(String charset!)
+        #charset! = charset!
+    methodend 
     
     rem /**
     rem  * This method gets called by the RestBridge.bbj file and is responsible 
@@ -181,7 +187,7 @@ class public OutputHandler
             custom_css! = #rs!.get(0).getAttribute("CUSTOM_CSS")
         endif
         
-        #response!.setContentType("text/html; charset=" + info(1,2))
+        #response!.setContentType("text/html; charset=" + #charset!)
           
         resp_str! = "<html><head><style>table, th, td {padding:5px;border: 1px solid black;}"
         if custom_css! <> null() then
@@ -306,6 +312,7 @@ class public OutputHandler
         
         rem Set the content type to JSON
         #response!.setContentType("application/json")
+        #response!.setCharacterEncoding(#charset!)
 
         restbridge_opt_jsonmeta=1
         restbridge_opt_jsonmeta=int(num(stbl("RESTBRIDGE_OPT_JSONMETA",err=*next),err=*next))

@@ -12,6 +12,8 @@ use java.io.IOException
 use java.util.zip.ZipEntry
 use java.util.zip.ZipOutputStream
 
+use java.nio.charset.Charset
+
 class public RestBridge
 
     field public static BBjString LOGTPL$="ID:C(16*),METHOD:C(1*),START:N(1*),END:N(1*),DURATION:N(1*),ADDR:C(1*),URL:C(1*),URI:C(1*),QUERY:C(1*),HEADERS:C(1*),PARAMS:C(1*),STATUS:C(1*)"
@@ -20,7 +22,7 @@ class public RestBridge
 
         declare BBjspWebRequest request!
         declare BBjspWebResponse response!
-
+        
         request! = context!.getRequest()
         response! = context!.getResponse()
 
@@ -49,14 +51,14 @@ class public RestBridge
         response!.setHeader("Access-Control-Allow-Methods","GET, POST, PUT, DELETE, OPTIONS")
         response!.setHeader("Access-Control-Allow-Headers",request!.getHeader("Access-Control-Request-Headers"))
 
-		rem respond to ping
-		tmp$=request!.getRequestURL()+$0000$
-		if pos("/ping"+$0000$=tmp$)>0 then
+        rem respond to ping
+        tmp$=request!.getRequestURL()+$0000$
+        if pos("/ping"+$0000$=tmp$)>0 OR pos("/Ping"+$0000$=tmp$)>0 then
             response!.getOutputStream().write("pong")
-            response!.setStatus(200)		
-			methodret
-		fi
-		
+            response!.setStatus(200)        
+            methodret
+        fi
+        
         files! = request!.getFileUploads()
         if (files! <> null()) then
             sz = files!.size()
@@ -125,7 +127,8 @@ class public RestBridge
             case "PUT"
                 method$ = request!.getMethod()
                 rem Only JSON is supported for now
-                if request!.getContentType() <> null() AND cvs(request!.getContentType(),8) <> "application/json" then
+                
+                if request!.getContentType() <> null() AND pos("application/json" = request!.getContentType()) = 0 then
                     s! = response!.getOutputStream()
                     response!.sendError(415,"Unsupported media type """+request!.getContentType()+"""")
                 endif
@@ -148,7 +151,7 @@ class public RestBridge
             break
         swend
 
-		auth$=""
+        auth$=""
         token$=request!.getParameter("_TOKEN")
         if token$>"" then
             auth$="Basic "+token$
@@ -157,7 +160,7 @@ class public RestBridge
         if token$>"" then
             auth$="Bearer "+token$
         fi
-		if auth$="" then 
+        if auth$="" then 
             auth$=str(request!.getHeader("authorization",err=*next))
         fi
 
@@ -225,8 +228,60 @@ class public RestBridge
         req!.put("method",method$)
         req!.put("uri",uri!)
         req!.put("params",params!)
-        req!.put("body",request!.getBody(err=*next))
-        req!.put("preferredlocales",request!.getLocales())
+                
+        contentType$ = ""
+        type! = request!.getHeader("Content-Type", err=*next)
+        if type! <> null() then
+            contentType$ = str(type!)
+        endif
+        
+        defaultCharset! = "UTF-8"
+        servletParams! = #getServletParameters(context!)
+        if servletParams!.containsKey("REST_DEFAULT_CHARSET") then
+            defaultCharset! = str(servletParams!.get("REST_DEFAULT_CHARSET"))
+            ok = 0; Charset.forName(defaultCharset!, err=*next); ok = 1
+            if !ok then
+                defaultCharset! = "UTF-8"
+            endif
+        endif
+        
+        requestCharSet$ = ""
+        
+        rem check if a charset has been specified in the Content-Type header 
+        rem if the request is in a different charset, the Content-Type header should look like this:
+        rem Content-Type: application/json ; charset=UTF-8
+        if pos("charset=" = contentType$) then
+            
+            rem extracting the charset value
+            requestCharSet$ = cvs(contentType$(pos("charset=" = contentType$) +8), 3)
+            
+            rem check if the charset was specified with quotes
+            if pos("""" = requestCharSet$) then
+                
+                rem remove the quotes
+                requestCharSet$ = requestCharSet$(2, len(requestCharSet$)-2)
+            endif
+            
+            ok = 0; Charset.forName(requestCharSet$, err=*next); ok = 1
+            
+            if !ok then
+                requestCharSet$ = ""
+            endif
+        endif
+        
+        body! = request!.getBody(err=*next)
+        if body! <> null() then     
+            if requestCharSet$ = "" then
+                body! = new String(body!, defaultCharset!).getBytes("ISO-8859-1")           
+                body! = new String(body!, defaultCharset!).getBytes(info(1,2))
+            else
+                body! = new String(body!, requestCharSet$).getBytes(info(1,2))
+            endif           
+            
+            req!.put("body", body!)
+        endif
+        
+        req!.put("preferredlocales", request!.getLocales())
 
         if str(uri!)="/admin/requestlog" then
             answer! = #getRequestLog(request!)
@@ -239,6 +294,7 @@ class public RestBridge
         if accept$="null" then
             accept$=str(request!.getHeader("Accept"))
         endif
+        
         if accept$="null" then
             accept$=str(request!.getHeader("Content-Type"))
             if accept$="null" then
@@ -476,20 +532,63 @@ class public RestBridge
             if statuscode! <> null() then
                 response!.setStatus(num(statuscode!))
             endif
+            
             if str(rs!) = "" then
                 #logResponse(req_id$,response!)
                 methodret
             endif
         endif
-
-        rem Set the String value's character set based on the Accept-Charset value(if set)
-        if request!.getHeader("Accept-Charset") <> null() then
-            charset! = request!.getHeader("Accept-Charset")
-            #setCharacterSet(rs!, charset!)
+        
+        usedCharset! = ""
+        
+        rem check if a custom charset was provided in the Content-Type header
+        if requestCharSet$ <> "" then
+            rem Convert the ResultSet to the same charset as specified in the Content-Type header            
+            usedCharset! = requestCharSet$    
+        else
+            if request!.getHeader("Accept-Charset") <> null() then
+                charset! = request!.getHeader("Accept-Charset")
+                
+                if pos("," = charset!) then
+                    rem split the charset and check if any of the accepted charset equals the default charset
+                    splitCharset! = charset!.split(",")
+                    for i=0 to splitCharset!.length -1
+                        ok = 0; Charset.forName(cvs(splitCharset![i],3), err=*next); ok = 1
+                        if ok then
+                            usedCharset! = cvs(splitCharset![i],3)
+                            converted = 1
+                            break
+                        endif
+                        
+                        if !converted then
+                            rem fallback to default
+                            usedCharset! = defaultCharset!
+                        endif
+                    next i
+                else
+                    if cvs(charset!, 3) = "*" then
+                        rem all charsets are accepted, use the bridge's default
+                        usedCharset! = defaultCharset!
+                    else
+                        rem check if the charset is valid
+                        ok = 0; Charset.forName(charset!, err=*next); ok = 1                    
+                        if ok then
+                            usedCharset! = charset!
+                        else
+                            rem unknown charset, fall back to default
+                            usedCharset! = defaultCharset!
+                        endif
+                    endif
+                endif
+            else
+                rem no charset provided --> convert from the server encoding to the default bridge encoding
+                usedCharset! = defaultCharset!
+            endif
         endif
         
+        #setCharacterSet(rs!, usedCharset!)
+              
         rem Handling the output format
-        
         seterr output_creation_error
             namespace! = BBjAPI().getGlobalNamespace()
             handler! = namespace!.getValue(ses$ + "_OUTPUT_HANDLER", err=*next)
@@ -501,6 +600,9 @@ class public RestBridge
             
             outputHandler!.setResultSet(rs!)
             outputHandler!.setInvokeResult(answer!)
+            
+            rem set the charset 
+            outputHandler!.setCharset(usedCharset!)
             
             outputHandler!.setResponse(response!)
             outputHandler!.setRequest(request!)
@@ -569,7 +671,7 @@ class public RestBridge
     rem  */
     method private static void setCharacterSet(ResultSet resultSet!, String charset!)
         charsetIsSupported! = Boolean.FALSE
-        charsetIsSupported! = java.nio.charset.Charset.isSupported(charset!, err=*next)
+        charsetIsSupported! = Charset.isSupported(charset!, err=*next)
         if !charsetIsSupported! then
             methodret
         endif
@@ -593,7 +695,10 @@ class public RestBridge
 
                 fieldType! = dataRow!.getFieldType(fieldName!)
                 if fieldType! = java.sql.Types.VARCHAR OR fieldType! = java.sql.Types.LONGVARCHAR then
-                    dataRow!.setFieldValue(fieldName!, new String(dataRow!.getFieldAsString(fieldName!), charset!))
+                    body! = dataRow!.getFieldAsString(fieldName!)                   
+                    body! = new String(new String(body!, info(1,2)).getBytes(charset!))
+                    
+                    dataRow!.setFieldValue(fieldName!, body!)
                 endif
             wend
         wend
@@ -819,6 +924,7 @@ class public RestBridge
     rem  *     <li>REST_REQUESTLOG</li>
     rem  *     <li>USE_GET_ALLOWED_FILTER</li>
     rem  *     <li>REST_OUTPUT_HANDLER</li>
+    rem  *     <li>REST_DEFAULT_CHARSET</li>
     rem  * </ul>
     rem  * <br>
     rem  * Some of these parameters are explicitly required to be set as STBLs. This method will set them 
@@ -842,6 +948,7 @@ class public RestBridge
         parameterNames!.add("REST_REQUESTLOG")
         parameterNames!.add("USE_GET_ALLOWED_FILTER")
         parameterNames!.add("REST_OUTPUT_HANDLER")
+        parameterNames!.add("REST_DEFAULT_CHARSET")
 
         rem the list of parameter names that must be set as STBL 
         declare BBjVector parameterNamesToSetAsSTBL!
