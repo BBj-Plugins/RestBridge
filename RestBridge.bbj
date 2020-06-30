@@ -721,11 +721,15 @@ class public RestBridge
         namespace!.setValue(ses$+"_SERVLET_PARAMETERS",servletParams!)
         
         seterr custom_output_handler_error
-            if servletParams!.containsKey("REST_OUTPUT_HANDLER") then               
-                customOutputHandler! = new File(str(servletParams!.get("REST_OUTPUT_HANDLER")))
-                className! = org.apache.commons.io.FilenameUtils.removeExtension(customOutputHandler!.getName())
-                outputHandler! = "new ::" + customOutputHandler!.getPath() + "::" + className! + "()"
-                namespace!.setValue(ses$ + "_OUTPUT_HANDLER", outputHandler!)
+            if servletParams!.containsKey("REST_OUTPUT_HANDLER") then    
+                path$ = BBjAPI().getFileSystem().resolvePath(str(servletParams!.get("REST_OUTPUT_HANDLER")), err=*next)
+                
+                customOutputHandler! = new File(path$)
+                if customOutputHandler!.exists() AND customOutputHandler!.isFile() then
+                    className! = org.apache.commons.io.FilenameUtils.removeExtension(customOutputHandler!.getName())
+                    outputHandler! = "new ::" + customOutputHandler!.getPath() + "::" + className! + "()"
+                    namespace!.setValue(ses$ + "_OUTPUT_HANDLER", outputHandler!)
+                endif
             endif 
           
         custom_output_handler_error:
