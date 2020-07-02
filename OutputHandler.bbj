@@ -79,6 +79,10 @@ class public OutputHandler
             methodret
         endif
     
+        rem converting the encoding 
+        content! = new String(content!.getBytes(#charset!))
+        #response!.setCharacterEncoding(#charset!)
+    
         restbridge_opt_enablegzip = 1
         restbridge_opt_enablegzip = int(num(stbl("RESTBRIDGE_OPT_ENABLEGZIP",err=*next),err=*next))
         
@@ -312,7 +316,6 @@ class public OutputHandler
         
         rem Set the content type to JSON
         #response!.setContentType("application/json")
-        #response!.setCharacterEncoding(#charset!)
 
         restbridge_opt_jsonmeta=1
         restbridge_opt_jsonmeta=int(num(stbl("RESTBRIDGE_OPT_JSONMETA",err=*next),err=*next))

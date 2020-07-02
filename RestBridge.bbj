@@ -696,8 +696,7 @@ class public RestBridge
                 fieldType! = dataRow!.getFieldType(fieldName!)
                 if fieldType! = java.sql.Types.VARCHAR OR fieldType! = java.sql.Types.LONGVARCHAR then
                     body! = dataRow!.getFieldAsString(fieldName!)                   
-                    body! = new String(new String(body!, info(1,2)).getBytes(charset!))
-                    
+                    body! = new String(new String(body!, info(1,2)).getBytes(charset!), charset!)                    
                     dataRow!.setFieldValue(fieldName!, body!)
                 endif
             wend
