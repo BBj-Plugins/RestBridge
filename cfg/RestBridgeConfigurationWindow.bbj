@@ -471,6 +471,7 @@ class public RestBridgeConfigurationWindow
                     #btnAddContext!.setEnabled(1)
                     #window!.setCursor(32512)
                     a = msgbox("Context was created")
+                    #btnAddBridge!.setEnabled(1)
               endif
         endif
         
