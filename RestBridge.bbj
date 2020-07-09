@@ -58,7 +58,7 @@ class public RestBridge
             response!.setStatus(200)        
             methodret
         fi
-        
+                
         files! = request!.getFileUploads()
         if (files! <> null()) then
             sz = files!.size()
@@ -150,41 +150,62 @@ class public RestBridge
                 methodret
             break
         swend
-
-        auth$=""
-        token$=request!.getParameter("_TOKEN")
-        if token$>"" then
-            auth$="Basic "+token$
-        fi
-        token$=request!.getParameter("_JTOKEN")
-        if token$>"" then
-            auth$="Bearer "+token$
-        fi
-        if auth$="" then 
-            auth$=str(request!.getHeader("authorization",err=*next))
-        fi
-
-        if cvs(request!.getParameter("grant_type"),4) = "PASSWORD" then
-            user$=request!.getParameter("username")
-            password$=request!.getParameter("password")
-            auth$="Basic "+java.util.Base64.getEncoder().encode(user$+":"+password$)
-            rem we're using the Basic authentication way to pass username and password to the Adapter
-            rem so that the "usual" login can be used to check the credentials
-        fi
         
-        if auth$="null" or len(auth$)<8 OR (cvs(auth$(1,5),4)<>"BASIC" AND cvs(auth$(1,6),4)<>"BEARER")then
-            tmp$=str(request!.getHeader("X-REQUESTED-WITH",err=*next))
-            if tmp$<> "XMLHttpRequest" then
-                response!.setHeader("WWW-Authenticate","Basic realm=""REST Web Service""")
+        rem Retrieve the auth pgm to call 
+        authpgm$="authenticate.bbj"
+        servletParams! = #getServletParameters(context!)        
+        if servletParams!.get("REST_AUTHPGM") <> null() then
+            authpgm$ = servletParams!.get("REST_AUTHPGM").toString()
+        endif
+    
+        call authpgm$+"::PRE_AUTHENTICATION", err=*next
+        
+        if err = 21 AND auth$ = "" then
+            System.out.println("***********************************")
+            System.out.println("WARNING: Deprecated fallback code was used due to the missing label ""PRE_AUTHENTICATION"" in the authentication program")
+            System.out.println("WARNING: Please consider to update the authentication program, as this fallback code will be removed in a later version")
+            System.out.println("***********************************")
+            
+            auth$ = ""
+            rem fallback to the old mechasnism
+            token$=request!.getParameter("_TOKEN")
+            if token$>"" then
+                auth$="Basic "+token$
             fi
-            response!.sendError(401,"Authentication required")
-            #logResponse(req_id$,response!)
+        
+            token$=request!.getParameter("_JTOKEN")
+            if token$>"" then
+                auth$="Bearer "+token$
+            fi
+        
+            if auth$="" then 
+                auth$=str(request!.getHeader("authorization",err=*next))
+            fi   
+        
+            if cvs(request!.getParameter("grant_type"),4) = "PASSWORD" then
+                user$=request!.getParameter("username")
+                password$=request!.getParameter("password")
+                auth$="Basic "+java.util.Base64.getEncoder().encode(user$+":"+password$)
+        
+                rem we're using the Basic authentication way to pass username and password to the Adapter
+                rem so that the "usual" login can be used to check the credentials
+            fi
+        endif
+                
+        if auth$="null" or len(auth$) < 8 then
+            tmp$ = str(request!.getHeader("X-REQUESTED-WITH", err=*next))
+            if tmp$ <> "XMLHttpRequest" then
+                response!.setHeader("WWW-Authenticate", "Basic realm=""REST Web Service""")
+            endif
+            
+            response!.sendError(401, "Authentication required")
+            #logResponse(req_id$, response!)
             methodret
-        else
-            rem create uid$ as a unique representant of the user
-            rem this needs to contain the config file and the prefix!
-            uid$ = hta(java.security.MessageDigest.getInstance("MD5").digest(auth$+BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()+pfx))
-        fi
+        endif
+                
+        rem create uid$ as a unique representant of the user
+        rem this needs to contain the config file and the prefix!
+        uid$ = hta(java.security.MessageDigest.getInstance("MD5").digest(auth$+BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()+pfx))
 
         ses_list! = BBjAPI().getGlobalNamespace().getValue(uid$+"_list",err=*next)
         if ses_list! = null() then
@@ -646,7 +667,7 @@ class public RestBridge
             namespace!.removeValue(ses$+"_REQUEST_SEM")
             namespace!.removeValue(ses$+"_RESPONSE_SEM")
             namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
-            namespace!.removeValue(ses$+"_OUTPUT_HANDLER")
+            namespace!.removeValue(ses$+"_OUTPUT_HANDLER", err=*next)
             
             methodret Boolean.FALSE
         fi
@@ -741,8 +762,8 @@ class public RestBridge
 
         cp$=BBjAPI().getConfig().getCurrentCommandLineObject().getOriginalClasspathName()
         if cp$>"" cp$=" -CP"+cp$
-        wd$=" -WD"+servletParams!.get("REST_WD").toString()
-        pgm$=" "+servletParams!.get("REST_ADAPTERPGM").toString()
+        wd$= " ""-WD"+ servletParams!.get("REST_WD").toString() + " """
+        pgm$ = " """ + servletParams!.get("REST_ADAPTERPGM").toString() + """"
 
 
         cfg$=" -c"+BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()
@@ -751,12 +772,11 @@ class public RestBridge
             t$=" -t"+servletParams!.get("REST_ADAPTERTERM").toString()
         endif
 
-        scmd$="bbj  -q "+t$+cfg$+cp$+wd$+pgm$+" - "+ses$+" "+auth$+" &"
+        scmd$="bbj -q "+ t$ + cfg$ + cp$ + wd$ + pgm$ + " - " + ses$ + " " + auth$ + " &"
         System.out.println("REST: create "+scmd$)
         a=scall(scmd$)
 
         methodret ses$
-
     methodend
 
 
@@ -778,7 +798,7 @@ class public RestBridge
             namespace!.removeValue(ses$+"_REQUEST_SEM")
             namespace!.removeValue(ses$+"_RESPONSE_SEM")
             namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
-            namespace!.removeValue(ses$+"_OUTPUT_HANDLER")
+            namespace!.removeValue(ses$+"_OUTPUT_HANDLER", err=*next)
             
             rem System.out.println("REST: timeout on invoke "+ses$)
             throw "Timeout occurred",0

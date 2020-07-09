@@ -6,11 +6,20 @@ REM use com.auth0.jwt.interfaces.JWTVerifier
 
 use com.basiscomponents.db.DataRow
 
+rem HMAC authentication 
+use javax.crypto.Mac
+use javax.crypto.spec.SecretKeySpec
 
-enter
-
-    if jwt$>"" then
-
+AUTHENTICATION:
+    enter
+    
+    rem This section covers the authentication of the user based on the 
+    rem authentication type and the authentication token. 
+    
+    rem JWT Authentication
+    if authtype$ = "BEARER" then
+        jwt$ = auth$
+        
         rem TODO: adjust these things according to your application's needs:
         secret$ = "your-256-bit-secret"
         algorithm! = Algorithm.HMAC256(secret$)
@@ -34,10 +43,48 @@ enter
 
         rem if your payload is needed in original json, we also put the payload$ into an STBL
         dummy$ = STBL("JWTPAYLOAD", payload$)
-
-    else
-
-        rem in this place authenticate against the Admin API
+        
+        exit
+    endif
+    
+    rem HMAC Authentication
+    if authtype$ = "HMAC" then
+        hmac$ = auth$
+        
+        request! = BBjAPI().getGlobalNamespace().getValue(ses$ + "_REQUEST", err=*next)
+        if request! = null() then
+            throw "", 25
+        endif
+      
+        secret!  = "your-256-bit-secret"
+      
+        sha256_HMAC! = Mac.getInstance("HmacSHA256")
+        secret_key! = new SecretKeySpec(secret!.getBytes(), "HmacSHA256")
+      
+        sha256_HMAC!.init(secret_key!)
+      
+        data! = new String(request!.getBody().getBytes("UTF-8"))
+        hash! = new String(java.util.Base64.getEncoder().encode(sha256_HMAC!.doFinal(data!)))
+                                                           
+        if hmac$ <> hash! then
+            throw "Unauthorized", 25
+        endif
+        
+        authenticated = 1
+        exit
+    endif
+    
+    rem BASIC Authentication
+    if authtype$="BASIC" then
+        auth$ = java.util.Base64.getDecoder().decode(auth$)
+        user$ = auth$(1,pos(":"=auth$)-1)
+        password$ = auth$(pos(":"=auth$)+1)
+    
+        rem changing the string encoding to the server's encoding
+        user$ = new String(user$,"utf-8").getBytes(info(1,2))
+        password$ = new String(password$,"utf-8").getBytes(info(1,2))
+    
+        rem BASIC Authentication against the Admin API
         adminAPI! = BBjAPI().getAdmin(user$, password$, err=*next)
         if adminAPI! = null() then
             throw "Wrong username and/or password", 25
@@ -45,11 +92,47 @@ enter
             authenticated = 1
             adminAPI!.release()
         endif
-
     endif
-
+    
 exit
 
+PRE_AUTHENTICATION:
+    rem The code in this section gathers the information to perform the 
+    rem user authentication later on by evaluating the request's header / body values.
+    rem By default, this section checks the request's authorization header and extracts the 
+    rem token or the username + password from it, which will be used in the authorization process 
+    rem defined in the top of this program.
+    
+    rem Additionally it can be used to restrict the access to the RestBridge's features and 
+    rem the BCs. For example: If you don't want to expose certain BCs via the RestBridge, the 
+    rem code in this section could refuse the requests to those BCs and throw an Error.
+    
+    enter
+    
+    token$ = request!.getParameter("_TOKEN")
+    if token$ > "" then
+        auth$="Basic " + token$
+    fi
+    
+    token$ = request!.getParameter("_JTOKEN")
+    if token$ > "" then
+        auth$ = "Bearer "+token$
+    fi
+
+    if auth$ = "" then 
+        auth$ = str(request!.getHeader("authorization", err=*next))
+    fi   
+
+    if cvs(request!.getParameter("grant_type"), 4) = "PASSWORD" then
+        user$ = request!.getParameter("username")
+        password$ = request!.getParameter("password")
+        auth$="Basic "+java.util.Base64.getEncoder().encode(user$+":"+password$)
+
+        rem we're using the Basic authentication way to pass username and password to the Adapter
+        rem so that the "usual" login can be used to check the credentials
+    fi
+        
+    exit
 
 jwt_failed:
     emes$=errmes(-1)

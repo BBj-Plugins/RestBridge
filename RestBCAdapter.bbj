@@ -24,28 +24,42 @@ servletParams! = BBjAPI().getGlobalNamespace().getValue(ses$+"_SERVLET_PARAMETER
 if debug then System.out.println("Got auth header: "+authtype$+" "+auth$)
 authtype$=cvs(authtype$,4)
 
-if authtype$="BASIC" then
-  auth$=java.util.Base64.getDecoder().decode(auth$)
-  user$=auth$(1,pos(":"=auth$)-1)
-  password$=auth$(pos(":"=auth$)+1)
-fi
-
-if authtype$="BEARER" then
-  jwt$=auth$
-fi
-
+user$=""
 authenticated=0
+call authpgm$ + "::AUTHENTICATION", err=*next
 
-rem changing the string encoding to the server's encoding
-user$ = new String(user$,"utf-8").getBytes(info(1,2))
-password$ = new String(password$,"utf-8").getBytes(info(1,2))
-
-authpgm$="authenticate.bbj"
-if servletParams!.get("REST_AUTHPGM") <> null() then
-    authpgm$ = servletParams!.get("REST_AUTHPGM").toString()
+if err = 21 AND authenticated = 0 then
+    rem Label not found --> custom authenticate without new label
+    rem fallback code
+    
+    System.out.println("***********************************")
+    System.out.println("WARNING: Deprecated fallback code was used due to the missing label ""AUTHORIZATION"" in the authentication program")
+    System.out.println("WARNING: Please consider to update the authentication program, as this fallback code will be removed in a later version")
+    System.out.println("***********************************")
+    
+    if authtype$="BASIC" then
+        auth$ = java.util.Base64.getDecoder().decode(auth$)
+        user$ = auth$(1,pos(":"=auth$)-1)
+        password$ = auth$(pos(":"=auth$)+1)
+    endif
+    
+    if authtype$="BEARER" then
+        jwt$ = auth$
+    endif
+    
+    authenticated = 0
+    
+    rem changing the string encoding to the server's encoding
+    user$ = new String(user$,"utf-8").getBytes(info(1,2))
+    password$ = new String(password$,"utf-8").getBytes(info(1,2))
+    
+    authpgm$="authenticate.bbj"
+    if servletParams!.get("REST_AUTHPGM") <> null() then
+        authpgm$ = servletParams!.get("REST_AUTHPGM").toString()
+    endif
+    
+    call authpgm$
 endif
-
-call authpgm$
 
 requestSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_REQUEST_SEM")
 responseSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE_SEM")
