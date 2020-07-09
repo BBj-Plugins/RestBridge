@@ -53,7 +53,7 @@ AUTHENTICATION:
         
         request! = BBjAPI().getGlobalNamespace().getValue(ses$ + "_REQUEST", err=*next)
         if request! = null() then
-            throw "", 25
+            throw "Failed to retrieve request for the HMAC authentication", 25
         endif
       
         secret!  = "your-256-bit-secret"
