@@ -24,6 +24,12 @@ servletParams! = BBjAPI().getGlobalNamespace().getValue(ses$+"_SERVLET_PARAMETER
 if debug then System.out.println("Got auth header: "+authtype$+" "+auth$)
 authtype$=cvs(authtype$,4)
 
+rem Retrieve the auth pgm to call 
+authpgm$="authenticate.bbj"  
+if servletParams!.get("REST_AUTHPGM") <> null() then
+    authpgm$ = servletParams!.get("REST_AUTHPGM").toString()
+endif
+
 user$=""
 authenticated=0
 call authpgm$ + "::AUTHENTICATION", err=*next

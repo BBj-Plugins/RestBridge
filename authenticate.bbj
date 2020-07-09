@@ -76,7 +76,8 @@ AUTHENTICATION:
     
     rem BASIC Authentication
     if authtype$="BASIC" then
-        auth$ = java.util.Base64.getDecoder().decode(auth$)
+        auth$ = java.util.Base64.getDecoder().decode(auth$, err=*next)
+        
         user$ = auth$(1,pos(":"=auth$)-1)
         password$ = auth$(pos(":"=auth$)+1)
     
