@@ -51,6 +51,7 @@ AUTHENTICATION:
     if authtype$ = "HMAC" then
         hmac$ = auth$
         
+        rem request is a HashMap at this point and not the actual 
         request! = BBjAPI().getGlobalNamespace().getValue(ses$ + "_REQUEST", err=*next)
         if request! = null() then
             throw "Failed to retrieve request for the HMAC authentication", 25
@@ -63,7 +64,8 @@ AUTHENTICATION:
       
         sha256_HMAC!.init(secret_key!)
       
-        data! = new String(request!.getBody().getBytes("UTF-8"))
+        body! = new String(request!.get("body"))
+        data! = new String(body!.getBytes("UTF-8"))
         hash! = new String(java.util.Base64.getEncoder().encode(sha256_HMAC!.doFinal(data!)))
                                                            
         if hmac$ <> hash! then
