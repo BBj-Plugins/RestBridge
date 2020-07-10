@@ -151,9 +151,14 @@ class public RestBridge
             break
         swend
         
+        servletParams! = #getServletParameters(context!) 
+        
+        rem The authentication program might be relative to the WD but not to any directory in the prefix
+        rem therefore switch to the WD for the authentication program call
+        chdir servletParams!.get("REST_WD"), err=*next
+    
         rem Retrieve the auth pgm to call 
-        authpgm$="authenticate.bbj"
-        servletParams! = #getServletParameters(context!)        
+        authpgm$="authenticate.bbj"     
         if servletParams!.get("REST_AUTHPGM") <> null() then
             authpgm$ = servletParams!.get("REST_AUTHPGM").toString()
         endif
