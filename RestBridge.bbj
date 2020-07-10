@@ -762,7 +762,7 @@ class public RestBridge
 
         cp$=BBjAPI().getConfig().getCurrentCommandLineObject().getOriginalClasspathName()
         if cp$>"" cp$=" -CP"+cp$
-        wd$= " ""-WD"+ servletParams!.get("REST_WD").toString() + " """
+        wd$= " -WD"+ servletParams!.get("REST_WD").toString()
         pgm$ = " """ + servletParams!.get("REST_ADAPTERPGM").toString() + """"
 
 
