@@ -400,7 +400,6 @@ REM         endif
     rem  * @return BBjVector    List with validation error messages (empty list means no validation errors).
     rem  */
     method public BBjVector validateWrite(DataRow dr!)
-
         declare BBjVector vecErrors!
         vecErrors! = new BBjVector()
 
@@ -432,6 +431,33 @@ REM         endif
 
     methodend
 
+    method public ResultSet write(ResultSet rs!)
+        declare ResultSet result!
+        result! = new ResultSet()
+        
+        if rs! = null() OR rs!.isEmpty() then
+            methodret result!
+        endif
+        
+        for i=0 to rs!.size() -1
+            errorVector! = #validateWrite(rs!.get(i))
+            if !errorVector!.isEmpty() then
+                it! = errorVector!.iterator()
+                while it!.hasNext()
+                    errormsg$ = errormsg$ + it!.next() + $0a$
+                wend
+                errormsg$ = errormsg$(1,len(errormsg$)-1)
+                throw errormsg$,999
+            endif 
+        next i
+        
+        for i=0 to rs!.size() -1
+            dr! = #write(rs!.get(i))
+            result!.add(dr!)
+        next i
+        
+        methodret result!
+    methodend
 
     rem /**
     rem  * Write/persist a customer.
@@ -440,7 +466,6 @@ REM         endif
     rem  * @return DataRow      the customer DataRow (may contain auto generated values/ID's)
     rem  */
     method public DataRow write(DataRow dr!)
-
         vecErrors! = #validateWrite(dr!)
         if vecErrors!.size() then
             it! = vecErrors!.iterator()
@@ -450,7 +475,6 @@ REM         endif
             errormsg$ = errormsg$(1,len(errormsg$)-1)
             throw errormsg$,999
         endif
-
 
         sql$="SELECT CUST_NUM FROM " + #TableName$ + " WHERE CUST_NUM=?"
         ch = sqlunt
