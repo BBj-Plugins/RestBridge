@@ -259,43 +259,57 @@ main_loop:
                 errorOccurred=0
                 rs! = new ResultSet()
 				b1$=request!.get("body")
-				System.out.println(b1$)
+				
 				if b1$>"" and b1$(1,1)<>"[" then
 					b1$="["+b1$+"]"
 				fi
+
 				System.out.println(b1$)
                 res! = ResultSet.fromJson(b1$)
                 k! = java.util.Arrays.asList(new String(filterf$).split("/"))
                 v! = java.util.Arrays.asList(new String(sel$).split("/",-1))
-                it! = res!.iterator()
-                while it!.hasNext()
-                    dr! = it!.next()
-                    for i=0 to min(k!.size(),v!.size())-1
-                        if !dr!.contains(k!.get(i)) then
-                            dr!.setFieldValue(k!.get(i),v!.get(i))
-                        endif
-                    next i
-
-                    ok=0; dr! = bc!.write(dr!,err=*next); ok=1
+                
+                rem Attempt to invoke the bc's write(ResultSet) method
+                ok=0; bc!.write(new ResultSet(), err=*next); ok=1
+                if ok then
+                    ok=0; rs! = bc!.write(res!, err=*next); ok=1
                     if !ok then
-                        errorOccurred=1
                         response!.put("statuscode","409")
                         response!.put("errorcode",str(err))
                         response!.put("errormsg",errmes(-1))
-                        rem throw errmes(-1),err
-                    else
-                        rs!.addItem(dr!)
-                        created! = dr!.getAttribute("CREATED")
-                        if !errorOccurred then
-                            if created! <> null() and created!.equals("true") then
-                                response!.put("statuscode","201")
-                            else
-                                response!.put("statuscode","200")
+                    endif
+                else
+                    rem write the DataRows separately using the write(DataRow) method
+                    it! = res!.iterator()
+                    while it!.hasNext()
+                        dr! = it!.next()
+                        for i=0 to min(k!.size(),v!.size())-1
+                            if !dr!.contains(k!.get(i)) then
+                                dr!.setFieldValue(k!.get(i),v!.get(i))
+                            endif
+                        next i
+    
+                        ok=0; dr! = bc!.write(dr!,err=*next); ok=1
+                        if !ok then
+                            errorOccurred=1
+                            response!.put("statuscode","409")
+                            response!.put("errorcode",str(err))
+                            response!.put("errormsg",errmes(-1))
+                            rem throw errmes(-1),err
+                        else
+                            rs!.addItem(dr!)
+                            created! = dr!.getAttribute("CREATED")
+                            if !errorOccurred then
+                                if created! <> null() and created!.equals("true") then
+                                    response!.put("statuscode","201")
+                                else
+                                    response!.put("statuscode","200")
+                                endif
                             endif
                         endif
-                    endif
-                wend
-
+                    wend
+                endif
+                
                 response!.put("resultset",rs!)
                 response!.put("request",str(request!))
                 response!.put("BC",bc$)
