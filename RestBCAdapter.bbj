@@ -65,6 +65,10 @@ if err = 21 AND authenticated = 0 then
     endif
     
     call authpgm$
+else
+    if authenticated = 0 then
+        throw ermess(-1), err
+    endif
 endif
 
 requestSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_REQUEST_SEM")
