@@ -64,3 +64,16 @@ classend
 
 In order for you custom handler class to be used by the RestBridge, you will need to set the **REST_OUTPUT_HANDLER** option either in your config.bbx or in the bridge's servlet parameters. The value of this option should be the file name of the custom output handler class. The file name **must** have the same name as the class itself. The RestBridge will invoke the class if the file can be founn on the system using the standard BBj file resolve mechanics(Working Directory, Prefix)  
 
+## **_lookup** Request
+
+In some cases, BC fields can only be set to pre-defined values(tipically represented by a DropDown Button on the client). To get the list of available values for a specific field, the **_lookup** request is used.
+
+The **_lookup** call will invoke the BC's <code>retrieveLookup(field$,filter!)</code> method, and return the returned ResultSet. 
+
+A tipical **_lookup** call looks like this (Using HTTP GET):
+
+<code><base_url>/BC/_lookup/LookupField</code>
+
+and it even supports filters:
+
+<code><base_url>/BC/_lookup/LookupField?Key=Value</code>
