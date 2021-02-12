@@ -67,7 +67,7 @@ if err = 21 AND authenticated = 0 then
     call authpgm$
 else
     if authenticated = 0 then
-        throw ermess(-1), err
+        throw errmes(-1), err
     endif
 endif
 
