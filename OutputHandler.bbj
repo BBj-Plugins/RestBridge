@@ -305,7 +305,7 @@ class public OutputHandler
     
     rem /**
     rem  * Creates the JSON output based on the ResultSet, and sets the response's 
-    rem  * content type header to application/JSON to inform the client that the 
+    rem  * content type header to application/json to inform the client that the 
     rem  * response he's receiving is in the JSON format.
     rem  * 
     rem  * @return the JSON content to return to the client
