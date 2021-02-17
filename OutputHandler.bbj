@@ -123,33 +123,33 @@ class public OutputHandler
         if pos("application/json" = accept!) > 0 then
             methodret #createJSON()
         endif
-        
+
         rem HTML export
         if pos("text/html"=accept!) > 0 OR pos("*/*"=accept!) > 0  then
             methodret #createHTML()
         endif
-        
+
         rem XML export
         if pos("text/xml"=accept!) > 0 or pos("application/xml" = accept!) >0  then
             methodret #createXML()
         endif
-        
+
         rem TXT export
         if pos("text/csv" = accept!) > 0 OR pos("text/plain" = accept!) > 0 then
             methodret #createTXT()
         endif
-        
+
         rem Excel export
         if pos("application/xls" = accept!) > 0 then
             #createXLSX()
-            methodret ""
+            methodret null()
         endif
-                        
-        rem Printing some debug information    
+
+        rem Printing some debug information
         if pos("debug" = accept!) > 0 then
             methodret #createDebug()
         endif
-        
+
         throw "Unsupported content type requested in Accept header: " + accept!, 406
     methodend
     
