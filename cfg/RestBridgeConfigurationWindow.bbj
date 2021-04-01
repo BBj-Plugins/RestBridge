@@ -6,12 +6,14 @@ use ::RestBridge/cfg/RestBridgeConfigurator.bbj::RestBridgeConfigurator
 use ::RestBridge/cfg/Context.bbj::Context
 use ::RestBridge/cfg/Bridge.bbj::Bridge
 
+use ::BBjWinBusyIndicator/BBjWinBusyIndicator.bbj::BBjWinBusyIndicator
+
 class public RestBridgeConfigurationWindow
 
     field private BBjSysGui sysGui!
     field private BBjWindow window!
     field private BBjWindow prevWindow!
-
+    
     field private BBjInputN inpnTimeout!
     field private BBjCheckBox chbUseGetAllowedFilters!
 
@@ -43,6 +45,8 @@ class public RestBridgeConfigurationWindow
     field private BBjAdmin admin!
 
     field private RestBridgeConfigurator configurate!
+    
+    field private BBjWinBusyIndicator busyIndicator!
 
     field private BBjVector contexts!
 
@@ -63,11 +67,14 @@ class public RestBridgeConfigurationWindow
 
     method private void init()
         #sysGui! = BBjApi().openSysGui("X0")
-
+        
+        
         screenWidth = #sysGui!.getSystemMetrics().getScreenBounds().getWidth()
         screenHeight = #sysGui!.getSystemMetrics().getScreenSize().getHeight()
 
         #window! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), (screenWidth/2)-200, (screenHeight/2)-250, 760, 400, "REST Endpoint Configuration", $00000002$)
+
+        #busyIndicator! = new BBjWinBusyIndicator(#window!)
 
         labelWidth = 115
         controlHeight = 25
@@ -462,8 +469,10 @@ class public RestBridgeConfigurationWindow
                       break
                   endif
               next i
-
+              
               if (name! <> "" AND !contains!) then
+                    #busyIndicator!.setText("Context is being created...")
+                    #busyIndicator!.setVisible(Boolean.TRUE)
                     #btnAddContext!.setEnabled(0)
                     #window!.setCursor(32514)
                     #configurate!.addContext(name!)
@@ -472,6 +481,7 @@ class public RestBridgeConfigurationWindow
                     #window!.setCursor(32512)
                     a = msgbox("Context was created")
                     #btnAddBridge!.setEnabled(1)
+                    #busyIndicator!.setVisible(Boolean.FALSE)
               endif
         endif
         
