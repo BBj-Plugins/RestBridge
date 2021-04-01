@@ -638,8 +638,10 @@ class public RestBridgeConfigurationWindow
         directoryPath$ = FILEOPEN("Configuration File Selection", fileOpenPath!,"",fileExtension!,filter!,directorySelection!)
         if(directoryPath$ <> "::CANCEL::") then
             methodret directoryPath$
+        else 
+            methodret path!
         endif
-
+        
         methodret ""
     methodend
 
