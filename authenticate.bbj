@@ -1,10 +1,16 @@
-use com.auth0.jwt.JWT
-use com.auth0.jwt.algorithms.Algorithm
-REM use com.auth0.jwt.exceptions.JWTCreationException
-REM use com.auth0.jwt.interfaces.DecodedJWT
-REM use com.auth0.jwt.interfaces.JWTVerifier
-
 use com.basiscomponents.db.DataRow
+
+use com.nimbusds.jose.JWSAlgorithm
+use com.nimbusds.jose.JWSHeader
+use com.nimbusds.jose.JWSSigner
+use com.nimbusds.jose.JWSVerifier
+use com.nimbusds.jose.crypto.MACSigner
+use com.nimbusds.jose.crypto.MACVerifier
+use com.nimbusds.jwt.JWTClaimsSet
+use com.nimbusds.jwt.SignedJWT
+
+use com.nimbusds.jose.JWSHeader.Builder
+use com.nimbusds.jose.JOSEObjectType
 
 rem HMAC authentication 
 use javax.crypto.Mac
@@ -17,23 +23,29 @@ AUTHENTICATION:
     rem authentication type and the authentication token. 
     
     rem JWT Authentication
-    if authtype$ = "BEARER" then
+    if authtype$ = "BEARER" then   
         jwt$ = auth$
         
         rem TODO: adjust these things according to your application's needs:
         secret$ = "your-256-bit-secret"
-        algorithm! = Algorithm.HMAC256(secret$)
-
-        verifier! = JWT.require(algorithm!).build()
-        jwt! = verifier!.verify(jwt$, err=jwt_failed)
+    
+        verifier! = new MACVerifier(secret$)
+        signedJWT! = SignedJWT.parse(jwt$)
+        isValid = signedJWT!.verify(verifier!, err=jwt_failed)
+        
+        if !isValid then
+            throw "Failed to validate the JWT", 25
+        endif
+         
         authenticated = 1
-        payload$ = java.util.Base64.getDecoder().decode(jwt!.getPayload())
+        payload$ = signedJWT!.getPayload().toString()
         jwtpayload! = DataRow.fromJson(payload$)
-
+        
         rem setting user$ to the JWT subject string
         rem if the username is required later and it's in the payload this would probably be the best place to set user$
 
-        user$ = jwt!.getSubject()
+        claimsSet! = signedJWT!.getJWTClaimsSet()
+        user$ = claimsSet!.getSubject()
 
         rem storing the payload as a DataRow into the object table
         rem if you need it later, simply use something like this:
@@ -168,23 +180,26 @@ ISSUE_JWT:
 
     rem make it expire in one day
     expires_in = 24*60*60*1000
-
-    algorithm! = Algorithm.HMAC256(secret$)
-
     exp! = new java.util.Date(System.currentTimeMillis()+expires_in)
+    
+    headerBuilder! = new JWSHeader.Builder(JWSAlgorithm.HS256)
+    headerBuilder!.type(JOSEObjectType.JWT)
+    header! = headerBuilder!.build()
 
-    t! = JWT.create()
-    t!.withIssuer(issuer$)
-    t!.withAudience(audience$)
-    t!.withSubject(user$)
-    t!.withExpiresAt(exp!)
+    claimsSetBuilder! = new JWTClaimsSet.Builder()
+    claimsSetBuilder!.subject(user$)
+    claimsSetBuilder!.audience(audience$)
+    claimsSetBuilder!.issuer(issuer$)
+    claimsSetBuilder!.expirationTime(exp!)
+    claimsSet! = claimsSetBuilder!.build()
+    
+    signer! = new MACSigner(secret$)
+    signedJWT! = new SignedJWT(header!, claimsSet!) 
+    signedJWT!.sign(signer!)
+    
+    token! = signedJWT!.serialize()
 
-    rem you can set additional payload values
-    rem t!.withClaim("foo","bar")
-
-    token$ = t!.sign(algorithm!)
-
-    token_rec!.setFieldValue("access_token", token$)
+    token_rec!.setFieldValue("access_token", token!)
     token_rec!.setFieldValue("expires_in", expires_in)
     token_rec!.setFieldValue("expires", exp!.toString())
 
