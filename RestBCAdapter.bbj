@@ -84,7 +84,7 @@ endif
 
 main_loop:
 
-    CLEAR EXCEPT user$, ses$, requestSemaphore!, responseSemaphore!, ses!, authenticated, timeout, usecount, debug, authpgm$, servletParams!
+    CLEAR EXCEPT user$, password$, ses$, requestSemaphore!, responseSemaphore!, ses!, authenticated, timeout, usecount, debug, authpgm$, servletParams!
 
 
     seterr execerr
