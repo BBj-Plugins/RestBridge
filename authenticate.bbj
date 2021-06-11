@@ -28,15 +28,21 @@ AUTHENTICATION:
         
         rem TODO: adjust these things according to your application's needs:
         secret$ = "your-256-bit-secret"
-    
+
         verifier! = new MACVerifier(secret$)
-        signedJWT! = SignedJWT.parse(jwt$)
+        signedJWT! = SignedJWT.parse(jwt$, err=jwt_failed)
         isValid = signedJWT!.verify(verifier!, err=jwt_failed)
         
         if !isValid then
-            throw "Failed to validate the JWT", 25
+            throw "Failed to validate the token's authenticity", 401
         endif
-         
+        
+        claimsSet! = signedJWT!.getJWTClaimsSet()
+        exp! =  claimsSet!.getExpirationTime()
+        if exp!.getTime() < System.currentTimeMillis() then 
+            throw "Access Token Expired", 401
+        endif
+        
         authenticated = 1
         payload$ = signedJWT!.getPayload().toString()
         jwtpayload! = DataRow.fromJson(payload$)
@@ -44,7 +50,6 @@ AUTHENTICATION:
         rem setting user$ to the JWT subject string
         rem if the username is required later and it's in the payload this would probably be the best place to set user$
 
-        claimsSet! = signedJWT!.getJWTClaimsSet()
         user$ = claimsSet!.getSubject()
 
         rem storing the payload as a DataRow into the object table
@@ -69,6 +74,7 @@ AUTHENTICATION:
             throw "Failed to retrieve request for the HMAC authentication", 25
         endif
       
+        rem TODO: adjust these things according to your application's needs:
         secret!  = "your-256-bit-secret"
       
         sha256_HMAC! = Mac.getInstance("HmacSHA256")
@@ -154,7 +160,8 @@ jwt_failed:
     if pos(":"=emes$)>0 then
         emes$=cvs(emes$(pos(":"=emes$)+1),3)
     endif
-    throw emes$,25
+    System.out.println("Invalid token: " + errmes(-1))
+    throw "Failed to validate the token's authenticity", 401
 
 
 ON_REQUEST:
