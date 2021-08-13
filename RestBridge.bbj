@@ -19,7 +19,6 @@ class public RestBridge
     field public static BBjString LOGTPL$="ID:C(16*),METHOD:C(1*),START:N(1*),END:N(1*),DURATION:N(1*),ADDR:C(1*),URL:C(1*),URI:C(1*),QUERY:C(1*),HEADERS:C(1*),PARAMS:C(1*),STATUS:C(1*)"
 
     METHOD PUBLIC void service(BBjspServletContext context!)
-
         declare BBjspWebRequest request!
         declare BBjspWebResponse response!
         
@@ -196,7 +195,7 @@ class public RestBridge
                 rem so that the "usual" login can be used to check the credentials
             fi
         endif
-                
+        
         if auth$="null" or len(auth$) < 8 then
             tmp$ = str(request!.getHeader("X-REQUESTED-WITH", err=*next))
             if tmp$ <> "XMLHttpRequest" then
@@ -294,6 +293,18 @@ class public RestBridge
                 requestCharSet$ = ""
             endif
         endif
+        
+        headers! = new HashMap()
+        headerNameList! = request!.getHeaderNames()
+        it! = headerNameList!.iterator()
+        while it!.hasNext()
+            headerName! = it!.next()
+            
+            if !headerName!.equals("Authorization") then
+                headers!.put(headerName!, request!.getHeader(headerName!))
+            endif
+        wend
+        req!.put("headers", headers!)
         
         body! = request!.getBody(err=*next)
         if body! <> null() then     

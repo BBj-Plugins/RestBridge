@@ -4,8 +4,8 @@ use com.basiscomponents.db.DataRow
 
 seterr execerr
 
-debug=0
 debug=num(stbl("DEBUG",err=*next),err=*next)
+debug=1
 
 if debug then System.out.println("REST: new remote session ")
 
@@ -119,34 +119,28 @@ main_loop:
 
     if debug then System.out.println("REST: remote session running "+ses$)
     dummy$=STBL("!SESSIONINFO",ses$+" - working "+str(request!))
-
+    
+    rem TODO - InputHandler
+    inputHandler! = new ::RestBridge/InputHandler.bbj::InputHandler()
+    inputHandler!.setRequestMethod(request!.get("method"))
+    inputHandler!.setRequestBody(request!.get("body"))
+    inputHandler!.setRequestURI(request!.get("uri"))
+    inputHandler!.setRequestParams(request!.get("params"))
+    inputHandler!.setRequestHeaders(request!.get("headers"))
+    
+    bcName! = inputHandler!.getBCName()  
+    
     response! = new HashMap()
     params! = new HashMap()
-
-    if request!.get("uri") = null() then
+    
+    if bcName! = null()  then
         statuscode=404
         throw "Missing BC",12
     endif
-
+    
     vec! = request!.get("preferredlocales")
     if vec! <> null() and vec!.size() then
         void$ = stbl("!LOCALE",vec!.getItem(0).getLanguage())
-    endif
-
-    uri$=request!.get("uri")
-    uri$=uri$(2)
-    if pos("/"=uri$)>0
-        bc$=uri$(1,pos("/"=uri$)-1)
-        uri$=uri$(pos("/"=uri$)+1)
-        sel$=uri$
-    else
-        bc$=uri$
-        sel$=""
-    fi
-
-    if cvs(bc$,3) = "" then
-        statuscode=404
-        throw "Missing BC",12
     endif
 
     ns! = BBjAPI().getNamespace("RestBCAdapter_"+ses$,"BCList",1)
@@ -155,25 +149,25 @@ main_loop:
         bcMap! = new HashMap()
         ns!.setValue("BCMAP",bcMap!)
     endif
-
-    if bc$="Token" then
-            rs! = new ResultSet()
-            token_rec! = new DataRow()
-            
-            rem token_rec! should be created in the customizable authpgm
-            call authpgm$+"::ISSUE_JWT"
-            
-            rs!.add(token_rec!)
-            response!.put("resultset",rs!)
-            response!.put("BC","Token")
-            response!.put("single",1)    
-            goto send_response
+    
+    rem Special Funtionality
+    if bcName!="Token" then
+        rs! = new ResultSet()
+        token_rec! = new DataRow()
+        
+        rem token_rec! should be created in the customizable authpgm
+        call authpgm$+"::ISSUE_JWT"
+        
+        rs!.add(token_rec!)
+        response!.put("resultset",rs!)
+        response!.put("BC","Token")
+        response!.put("single",1)    
+        goto send_response
     fi
-
-
-    bc$=bc$+"BC"
-    if bcMap!.containsKey(bc$) then
-        bc! = bcMap!.get(bc$)
+    
+    bcName! = bcName!+"BC"
+    if bcMap!.containsKey(bcName!) then
+        bc! = bcMap!.get(bcName!)
     else
         if servletParams!.containsKey("REST_PGM_PREFIX") then
             prefix$ = servletParams!.get("REST_PGM_PREFIX")
@@ -186,389 +180,404 @@ main_loop:
         endif
 
         bc! = null()
-        bc! = eval("new ::"+prefix$+bc$+suffix$+"::"+bc$+"()")
-        bcMap!.put(bc$,bc!)
+        ok=0; bc! = eval("new ::" + prefix$ + bcName! + suffix$ + "::" + bcName! + "()", err=*next); ok=1
+        if ok=0 then
+            statuscode=404
+            throw "Missing BC", 12
+        endif
+        
+        bcMap!.put(bcName!, bc!)
     endif
-
-    rem Determine primary key field(s)
-    ar! = bc!.getAttributesRecord()
-    it! = ar!.getFieldNames().iterator()
+    
+    attributesRecord! = bc!.getAttributesRecord()
+    inputHandler!.setAttributesRecord(attributesRecord!)
+    if servletParams!.containsKey("USE_GET_ALLOWED_FILTER") and servletParams!.get("USE_GET_ALLOWED_FILTER").toString().equals("true") then
+        allowedFilterFields! = bc!.getAllowedFilter(err=*next)
+        inputHandler!.setAllowedFilterFields(allowedFilterFields!)
+    endif
+    
+    method$ = inputHandler!.getMethod()
+    
+    urlExtension! = ""
+    urlExtensionList! = inputHandler!.getURLExtensionList()
+    it! = urlExtensionList!.iterator()
     while it!.hasNext()
-        f$=it!.next()
-        if ar!.getFieldAttribute(f$,"EDITABLE")="2" then
-            filterf$=filterf$+"/"+f$
+        extension! = it!.next()
+        urlExtension! = urlExtension! + "/" + extension!  
+    wend
+    
+    if !urlExtension!.isEmpty() then
+        urlExtension! = urlExtension!.substring(1)
+    endif
+    
+    BCPrimaryKeyString! = ""
+    it! = attributesRecord!.getFieldNames().iterator()
+    while it!.hasNext()
+        f$ = it!.next()
+        if attributesRecord!.getFieldAttribute(f$,"EDITABLE")="2" then
+            BCPrimaryKeyString!=BCPrimaryKeyString!+"/"+f$
         fi
     wend
-    if filterf$ > "" then
-        filterf$ = filterf$(2)
+    
+    if !BCPrimaryKeyString!.isEmpty() then
+        BCPrimaryKeyString! = BCPrimaryKeyString!.substring(1)
     endif
-
-
-    method$ = request!.get("method")
+    
     switch method$
         case "POST"
             if request!.get("invoke") <> null() then
                 invoke$ = request!.get("invoke")
-                dr! = DataRow.fromJson(request!.get("body"))
-                if dr! <> null() and dr!.getColumnCount() > 0 then
-                    variableNamePrefix! = new String(user$)
-                    variableNamePrefix! = variableNamePrefix!.replaceAll("\W", "_")
-                    
-                    it! = dr!.getFieldNames().iterator()
-                    while it!.hasNext()
-                        f$ = it!.next()
-                        execute variableNamePrefix!+f$ + "! = dr!.getFieldValue("""+f$+""")"
-                        ex$ = ex$ + "," + variableNamePrefix! + f$ + "!"
-                    wend
                 
-                    ex$ = ex$(2)
+                if invoke$ = "" then
+                    throw "Invalid ExecuteBCMethod value", 400 
                 endif
-                ex$ = "bc!."+invoke$+"("+ex$+")"
+                
+                bodyRS! = inputHandler!.getBody()
+                if !bodyRS!.isEmpty() then 
+                    row! = bodyRS!.get(0)
+                    if row! <> null() and row!.getColumnCount() > 0 then
+                        variableNamePrefix! = new String(user$)
+                        variableNamePrefix! = variableNamePrefix!.replaceAll("\W", "_")
+                    
+                        it! = row!.getFieldNames().iterator()
+                        while it!.hasNext()
+                            fieldName$ = it!.next()
+                            
+                            execute variableNamePrefix! + fieldName$ + "! = row!.getFieldValue(""" + fieldName$ + """)"
+                            
+                            ex$ = ex$ + "," + variableNamePrefix! + fieldName$ + "!"
+                        wend
+                    
+                        ex$ = ex$(2)
+                    endif
+                endif
+                
+                ex$ = "bc!." + invoke$ + "(" + ex$ + ")"
+                
+                rem return value
                 if request!.get("retvarname") <> null() then
-                    retvar$ = request!.get("retvarname")
+                    returnValue$ = request!.get("retvarname")
                     ex$ = "var! = " + ex$
                 endif
-                execute ex$
-                if retvar$ <> "" then
-                    if var!.getClass().getName() = "com.basiscomponents.db.ResultSet" then
-                        rs! = var!
-                    else
-                        rs! = new ResultSet()
-                        if var!.getClass().getName() = "com.basiscomponents.db.DataRow" then
+                
+                statuscode=400
+                execute ex$,err=*next
+                statuscode=0
+                
+                if returnValue$ <> "" then
+                    className! = var!.getClass().getName()
+                    
+                    switch className!
+                        case "com.basiscomponents.db.ResultSet"
+                            rs! = var!
+                            break
+                           
+                        case "com.basiscomponents.db.DataRow"
+                            rs! = new ResultSet()
                             rs!.add(var!)
-                        else
-                            retdr! = new DataRow()
-                            class$=var!.getClass().getName()
-                            if class$ = "java.util.HashMap" then
-                                retdr! = new DataRow(var!)
-                            else
-                                if class$ = "java.lang.String" or class$ = "java.lang.Boolean" or pos("BBjNumber"=class$) or pos("BBjVector"=class$) then
-                                    retdr!.setFieldValue(retvar$,var!)
-                                endif
+                            break
+                        
+                        case "java.util.HashMap"
+                            rs! = new ResultSet()
+                            row! = new DataRow(var!)
+                            rs!.add(row!)
+                            break
+                            
+                        case "java.lang.String"
+                        case "java.lang.Boolean"
+                            rs! = new ResultSet()
+                            row! = new DataRow()
+                            row!.setFieldValue(returnValue$, var!)
+                            rs!.add(row!)
+                            break
+                            
+                        case default
+                            if !className!.contains("BBjNumber") AND !className!.contains("BBjVector") then
+                                rs! = new ResultSet()
                             endif
-                            rs!.add(retdr!)
-                        endif
-                    endif
+                            
+                            rs! = new ResultSet()
+                            row! = new DataRow()
+                            row!.setFieldValue(returnValue$, var!)
+                            rs!.add(row!)
+                            
+                            break
+                    swend 
 
-                    response!.put("resultset",rs!)
+                    response!.put("resultset", rs!)
                 else
                     response!.put("resultset","")
                     response!.put("statuscode","204")
                 endif
+                
                 response!.put("request",str(request!))
-                response!.put("BC",bc$)
-                response!.put("sel",sel$)
-                response!.put("primarykey",filterf$)
-            else
-                errorOccurred=0
-                rs! = new ResultSet()
-				b1$=request!.get("body")
-				System.out.println(b1$)
-				if b1$>"" and b1$(1,1)<>"[" then
-					b1$="["+b1$+"]"
-				fi
-				System.out.println(b1$)
-                res! = ResultSet.fromJson(b1$)
-                k! = java.util.Arrays.asList(new String(filterf$).split("/"))
-                v! = java.util.Arrays.asList(new String(sel$).split("/",-1))
-                it! = res!.iterator()
+                response!.put("BC",bcName!)
+                response!.put("sel",urlExtension!)
+                response!.put("primarykey",BCPrimaryKeyString!)
+                break
+            endif
+            
+            rem normal POST request
+            errorOccurred = 0
+            
+            rs! = new ResultSet()
+            body! = inputHandler!.getBody()
+
+            rem Empty RS is invalid
+            if body!.isEmpty() then
+                throw "The request was not valid", 400; rem BAD REQUEST
+            endif
+
+            rem Additional check if the body is empty 
+            rem This check is necessary due to the fact that an empty DataRow
+            rem is created inside the ResultSet having the automatic field "META"
+            rem The "META" field prevents the isEmpty check to return true.
+            rem Luckily the DataRow.getFieldNames method doesn't return the "META"
+            if body!.size() = 1 AND body!.get(0).getFieldNames().size() = 0 then
+                throw "The request was not valid", 400; rem BAD REQUEST
+            endif
+            
+            extensionFilter! = inputHandler!.getURLExtensionFilter()
+            
+            rem TODO - write(ResultSet) may exist, use it if it is
+            
+            it! = body!.iterator()
+            while it!.hasNext()
+                row! = it!.next()
+                
+                rem merging the fields from the URL into the body rows
+                row!.mergeRecord(extensionFilter!, Boolean.TRUE)
+                
+                ok=0; dr! = bc!.write(row!,err=*next); ok=1
+                if !ok then
+                    errorOccurred=1
+
+                    response!.put("statuscode","409")
+                    response!.put("errorcode",str(err))
+                    response!.put("errormsg",errmes(-1))
+                else
+                    rs!.addItem(row!)
+                    
+                    created! = row!.getAttribute("CREATED")
+                    if !errorOccurred then
+                        if created! <> null() and created!.equals("true") then
+                            response!.put("statuscode","201")
+                        else
+                            response!.put("statuscode","200")
+                        endif
+                    endif
+                endif                   
+            wend
+            
+            response!.put("resultset",rs!)
+            response!.put("request",str(request!))
+            response!.put("BC", bcName!)
+            response!.put("sel",urlExtension!)
+            response!.put("primarykey",BCPrimaryKeyString!)
+            response!.put("single",rs!.size()>1)
+            
+            break
+            
+        case "PUT"
+        case "DELETE"
+            body! = inputHandler!.getBody()
+            
+            if body! = null() then
+                body! = new ResultSet()
+            endif
+            
+            extensionList! = inputHandler!.getURLExtensionList()
+            rem only merge the url fields into the body if the method is not PUT and the url doesn't contain the ingorekeys extension
+            rem TODO - Review: Check if this should also be applied to the DELETE method for consistency
+            if method$ <> "PUT" OR extensionList!.size() <> 1 OR cvs(extensionList!.get(0),4) <> "IGNOREKEYS" then
+               
+                rem Adding the field from the URL extension to the fields in the body
+                primaryKeysDR! = attributesRecord!.getFieldsHavingAttributeValue("EDITABLE", "2")
+                if extensionList!.isEmpty() OR primaryKeysDR!.isEmpty() then
+                    throw "Missing resource ID", 400; rem BAD REQUEST
+                endif
+
+                primaryKeyFieldNames! = primaryKeysDR!.getFieldNames()
+                
+                rem Only a specific record shall be deleted, therefore the record should be identifed using all primary keys fields
+                if extensionList!.size() < primaryKeyFieldNames!.size() then
+                    throw "Not enough parameters for " + method$, 400; rem BAD REQUEST
+                endif
+                
+                it! = body!.iterator()
                 while it!.hasNext()
-                    dr! = it!.next()
-                    for i=0 to min(k!.size(),v!.size())-1
-                        if !dr!.contains(k!.get(i)) then
-                            dr!.setFieldValue(k!.get(i),v!.get(i))
+                    row! = it!.next()
+                    
+                    for i=0 to primaryKeyFieldNames!.size() -1
+                        primaryKeyFieldName! = primaryKeyFieldNames!.get(i)
+                        
+                        rem adding the URL extension field to the body row if it doesn't already exist in the body row 
+                        if !row!.contains(primaryKeyFieldName!) then
+                            row!.setFieldValue(primaryKeyFieldName!, extensionList!.get(i))
+                            continue
+                        endif
+                        
+                        if row!.getFieldAsString(primaryKeyFieldName!) <> extensionList!.get(i) then
+                            throw "Different resource ID in URL path and request body!", 400; REM BAD REQUEST
                         endif
                     next i
-
-                    ok=0; dr! = bc!.write(dr!,err=*next); ok=1
-                    if !ok then
-                        errorOccurred=1
-                        response!.put("statuscode","409")
-                        response!.put("errorcode",str(err))
-                        response!.put("errormsg",errmes(-1))
-                        rem throw errmes(-1),err
-                    else
-                        rs!.addItem(dr!)
-                        created! = dr!.getAttribute("CREATED")
-                        if !errorOccurred then
-                            if created! <> null() and created!.equals("true") then
-                                response!.put("statuscode","201")
-                            else
-                                response!.put("statuscode","200")
-                            endif
-                        endif
-                    endif
-                wend
-
-                response!.put("resultset",rs!)
-                response!.put("request",str(request!))
-                response!.put("BC",bc$)
-                response!.put("sel",sel$)
-                response!.put("primarykey",filterf$)
-                response!.put("single",rs!.size()>1)
+                wend 
             endif
-        break
-
-        case "DELETE"
-        case "PUT"
-            if method$ = "PUT" and cvs(sel$,4) = "IGNOREKEYS" then
-                dr! = DataRow.fromJson(request!.get("body"))
-            else
-                if sel$ = "" or filterf$ = "" then
-                    throw "Missing resource ID",999
-                endif
-                dr! = DataRow.fromJson(request!.get("body"))
-                k! = java.util.Arrays.asList(new String(filterf$).split("/"))
-                v! = java.util.Arrays.asList(new String(sel$).split("/",-1))
-                if v!.size() < k!.size() then
-                    throw "Not enough parameters for "+method$,999
-                endif
-                for i=0 to k!.size()-1
-                    if !dr!.contains(k!.get(i)) then
-                        dr!.setFieldValue(k!.get(i),v!.get(i))
-                    else
-                        if dr!.getFieldAsString(k!.get(i)) <> v!.get(i) then
-                            throw "Different resource ID in URL path and request body!",999
-                        endif
-                    endif
-                next i
+            
+            rem In order to write / delete, the body RS must contain at least one record
+            if body!.isEmpty() OR (body!.size() = 1 AND body!.get(0).isEmpty()) then
+                throw "Not enough parameters for " + method$, 400; rem BAD REQUEST
             endif
-
+            
             rs! = new ResultSet()
-            if method$ = "PUT" then
-                dr! = bc!.write(dr!,err=*next); ok=1
-                if !ok then
-                    response!.put("statuscode","409")
-                    throw errmes(-1),err
-                else
+            it! = body!.iterator()
+            while it!.hasNext()
+                row! = it!.next()
+            
+                if method$ = "PUT" then
+                    dr! = bc!.write(row!,err=*next); ok=1
+                    if !ok then
+                        response!.put("statuscode","409")
+                        throw errmes(-1),err
+                    endif
+                    
                     created! = dr!.getAttribute("CREATED")
                     if created! <> null() and created!.equals("true") then
                         response!.put("statuscode","201")
                     else
                         response!.put("statuscode","200")
                     endif
-                    response!.put("single",1)
+                    
+                    if body!.size() = 1 then
+                        response!.put("single",1)
+                    endif
+                    
+                    rs!.addItem(dr!)
+                else
+                    ok=0; bc!.remove(row!); ok=1
+                    if !ok then
+                        response!.put("statuscode","409")
+                        throw errmes(-1), err
+                    endif
+
+                    response!.put("statuscode","204")
                 endif
-                rs!.addItem(dr!)
-            else
-                bc!.remove(dr!)
-                response!.put("statuscode","204")
-            endif
+            wend
 
             response!.put("resultset",rs!)
             response!.put("request",str(request!))
-            response!.put("BC",bc$)
-            response!.put("sel",sel$)
-            response!.put("primarykey",filterf$)
-        break
+            response!.put("BC",bcName!)
+            response!.put("sel",urlExtension!)
+            response!.put("primarykey",BCPrimaryKeyString!)
+            
+            break
 
         case default
-            params! = request!.get("params",err=*next)
-
-            if sel$ = "_meta" then
+            restBridgeCommands! = inputHandler!.getRestBridgeCommands()
+                    
+            if restBridgeCommands!.contains("_META") then
                 rs! = new ResultSet()
-                rs!.add(bc!.getAttributesRecord())
+                rs!.add(attributesRecord!)
+                
                 response!.put("resultset",rs!)
-                response!.put("BC",bc$)
-                response!.put("sel",sel$)
+                response!.put("BC",bcName!)
+                response!.put("sel", urlExtension!)
                 response!.put("single",1)
 
                 goto send_response
-            endif
-
-            filter! = new DataRow()
-            response!.put("single",0)
-            k! = java.util.Arrays.asList(new String(filterf$).split("/"))
-            v! = java.util.Arrays.asList(new String(sel$).split("/",-1))
-
-            rem Add fields from URI
-            if sel$ > "" then
-                if filterf$>"" then
-                    filter! = new DataRow()
-                    for i=0 to min(v!.size(),k!.size())-1
-                        filter!.setFieldValue(k!.get(i),v!.get(i))
-                    next i
-                    response!.put("linkfield",filterf$)
-                    if k!.size() = v!.size() then
-                        response!.put("single",1)
-                    endif
-                else
-                    statuscode=500
-                    throw "BC has no filter",999
-                fi
-            fi
-
-            rem iterate params to fill in [[var]]=value into param=[[var]]
-            if params! <> null() and params!.size() >0 then
-                it! = params!.keySet().iterator()
-                while it!.hasNext()
-                    p$=it!.next()
-                    v$=params!.get(p$)
-                    if len(v$)>4 and v$(1,2)="[[" then
-                        x!=params!.get(v$,err=*next)
-                        params!.put(p$,str(x!))
-                    fi
-                wend
-            fi
-
-            rem Add parameters
-            if params! <> null() and params!.size() >0 then
-                if filter! = null() then
-                    filter! = new DataRow()
-                endif
-
-                af! = ar!
-                if servletParams!.containsKey("USE_GET_ALLOWED_FILTER") and servletParams!.get("USE_GET_ALLOWED_FILTER").toString().equals("true") then
-                    af! = bc!.getAllowedFilter(err=*next)
-                endif
-
-                REM check the field case insensitive
-                REM but pass them with the correct casing to the filter
-                afnames! = af!.getFieldNames()
-                afnames_uc! = new BBjVector()
-                it! = afnames!.iterator()
-                while it!.hasNext()
-                    afnames_uc!.addItem(cvs(str(it!.next()),4))
-                wend
-
-                it! = params!.keySet().iterator()
-                while it!.hasNext()
-                    p$=it!.next()
-                    pv$=params!.get(p$)
-                    if (p$="_FULLTEXT" OR P$="_SEARCH")
-                        filter!.setFieldValue("%SEARCH",pv$)
-                    else
-                        if (p$(1,1)<>"_" and pv$>"" and (afnames_uc!.contains(p$) OR bc$="DataSourceDataBC")) OR P$(1,1)="%" then
-                            rem todo: all BCs should accept filters with fields that are not part of the attributes record
-                            rem and still honor all other fields in the filter correctly, instead of giving no result
-                            if (afnames_uc!.contains(p$)) then
-                                filter!.setFieldValue(afnames!.getItem(afnames_uc!.indexOf(p$)),pv$)
-                            else
-                                filter!.setFieldValue(p$,pv$)
-                            fi                            
-                        fi
-                    fi
-                wend
-            fi
-			
-            if filter! <> null() then
-                bc!.setFilter(filter!)
-            fi
-
-			scope!=params!.get("_SCOPE")
-			fieldsel!=params!.get("_FIELDSEL",err=*next)
-
-			if fieldsel! <> null() AND scope! <> null() then
-				ok=0
-				vec! = new BBjVector(java.util.Arrays.asList(fieldsel!.split(",")))
-				bc!.setScope(scope!)
-				bc!.setFieldSelection(vec!); ok=1
-				rem bc!.setFieldSelection(scope!, vec!,err=*next); ok=1
-				if !ok then
-					if pos("no match for method"=cvs(errmes(-1),8)) then
-						fs! = new DataRow()
-						it! = vec!.iterator()
-						while it!.hasNext()
-							fs!.setFieldValue(it!.next(),"")
-						wend
-						bc!.setFieldSelection(scope!, fs!)
-					else
-						throw errmes(-1),err()
-					fi
-				 fi			
-			else
-				if fieldsel! <> null()
-					ok=0
-					vec! = new BBjVector(java.util.Arrays.asList(fieldsel!.split(",")))
-					bc!.setFieldSelection(vec!,err=*next); ok=1
-					if !ok then
-						if pos("no match for method"=cvs(errmes(-1),8)) then
-							fs! = new DataRow()
-							it! = vec!.iterator()
-							while it!.hasNext()
-								fs!.setFieldValue(it!.next(),"")
-							wend
-							bc!.setFieldSelection(fs!)
-						else
-							throw errmes(-1),err()
-						fi
-					 fi
-				fi
-				if scope! <> null() then
-					bc!.setScope(str(scope!))
-				endif
-			fi
-
-            first% = 0
-            last% = 0
-            limitSearch = 0
-
-            if params! <> null() then
-                if params!.containsKey("_PAGE") or params!.containsKey("_PER_PAGE") then
-                    page = 1
-                    page = num(params!.get("_PAGE"),err=*next)
-                    if page < 1 then
-                        throw "Invalid value for _PAGE parameter: must be greater than 0",999
-                    endif
-                    perPage = num(params!.get("_PER_PAGE"),err=*next)
-                    if perPage < 1 then
-                        throw "Invalid value for _PER_PAGE parameter: must be greater than 0",999
-                    endif
-
-                    first% = (int(page)-1)*int(perPage)
-                    last% = first%+int(perPage)-1
-                    limitSearch = 1
-                endif
-
-                if params!.containsKey("_OFFSET") then
-                    offset = num(params!.get("_OFFSET"))
-                    if offset < 0 then
-                        throw "Invalid parameter for _OFFSET parameter: must be greater than or equals 0",999
-                    endif
-                    limit = 20
-                    if params!.containsKey("_LIMIT") then
-                        limit = num(params!.get("_LIMIT"))
-                    endif
-                    if limit < 1 then
-                        throw "Invalid parameter for _LIMIT parameter: must be greater than 0",999
-                    endif
-
-                    first% = int(offset)
-                    last% = first% + int(limit)-1
-                    limitSearch = 1
-                endif
-            endif
-
-            if len(sel$)>8 and sel$(1,8) = "_lookup/" then
+            endif 
+            
+            filter! = inputHandler!.getFilter()
+            
+            rem _lookup mechanism
+            if restBridgeCommands!.contains("_LOOKUP") then
                 rs! = new ResultSet()
+                
+                field! = restBridgeCommands!.getFieldAsString("_LOOKUP") 
+                if field! = "" then
+                    throw "Invalid lookup field value: Empty", 400
+                endif
+                
+                rs! = bc!.getLookupData(field!, filter!)
 
-                if filter!<>null() then
-                    rs!.add(filter!)
-                fi
-
-                field$=sel$(9)
-                System.out.println(field$)
-
-                rs! = bc!.retrieveLookup(field$,filter!)
-
-                response!.put("resultset",rs!)
-                response!.put("BC",bc$)
-                response!.put("single",0)
+                response!.put("resultset", rs!)
+                response!.put("BC", bcName!)
+                response!.put("single", 0)
 
                 goto send_response
             endif
+            
+            response!.put("single",0)
+            urlExtensionFilter! = inputHandler!.getURLExtensionFilter()
+            
+            rem TODO - Sort out the single field 
+                rem if the link extension matches the primary keys then single = 1
+ 
+            rem TODO - Sort out the linkfield field
+                rem when the filter 
+            
+            rem applying the merged filter (URL Extension fields + Params)
+            filter!.mergeRecord(urlExtensionFilter!, Boolean.TRUE)
+            bc!.setFilter(filter!)
 
+            rem applying the scope
+            scope! = inputHandler!.getScope()
+            bc!.setScope(scope!)
+
+            rem applying the field selection
+            fieldSelection! = inputHandler!.getFieldSelection()
+            bc!.setFieldSelection(fieldSelection!)
+            
+            first% = 0
+            last% = 0
+            limitSearch = 0
+            if restBridgeCommands!.contains("_PAGE") OR restBridgeCommands!.contains("_PER_PAGE") then
+                page = 1
+                page = restBridgeCommands!.getFieldAsNumber("_PAGE", err=*next)
+                if page < 1 then
+                    throw "Invalid value for _PAGE parameter: must be greater than 0", 400
+                endif
+
+                perPage = restBridgeCommands!.getFieldAsNumber("_PER_PAGE", err=*next)
+                if perPage < 1 then
+                    throw "Invalid value for _PER_PAGE parameter: must be greater than 0", 400
+                endif
+                
+                first% = (int(page)-1)*int(perPage)
+                last% = first%+int(perPage)-1
+                limitSearch = 1
+            endif
+            
+            if !limitSearch AND restBridgeCommands!.contains("_OFFSET") then
+                offset = restBridgeCommands!.getFieldAsNumber("_OFFSET", err=*next)
+                if offset < 0 then
+                    throw "Invalid parameter for _OFFSET parameter: must be greater than or equals 0", 400
+                endif
+                
+                limit = 20
+                if restBridgeCommands!.contains("_LIMIT") then
+                    limit = restBridgeCommands!.getFieldAsNumber("_LIMIT", err=*next)
+                endif
+                
+                if limit < 1 then
+                    throw "Invalid parameter for _LIMIT parameter: must be greater than 0", 400
+                endif
+
+                first% = int(offset)
+                last% = first% + int(limit)-1
+                limitSearch = 1
+            endif
+            
             if limitSearch then
-                rs! = bc!.retrieve(first%,last%)
+                rs! = bc!.retrieve(first%, last%)
             else
                 rs! = bc!.retrieve()
             endif
 
-
-            if params!.containsKey("_ATTACHMENT") then
+            if restBridgeCommands!.contains("_ATTACHMENT") then
                 if rs!.size() =1 then
                     rec! = rs!.getItem(0)
-                    attachfield$ = params!.get("_ATTACHMENT")
+                    attachfield$ = restBridgeCommands!.getFieldAsString("_ATTACHMENT")
 
                     rs! = new ResultSet()
                     dr! = new DataRow()
@@ -577,26 +586,24 @@ main_loop:
                     rs!.addItem(dr!)
 
                     response!.put("resultset",rs!)
-                    response!.put("BC",bc$)
+                    response!.put("BC",bcName!)
                     response!.put("single",1)
                     response!.put("file",filename$)
 
                     goto send_response
                 else
-                    throw "file / record not found",11
+                    throw "file / record not found", 404
                 endif
             endif
-
+            
             response!.put("resultset",rs!)
             response!.put("request",str(request!))
-            response!.put("BC",bc$)
-            response!.put("sel",sel$)
-            response!.put("primarykey",filterf$)
-        break
+            response!.put("BC",bcName!)
+            response!.put("sel",urlExtension!)
+            response!.put("primarykey",BCPrimaryKeyString!)
+            break
     swend
-
-
-
+    
     send_response:
         usecount=usecount+1
         usecount=usecount+1
@@ -627,14 +634,9 @@ main_loop:
 
         notrace:
 
-REM         if errormsg$(1,4)="java" then
-REM             errormsg$=errormsg$(pos(":"=errormsg$)+2)
-REM         endif
-
-
         error_out:
         if statuscode=0
-            statuscode=500
+            statuscode = err 
         fi
 
         response! = new HashMap()

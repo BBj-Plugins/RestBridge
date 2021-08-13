@@ -1,0 +1,380 @@
+use java.util.HashMap
+
+use com.basiscomponents.db.DataRow 
+use com.basiscomponents.db.ResultSet
+
+class public InputHandler
+    
+    rem the request's HTTP method  
+    field private String requestMethod!
+    
+    rem the request's body as string
+    field private String requestBody!
+    
+    rem the request's URI
+    field private String requestURI!
+    
+    rem the request's Parameters
+    field private HashMap requestParams!
+    
+    rem the request headers
+    field private HashMap requestHeaders!
+    
+    rem the requested BC's attribute record used for the filtering
+    field private DataRow attributesRecord!
+    
+    rem the allowed filter fields
+    field private DataRow allowedFilterFields!
+    
+    method public String getBCPrimaryFieldNameString()
+        it! = #attributesRecord!.getFieldNames().iterator()
+        while it!.hasNext()
+            f$ = it!.next()
+            if #attributesRecord!.getFieldAttribute(f$,"EDITABLE")="2" then
+                filterf$=filterf$+"/"+f$
+            fi
+        wend
+        
+        if filterf$ > "" then
+            filterf$ = filterf$(2)
+        endif
+        
+        methodret filterf$
+    methodend
+    
+    method public BBjVector getURLExtensionList()
+        declare BBjVector extensionList!
+        extensionList! = new BBjVector()
+        
+        uri$ = #requestURI!
+        if uri$ = "" then
+            methodret extensionList!
+        endif
+        
+        rem removing the leading /
+        uri$ = uri$(2)
+        
+        if pos("/"=uri$) = 0 then
+            methodret extensionList!
+        endif
+        
+        uriFilterString$ = uri$(pos("/"=uri$)+1)
+        extensionList!.addAll(java.util.Arrays.asList(new String(uriFilterString$).split("/",-1)))
+        
+        methodret extensionList!
+    methodend
+        
+    rem /**
+    rem  * The filter coming from the URL extension automatically mapped to the 
+    rem  * BC's primary keys
+    rem  */
+    method public DataRow getURLExtensionFilter()
+        declare DataRow filter!
+        filter! = new DataRow()
+        
+        extensionList! = #getURLExtensionList()
+        if extensionList!.isEmpty() then
+            methodret filter!
+        endif
+        
+        rem TODO - Remove the RestBridge special commands from the filter, like the _lookup and the _meta
+        
+        if #attributesRecord! = null() OR #attributesRecord!.isEmpty() then
+            methodret filter!
+        endif
+        
+        rem attributesRecord!.getFieldsHavingAttributeValue("EDITABLE", "2")
+        fieldNameList! = #attributesRecord!.getFieldNames()
+        for i=0 to fieldNameList!.size() -1
+            fieldName! = fieldNameList!.get(i)
+            
+            if fieldName!.startsWith("_") then
+                continue
+            endif
+            
+            if #attributesRecord!.getFieldAttribute(fieldName!, "EDITABLE") = "2" then
+                filter!.setFieldValue(fieldName!, extensionList!.get(i))
+            endif
+        next i    
+        
+        methodret filter!
+    methodend
+    
+    method public DataRow getFilter()
+        declare DataRow filter!
+        filter! = new DataRow()
+        
+        rem Adding all the fields from the parameter map 
+        if #requestParams! = null() OR #requestParams!.isEmpty() then
+            methodret filter!
+        endif
+        
+        rem TODO - Check the AttributesRecord
+        rem What to do if the AttributesRecord is not available ?
+        
+        allowedFilterFields! = #allowedFilterFields!
+        if #allowedFilterFields! = null() OR #allowedFilterFields!.isEmpty() then
+            allowedFilterFields! = #attributesRecord!
+        endif
+        
+        rem creating a second vector with the field names to upper case for comparison reasons
+        allowedFieldNames! = allowedFilterFields!.getFieldNames()
+        allowedFieldNamesUpperCase! = new BBjVector()
+        it! = allowedFieldNames!.iterator()
+        while it!.hasNext()
+            allowedFieldNamesUpperCase!.addItem(cvs(str(it!.next()),4))
+        wend
+        
+        it! = #requestParams!.entrySet().iterator()
+        while it!.hasNext()
+            entry! = it!.next()
+            fieldName$ = entry!.getKey()
+            fieldValue$ = entry!.getValue()
+
+            if (fieldName$ = "_FULLTEXT" OR fieldName$ = "_SEARCH")
+                filter!.setFieldValue("%SEARCH", fieldValue$)
+                continue
+            endif
+            
+            rem ignoring the special fields starting with underscore or the percentage sign
+            if fieldName$(1,1) = "_" OR fieldName$(1,1) = "%" then
+                continue
+            endif
+            
+            rem ignoring empty values in the filter
+            if fieldValue$ = "" then
+                continue
+            endif
+            
+            rem ignoring fields not beeing part of the allowed filter fields
+            if !allowedFieldNamesUpperCase!.contains(fieldName$) AND #getBCName() <> "DataSourceData" then
+                continue
+            endif
+            
+            rem todo: all BCs should accept filters with fields that are not part of the attributes record
+            rem and still honor all other fields in the filter correctly, instead of giving no result
+            if (allowedFieldNamesUpperCase!.contains(fieldName$)) then
+                fieldName! = allowedFieldNames!.getItem(allowedFieldNamesUpperCase!.indexOf(fieldName$))
+            endif    
+
+            rem program variable approach for filter fields
+            rem if the value of the current field matches the variable pattern [[test]]
+            rem then the actual value of the filter field will be the value of the [[test]] parameter 
+            if len(fieldValue$) > 4 AND fieldValue$(1,2)="[[" then
+                newValue! = #requestParams!.get(fieldValue$, err=*next)
+                filter!.setFieldValue(fieldName!, str(newValue!))
+                continue
+            endif  
+            
+            rem Adding the field into the filter row
+            filter!.setFieldValue(fieldName!, fieldValue$)
+        wend
+        
+        methodret filter!
+    methodend
+    
+    method public DataRow getFieldSelection()
+        declare DataRow row!
+        row! = #getRestBridgeCommands()
+        
+        fieldSel! = new DataRow()
+        if row!.contains("_FIELDSEL") then
+            fieldSel! = cast(DataRow, row!.getField("_FIELDSEL").getObject())
+        endif
+        
+        methodret fieldSel!
+    methodend
+    
+    method public String getMethod()
+        methodret #requestMethod!
+    methodend
+    
+    rem /**
+    rem  * Returns the name of the BC to invoke. 
+    rem  * 
+    rem  * @return the name of the BC to invoke.
+    rem  */
+    method public String getBCName()
+        uri$ = #requestURI!
+        if uri$ = "" then
+            methodret ""
+        endif
+        
+        uri$=uri$(2)
+        if pos("/"=uri$)>0
+            methodret uri$(1,pos("/"=uri$)-1)
+        endif
+
+        methodret uri$
+    methodend
+    
+    method public void setAttributesRecord(DataRow attributesRecord!)
+        #attributesRecord! = attributesRecord!
+    methodend
+    
+    rem /**
+    rem  * Returns a com.basiscomponents.db.ResultSet for the given request body String
+    rem  */
+    method public ResultSet getBody() 
+        if #requestBody! = null() OR #requestBody!.isEmpty() then
+            methodret new ResultSet()
+        endif
+     
+        rem TODO - Determine the ResultSet and
+        rem don't just assume the body is in the JSON format
+     
+        if #requestBody! > "" and #requestBody!.substring(0,1) <> "[" then
+            #requestBody! = "[" + #requestBody! + "]"
+        endif 
+
+        rem create an result set from the data 
+        rs! = ResultSet.fromJson(#requestBody!, err=*next)
+        
+        if rs! = null() then
+            rs! = new ResultSet()
+        endif
+
+        methodret rs!
+    methodend
+    
+    rem /**
+    rem  * Returns the scope to apply to the requested BC.
+    rem  *
+    rem  * @return the URL requested scope
+    rem  */
+    method public String getScope()
+        declare DataRow row!
+        row! = #getRestBridgeCommands()
+        
+        scope! = ""
+        if row!.contains("_SCOPE") then
+            scope! = row!.getFieldAsString("_SCOPE")
+        endif
+        
+        methodret scope! 
+    methodend
+    
+    rem /**
+    rem  * Returns a DataRow with the RestBridge specific commands
+    rem  * 
+    rem  * The return DataRow can have the following values
+    rem  * <ul>
+    rem  *     <li>_SCOPE</li>
+    rem  *     <li>_FIELDSEL</li>
+    rem  *     <li>_LOOKUP</li>
+    rem  *     <li>_META</li>
+    rem  *     <li>_OFFSET</li>
+    rem  *     <li>_LIMIT</li>
+    rem  *     <li>_PAGE</li>
+    rem  *     <li>_PER_PAGE</li>
+    rem  *     <li>_ATTACHMENT</li>
+    rem  * </ul>
+    rem  * 
+    rem  * @return the DataRow with the RestBridge commands
+    rem  */
+    method public DataRow getRestBridgeCommands()
+        declare DataRow row!
+        row! = new DataRow()
+        
+        rem The Scope to set on the BC level
+        scope! = #requestParams!.get("_SCOPE", err=*next)
+        if scope! = null() then
+            scope! = ""
+        endif
+        row!.setFieldValue("_SCOPE", scope!)
+    
+        rem the field selection to be set on the BC level
+        fieldSelection! = new DataRow()
+        fieldSel! = #requestParams!.get("_FIELDSEL",err=*next)
+        if fieldSel! <> null() then
+            it! = java.util.Arrays.asList(fieldSel!.split(",")).iterator()
+            while it!.hasNext()
+                fieldSelection!.setFieldValue(it!.next(), "")
+            wend
+        endif
+        row!.setFieldValue("_FIELDSEL", fieldSelection!)
+        
+        rem Pagging 
+        if #requestParams!.containsKey("_PAGE")
+            row!.setFieldValue("_PAGE", num(#requestParams!.get("_PAGE"), err=*next))
+        endif
+        
+        if #requestParams!.containsKey("_PER_PAGE") then
+            row!.setFieldValue("_PER_PAGE", num(#requestParams!.get("_PER_PAGE"), err=*next))
+        endif
+        
+        rem Offset
+        if #requestParams!.containsKey("_OFFSET") then
+            row!.setFieldValue("_OFFSET", num(#requestParams!.get("_OFFSET"), err=*next))
+        endif
+        
+        if #requestParams!.containsKey("_LIMIT") then
+            row!.setFieldValue("_LIMIT", num(#requestParams!.get("_LIMIT"), err=*next))
+        endif
+        
+        rem _ATTACHMENT
+        if #requestParams!.containsKey("_ATTACHMENT") then
+            row!.setFieldValue("_ATTACHMENT", #requestParams!.get("_ATTACHMENT"))
+        endif
+        
+        rem _META and _LOOKUP from the URL Extension
+        uri$ = #requestURI!
+        if uri$ <> "" then
+            rem removing the leading /
+            uri$ = uri$(2)
+
+            rem check that the uri still has other entries
+            if pos("/"=uri$) <> 0 then
+                uriFilterString$ = uri$(pos("/"=uri$)+1)
+                extensions! = java.util.Arrays.asList(new String(uriFilterString$).split("/",-1))
+                
+                it! = extensions!.iterator()
+                while it!.hasNext()
+                    extension! = it!.next()
+                    
+                    if cvs(extension!,4) = "_META" then
+                        row!.setFieldValue("_META", "")
+                        break
+                    endif
+                    
+                    if cvs(extension!,4) = "_LOOKUP" then
+                        lookupField! = ""
+                        if it!.hasNext() then
+                            lookupField! = it!.next()
+                        endif
+                        
+                        row!.setFieldValue("_LOOKUP", lookupField!)
+                        break
+                    endif
+                wend
+            endif
+        endif
+        
+        methodret row! 
+    methodend
+       
+    method public void setRequestBody(String body!)
+        #requestBody! = body!
+    methodend
+    
+    method public void setRequestMethod(String method!)
+        #requestMethod! = method!
+    methodend
+    
+    method public void setRequestURI(String uri!)
+        #requestURI! = uri!
+    methodend
+    
+    method public void setRequestParams(HashMap params!)
+        #requestParams! = params!
+    methodend
+    
+    method public void setRequestHeaders(HashMap headers!)
+        #requestHeaders! = headers!
+    methodend
+    
+    method public void setAllowedFilterFields(DataRow allowedFilterFields!)
+         #allowedFilterFields! = allowedFilterFields!
+    methodend
+
+classend
