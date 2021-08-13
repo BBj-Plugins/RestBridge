@@ -1,0 +1,281 @@
+use ::RestBridge/test/RestBridgeTestConfigurator.bbj::RestBridgeTestConfigurator
+
+use ::RestBridge/test/example-bcs/ChileCustomerBC.bbj::ChileCustomerBC
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+use org.apache.http.HttpResponse
+use org.apache.http.client.HttpClient
+use org.apache.http.client.utils.URIBuilder
+use org.apache.http.client.methods.HttpPut
+
+use org.apache.http.client.entity.EntityBuilder
+use org.apache.http.HttpEntity
+
+class public TestPUT
+
+    field private RestBridgeTestConfigurator configurator!
+    
+    field private ChileCustomerBC chileCustomerBC!
+    
+    field private HttpClient client!
+    field private URIBuilder uriBuilder!
+    
+    field private DataRow insertRow!
+
+    rem @BeforeClass
+    method public void classSetUp()
+        rem Setup the test RestBridge
+        #configurator! = new RestBridgeTestConfigurator()
+        #configurator!.setupTestRestBridge()
+    methodend
+    
+    rem @AfterClass
+    method public void classTearDown()
+        rem Remove the test RestBridge
+        #configurator!.removeTestRestBridge()
+    methodend
+    
+    rem @Before
+    method public void setup()
+        rem Instantiate the Test BC
+        #chileCustomerBC! = new ChileCustomerBC()
+
+        #client! = #configurator!.getHttpClient()
+        #uriBuilder! = #configurator!.getURIBuilder()
+        
+        #insertRow! = new DataRow()
+        #insertRow!.setFieldValue("CUST_NUM", "001234")
+        #insertRow!.setFieldValue("FIRST_NAME", "John")
+        #insertRow!.setFieldValue("LAST_NAME", "Tester")
+    methodend
+    
+    rem @After
+    method public void cleanup()
+        rem Clean up the created record 
+        #chileCustomerBC!.remove(#insertRow!, err=*next)
+    methodend
+    
+    rem @Test
+    method public void testPlain()
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/"  + #insertRow!.getFieldAsString("CUST_NUM"))
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        entity! = EntityBuilder.create().setText(#insertRow!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 201)
+        
+        resultSet! = #chileCustomerBC!.retrieve()
+        
+        Assert.Equals(initialsize +1, resultSet!.size())
+    methodend
+    
+    rem @Test
+    method public void testWithExitingKey()
+        rem adding the row before the actual testing
+        #chileCustomerBC!.write(#insertRow!)       
+        
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/" + #insertRow!.getFieldAsString("CUST_NUM"))
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        entity! = EntityBuilder.create().setText(#insertRow!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully without throwing an error
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        resultSet! = #chileCustomerBC!.retrieve()
+        
+        Assert.Equals(initialSize, resultSet!.size())
+    methodend
+    
+    rem @Test
+    method public void testWithoutBody()                 
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/"  + #insertRow!.getFieldAsString("CUST_NUM"))
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request returned an error 400 --> BAD REQUEST
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testWithoutKeyInURL()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+                
+        entity! = EntityBuilder.create().setText(#insertRow!.toJson()).build()
+        request!.setEntity(entity!)
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request returned an error 400 --> BAD REQUEST
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testWithoutPrimaryKeyInBody()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+                
+        #insertRow!.removeField("CUST_NUM")
+                
+        entity! = EntityBuilder.create().setText(#insertRow!.toJson()).build()
+        request!.setEntity(entity!)
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request returned an error 400 --> BAD REQUEST
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testIgnoreKeys()
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+         
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/ignorekeys")
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        entity! = EntityBuilder.create().setText(#insertRow!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 201)
+        
+        resultSet! = #chileCustomerBC!.retrieve()
+        
+        Assert.Equals(initialsize +1, resultSet!.size())
+    methodend
+    
+     rem @Test
+    method public void testIgnoreKeysWithExistingKey()
+        rem adding the row before the actual testing
+        #chileCustomerBC!.write(#insertRow!)       
+    
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+         
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/ignorekeys")
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        entity! = EntityBuilder.create().setText(#insertRow!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        resultSet! = #chileCustomerBC!.retrieve()
+        
+        Assert.Equals(initialsize, resultSet!.size())
+    methodend
+    
+    rem @Test
+    method public void testIgnoreKeysWithoutBody()
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+         
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/ignorekeys")
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request returned an error 400 --> BAD REQUEST
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testIgnoreKeysWithoutPrimaryKeyInBody()
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+         
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/ignorekeys")
+        
+        declare HttpPut request!
+        request! = #configurator!.getRequestPUT(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        rem removing the primary key
+        #insertRow!.removeField("CUST_NUM")
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request returned an error 400 --> BAD REQUEST
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+classend

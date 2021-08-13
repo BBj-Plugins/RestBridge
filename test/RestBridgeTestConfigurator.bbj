@@ -1,0 +1,161 @@
+use org.apache.http.client.HttpClient
+use org.apache.http.impl.client.HttpClientBuilder
+
+use org.apache.http.client.methods.HttpGet
+use org.apache.http.client.methods.HttpPut
+use org.apache.http.client.methods.HttpPost
+use org.apache.http.client.methods.HttpDelete
+
+use org.apache.http.auth.UsernamePasswordCredentials
+use org.apache.http.impl.auth.BasicScheme
+use org.apache.http.Header
+use org.apache.http.HttpRequest
+
+use java.io.ByteArrayOutputStream
+
+use java.util.zip.GZIPOutputStream
+
+use org.apache.http.HttpResponse
+
+use java.io.File
+use java.io.StringWriter
+
+use org.apache.http.client.utils.URIBuilder
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+
+
+class public RestBridgeTestConfigurator
+
+    field private String username! = "admin"
+    field private String password! = "admin123"
+    
+    field private String mapping!
+    
+    method public RestBridgeTestConfigurator()
+        
+    methodend
+
+    method public void setupTestRestBridge()
+        admin! = BBJAPI().getAdmin(#username!, #password!)
+        context! = admin!.getJettyServerConfig().getRootContextInfo()
+        
+        path! = bbjapi().getFileSystem().resolvePath("RestBridge/RestBridge.bbj")
+       
+        directory! = new File(path!).getParent()
+        bcDir! = new File(directory!, "test/example-bcs/")
+        
+        #mapping! = "/rest" + str(System.currentTimeMillis()) + "/"
+        
+        config! = context!.addBBjspServlet("RestBridge", #mapping! + "*", path!)
+        config!.addParam("REST_TIMEOUT", "100")
+        config!.addParam("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
+        config!.addParam("REST_WD", bcDir!.getAbsolutePath())
+        config!.addParam("REST_PGM_SUFFIX", ".bbj")
+        config!.addParam("USE_GET_ALLOWED_FILTER", "true")
+        config!.addParam("REST_ADAPTERPGM", new File(directory!, "RestBCAdapter.bbj").getAbsolutePath())
+        admin!.getJettyServerConfig().saveConfig()
+    methodend
+    
+    method public void removeTestRestBridge()
+        admin! = BBJAPI().getAdmin(#username!, #password!)
+        context! = admin!.getJettyServerConfig().getRootContextInfo()
+        context!.removeBBjspServlet(#mapping! + "*")
+        admin!.getJettyServerConfig().saveConfig()
+    methodend
+    
+     method public HttpClient getHttpClient()
+        declare HttpClientBuilder builder!
+        builder! = HttpClientBuilder.create()
+        builder!.useSystemProperties()
+        
+        methodret builder!.build()
+    methodend
+    
+    method public String getResultAsString(HttpResponse response!)
+        declare byte[] bytes!
+        declare ByteArrayOutputStream outputStream!
+        
+        outputStream! = new ByteArrayOutputStream()
+        bytes! = new byte[1024]
+        inputStream! = response!.getEntity().getContent()
+        while 1
+            length = inputStream!.read(bytes!, err=*break)
+            if length = -1 then
+                break
+            endif
+            
+            outputStream!.write(bytes!, 0, length)
+        wend
+        
+        methodret outputStream!.toString()
+    methodend
+    
+    method public URIBuilder getURIBuilder()
+        declare URIBuilder uriBuilder!
+        uriBuilder! = new URIBuilder()
+        uriBuilder!.setScheme("http").setHost("localhost").setPort(8888)
+        
+        methodret uriBuilder!
+    methodend
+    
+    method private Header getHeader(HttpRequest request!)
+        declare UsernamePasswordCredentials credentials!
+        credentials! = new UsernamePasswordCredentials("admin", "admin123")
+        
+        declare BasicScheme scheme!
+        scheme! =  new BasicScheme()
+        methodret scheme!.authenticate(credentials!, request!)
+    methodend
+    
+    method public HttpPost getRequestPOST(URIBuilder builder!)
+        declare HttpPost request!
+        request! = new HttpPost(builder!.build())
+       
+        rem adding the credentials here
+        request!.setHeader(#getHeader(request!))
+        
+        methodret request!
+    methodend
+    
+    method public HttpPut getRequestPUT(URIBuilder builder!)
+        declare HttpPut request!
+        request! = new HttpPut(builder!.build())
+       
+        rem adding the credentials here
+        request!.setHeader(#getHeader(request!))
+        
+        methodret request!
+    methodend
+    
+    method public HttpDelete getRequestDELETE(URIBuilder builder!)
+        declare HttpDelete request!
+        request! = new HttpDelete(builder!.build())
+       
+        rem adding the credentials here
+        request!.setHeader(#getHeader(request!))
+        
+        methodret request!
+    methodend
+    
+    method public HttpGet getRequest(URIBuilder builder!)
+        declare HttpGet request!
+        request! = new HttpGet(builder!.build())
+        
+        declare UsernamePasswordCredentials credentials!
+        credentials! = new UsernamePasswordCredentials("admin", "admin123")
+        
+        declare BasicScheme scheme!
+        scheme! =  new BasicScheme()
+        header! = scheme!.authenticate(credentials!, request!)
+        request!.setHeader(header!)
+        
+        methodret request!
+    methodend
+    
+    method public String getRestBridgeMapping()
+        methodret #mapping!
+    methodend
+
+classend

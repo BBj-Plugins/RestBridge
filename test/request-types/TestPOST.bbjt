@@ -1,0 +1,664 @@
+use ::RestBridge/test/RestBridgeTestConfigurator.bbj::RestBridgeTestConfigurator
+
+use ::RestBridge/test/example-bcs/ChileCustomerBC.bbj::ChileCustomerBC
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+use org.apache.http.HttpResponse
+use org.apache.http.client.HttpClient
+use org.apache.http.client.utils.URIBuilder
+use org.apache.http.client.methods.HttpPost
+
+use org.apache.http.client.entity.EntityBuilder
+use org.apache.http.HttpEntity
+
+class public TestPOST
+
+    field private RestBridgeTestConfigurator configurator!
+    
+    field private ChileCustomerBC chileCustomerBC!
+    
+    field private HttpClient client!
+    field private URIBuilder uriBuilder!
+    
+    field private DataRow insertRow!
+    field private ResultSet insertRS!
+
+    rem @BeforeClass
+    method public void classSetUp()
+        rem Setup the test RestBridge
+        #configurator! = new RestBridgeTestConfigurator()
+        #configurator!.setupTestRestBridge()
+    methodend
+    
+    rem @AfterClass
+    method public void classTearDown()
+        rem Remove the test RestBridge
+        #configurator!.removeTestRestBridge()
+    methodend
+    
+    rem @Before
+    method public void setup()
+        rem Instantiate the Test BC
+        #chileCustomerBC! = new ChileCustomerBC()
+
+        #client! = #configurator!.getHttpClient()
+        #uriBuilder! = #configurator!.getURIBuilder()
+        
+        #insertRow! = new DataRow()
+        #insertRow!.setFieldValue("CUST_NUM", "001234")
+        #insertRow!.setFieldValue("FIRST_NAME", "John")
+        #insertRow!.setFieldValue("LAST_NAME", "Tester")
+        
+        #insertRS! = new ResultSet()
+        #insertRS!.add(#insertRow!)
+    methodend
+    
+    rem @After
+    method public void cleanup()
+        rem Clean up the created record 
+        #chileCustomerBC!.remove(#insertRow!, err=*next)
+    methodend
+   
+    rem @Test
+    method public void testCreateRecordDataRowBody()
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+                
+        entity! = EntityBuilder.create().setText(#insertRow!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 201)
+
+        rem checking that the record was actually created by comparing it to the #insertRow!
+        resultSet! = #chileCustomerBC!.retrieve()
+        Assert.Equals(initialsize +1, resultSet!.size())
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), 1)
+        
+        declare DataRow actualRow!
+        actualRow! = actualRS!.get(0) 
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRow!.toJson(0), #insertRow!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testUpdateRecordDataRowBody()
+        rem Adding the record first
+        #chileCustomerBC!.write(#insertRow!)
+        
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        entity! = EntityBuilder.create().setText(#insertRow!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        rem checking that the record was actually created by comparing it to the #insertRow!
+        resultSet! = #chileCustomerBC!.retrieve()
+        Assert.Equals(initialsize, resultSet!.size())
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), 1)
+        
+        declare DataRow actualRow!
+        actualRow! = actualRS!.get(0) 
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRow!.toJson(0), #insertRow!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testCreateRecordResultSetBody()
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        entity! = EntityBuilder.create().setText(#insertRS!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 201)
+        resultSet! = #chileCustomerBC!.retrieve()
+        
+        rem checking that the record was actually created by comparing it to the #insertRow!
+        resultSet! = #chileCustomerBC!.retrieve()
+        Assert.Equals(initialsize +1, resultSet!.size())
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), 1)
+        
+        declare DataRow actualRow!
+        actualRow! = actualRS!.get(0) 
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRow!.toJson(0), #insertRow!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testUpdateRecordResultSetBody()
+        rem Adding the record first
+        #chileCustomerBC!.write(#insertRow!)
+    
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        entity! = EntityBuilder.create().setText(#insertRS!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        rem checking that the record was actually created by comparing it to the #insertRow!
+        resultSet! = #chileCustomerBC!.retrieve()
+        Assert.Equals(initialsize, resultSet!.size())
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), 1)
+        
+        declare DataRow actualRow!
+        actualRow! = actualRS!.get(0) 
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRow!.toJson(0), #insertRow!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testCreateWithoutPrimaryKey()
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        row! = #insertRow!.clone()
+        row!.removeField("CUST_NUM")
+        
+        entity! = EntityBuilder.create().setText(row!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 409)
+    methodend
+    
+    
+    rem @Test
+    method public void testUpdateWithoutPrimaryKey()
+        rem Adding the record first
+        #chileCustomerBC!.write(#insertRow!)
+    
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        row! = #insertRow!.clone()
+        row!.removeField("CUST_NUM")
+        
+        entity! = EntityBuilder.create().setText(row!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 409)
+    methodend
+   
+    rem @Test
+    method public void testCreateWithPrimaryKeyInURL()
+        declare DataRow filter!
+        filter! = new DataRow()
+        filter!.setFieldValue("CUST_NUM", #insertRow!.getFieldAsString("CUST_NUM"))
+        
+        #chileCustomerBC!.setFilter(filter!)
+        rs! = #chileCustomerBC!.retrieve()
+
+        Assert.Equals(rs!.isEmpty(), Boolean.TRUE)
+    
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/" + #insertRow!.getFieldAsString("CUST_NUM"))
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        row! = #insertRow!.clone()
+        row!.removeField("CUST_NUM")
+        
+        entity! = EntityBuilder.create().setText(row!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+                
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 201)
+        
+        rem checking that the record was actually created by comparing it to the #insertRow!
+        resultSet! = #chileCustomerBC!.retrieve()
+        Assert.Equals(initialSize +1, resultSet!.size())
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), 1)
+        
+        declare DataRow actualRow!
+        actualRow! = actualRS!.get(0) 
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRow!.equals(#insertRow!), Boolean.TRUE)
+    methodend
+    
+    method public void testUpdateWithPrimaryKeyInURL()
+        rem Adding the record first
+        #chileCustomerBC!.write(#insertRow!)
+    
+        declare ResultSet resultSet!
+        resultSet! = #chileCustomerBC!.retrieve()
+        initialSize = resultSet!.size()
+                 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/" + #insertRow!.getFieldAsString("CUST_NUM"))
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        row! = #insertRow!.clone()
+        row!.removeField("CUST_NUM")
+        
+        entity! = EntityBuilder.create().setText(row!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        rem checking that the record was actually created by comparing it to the #insertRow!
+        resultSet! = #chileCustomerBC!.retrieve()
+        Assert.Equals(initialsize, resultSet!.size())
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), 1)
+        
+        declare DataRow actualRow!
+        actualRow! = actualRS!.get(0) 
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRow!.toJson(0), #insertRow!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testEmptyDataRowBody()   
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        row! = new DataRow()
+        entity! = EntityBuilder.create().setText(row!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testEmptyResultSetBody()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        rs! = new ResultSet()
+        entity! = EntityBuilder.create().setText(rs!.toJson()).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testNoBody()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testExecuteBCMethod()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        request!.setHeader("ExecuteBCMethod", "customMethod")
+        
+        rs! = new ResultSet()
+        entity! = EntityBuilder.create().setText(rs!.toJson()).build()
+        request!.setEntity(entity!)
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 204)
+        
+        wasExecuted = BBjAPI().getGlobalNamespace().getValue("customMethod", err=*next)
+        BBjAPI().getGlobalNamespace().removeValue("customMethod", err=*next)
+        
+        if !wasExecuted then
+            Assert.Fail("The customMethod was not executed")
+        endif
+    methodend
+    
+    rem @Test
+    method public void testExecuteBCMethodWithoutBody()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        request!.setHeader("ExecuteBCMethod", "customMethod")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 204)
+        
+        wasExecuted = BBjAPI().getGlobalNamespace().getValue("customMethod", err=*next)
+        BBjAPI().getGlobalNamespace().removeValue("customMethod", err=*next)
+        
+        if !wasExecuted then
+            Assert.Fail("The customMethod was not executed")
+        endif
+    methodend
+    
+    rem @Test
+    method public void testExecuteBCMethodWithInvalidMethodName()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        request!.setHeader("ExecuteBCMethod", "nonExistingMethod")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testExecuteBCMethodWithEmptyMethodName()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        request!.setHeader("ExecuteBCMethod", "")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testExecuteBCMethodWithParameters()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        request!.setHeader("ExecuteBCMethod", "customMethodWithParameter")
+        
+        rs! = new ResultSet()
+        row! = new DataRow()
+        row!.setFieldValue("param", "123456")
+        rs!.add(row!)
+        
+        entity! = EntityBuilder.create().setText(rs!.toJson()).build()
+        request!.setEntity(entity!)
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 204)
+        
+        wasExecuted = BBjAPI().getGlobalNamespace().getKeys().contains("customMethodWithParameter", err=*next)
+        param! = BBjAPI().getGlobalNamespace().getValue("customMethodWithParameter", err=*next)
+        BBjAPI().getGlobalNamespace().removeValue("customMethodWithParameter", err=*next)
+        
+        if !wasExecuted then
+            Assert.Fail("The customMethod was not executed")
+        endif
+        
+        if param! <> "123456" then
+            Assert.Fail("The custom method was executed by the parameter was not processed correctly")
+        endif
+    methodend
+    
+    rem @Test
+    method public void testExecuteBCMethodWithReturnValue()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        request!.setHeader("ExecuteBCMethod", "customMethodWithReturnValue")
+        request!.setHeader("BCReturnVarName", "customFieldName")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        wasExecuted = BBjAPI().getGlobalNamespace().getValue("customMethodWithReturnValue", err=*next)
+        BBjAPI().getGlobalNamespace().removeValue("customMethodWithReturnValue", err=*next)
+        
+        if !wasExecuted then
+            Assert.Fail("The customMethod was not executed")
+        endif
+        
+        declare ResultSet responseRS!
+        responseRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(responseRS!)
+        Assert.Equals(responseRS!.size(), 1)
+        
+        declare DataRow responseRow!
+        responseRow! = responseRS!.get(0) 
+        
+        Assert.Equals(responseRow!.contains("customFieldName"), Boolean.TRUE)
+        Assert.Equals(responseRow!.getFieldAsString("customFieldName"), "customMethodWithReturnValue") 
+    methodend
+    
+    rem @Test
+    method public void testExecuteBCMethodWithParametersAndReturnValue()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json")
+        request!.setHeader("ExecuteBCMethod", "customMethodParametersAndReturnValue")
+        request!.setHeader("BCReturnVarName", "MyReturnValue")
+        
+        rs! = new ResultSet()
+        row! = new DataRow()
+        row!.setFieldValue("param1", 99)
+        row!.setFieldValue("param2", "123456")
+        rs!.add(row!)
+        
+        entity! = EntityBuilder.create().setText(rs!.toJson()).build()
+        request!.setEntity(entity!)
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        ns! = BBjAPI().getGlobalNamespace()
+        
+        wasExecuted = ns!.getValue("customMethodParametersAndReturnValue", err=*next)
+        param1 = ns!.getValue("customMethodParametersAndReturnValueParam1", err=*next)
+        param2! = ns!.getValue("customMethodParametersAndReturnValueParam2", err=*next)
+        
+        ns!.removeValue("customMethodWithParameter", err=*next)
+        ns!.removeValue("customMethodParametersAndReturnValueParam1", err=*next)
+        ns!.removeValue("customMethodParametersAndReturnValueParam2", err=*next)
+        
+        if !wasExecuted then
+            Assert.Fail("The customMethod was not executed")
+        endif
+        
+        if param1 <> 99 then
+            Assert.Fail("The custom method was executed by the parameter was not processed correctly")
+        endif
+        
+        if param2! <> "123456" then
+            Assert.Fail("The custom method was executed by the second parameter was not processed correctly")
+        endif
+        
+        declare ResultSet responseRS!
+        responseRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(responseRS!)
+        Assert.Equals(responseRS!.size(), 1)
+        
+        declare DataRow responseRow!
+        responseRow! = responseRS!.get(0) 
+        
+        Assert.Equals(responseRow!.contains("MyReturnValue"), Boolean.TRUE)
+        Assert.Equals(responseRow!.getFieldAsString("MyReturnValue"), "customMethodParametersAndReturnValue") 
+    methodend
+    
+classend

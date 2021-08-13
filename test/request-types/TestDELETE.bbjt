@@ -1,0 +1,77 @@
+use ::RestBridge/test/RestBridgeTestConfigurator.bbj::RestBridgeTestConfigurator
+
+use ::RestBridge/test/example-bcs/ChileCustomerBC.bbj::ChileCustomerBC
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+use org.apache.http.HttpResponse
+use org.apache.http.client.HttpClient
+use org.apache.http.client.utils.URIBuilder
+use org.apache.http.client.methods.HttpDelete
+
+class public TestDELETE
+
+    field private RestBridgeTestConfigurator configurator!
+    
+    field private ChileCustomerBC chileCustomerBC!
+    
+    field private HttpClient client!
+    field private URIBuilder uriBuilder!
+
+    rem @BeforeClass
+    method public void classSetUp()
+        rem Setup the test RestBridge
+        #configurator! = new RestBridgeTestConfigurator()
+        #configurator!.setupTestRestBridge()
+    methodend
+    
+    rem @AfterClass
+    method public void classTearDown()
+        rem Remove the test RestBridge
+        #configurator!.removeTestRestBridge()
+    methodend
+    
+    rem @Before
+    method public void setup()
+        rem Instantiate the Test BC
+        #chileCustomerBC! = new ChileCustomerBC()
+
+        #client! = #configurator!.getHttpClient()
+        #uriBuilder! = #configurator!.getURIBuilder()
+    methodend
+    
+    rem @Test
+    method public void testPlain()
+        declare DataRow row!
+        row! = new DataRow()
+        row!.setFieldValue("CUST_NUM","001234")
+        row!.setFieldValue("FIRST_NAME","Tester")
+        row!.setFieldValue("LAST_NAME","Mc. Test face")
+    
+        #chileCustomerBC!.write(row!)
+        
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/001234")
+        
+        declare HttpDelete request!
+        request! = #configurator!.getRequestDELETE(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 204)
+    methodend
+    
+    rem @Test
+    method public void testIgnoreKeys()
+    methodend
+    
+classend

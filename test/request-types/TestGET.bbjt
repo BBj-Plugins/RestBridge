@@ -1,0 +1,570 @@
+use ::RestBridge/test/RestBridgeTestConfigurator.bbj::RestBridgeTestConfigurator
+
+use ::RestBridge/test/example-bcs/ChileCustomerBC.bbj::ChileCustomerBC
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+use org.apache.http.HttpResponse
+use org.apache.http.client.HttpClient
+use org.apache.http.client.utils.URIBuilder
+use org.apache.http.client.methods.HttpGet
+
+use ::RestBridge/test/example-bcs/ChileCountryBC.bbj::ChileCountryBC
+
+class public TestGET
+
+    field private RestBridgeTestConfigurator configurator!
+    
+    field private ChileCustomerBC chileCustomerBC!
+    
+    field private HttpClient client!
+    field private URIBuilder uriBuilder!
+
+    rem @BeforeClass
+    method public void classSetUp()
+        rem Setup the test RestBridge
+        #configurator! = new RestBridgeTestConfigurator()
+        #configurator!.setupTestRestBridge()
+    methodend
+    
+    rem @AfterClass
+    method public void classTearDown()
+        rem Remove the test RestBridge
+        #configurator!.removeTestRestBridge()
+    methodend
+    
+    rem @Before
+    method public void setup()
+        rem Instantiate the Test BC
+        #chileCustomerBC! = new ChileCustomerBC()
+
+        #client! = #configurator!.getHttpClient()
+        #uriBuilder! = #configurator!.getURIBuilder()
+    methodend
+
+    rem @Test
+    method public void testPlain()
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testMissingBC()         
+          rem uriBuilder!.addParameter(arg0,arg1)
+          #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "InvalidBCName")
+                
+          declare HttpGet request!
+          request! = #configurator!.getRequest(#uriBuilder!)
+          request!.setHeader("accept", "application/json")
+          
+          declare HttpResponse response!
+          response! = #client!.execute(request!)
+          
+          rem verify that the request was executed successfully
+          Assert.Equals(response!.getStatusLine().getStatusCode(), 404)
+    methodend
+    
+    rem @Test
+    method public void testFieldSelection()
+        declare BBjVector fieldSelection!
+        fieldSelection! = new BBjVector()
+        fieldSelection!.add("CUST_NUM")
+        fieldSelection!.add("FIRST_NAME")
+        fieldSelection!.add("LAST_NAME")
+        fieldSelection!.add("CITY")
+        fieldSelection!.add("STATE")
+        fieldSelection!.add("COUNTRY")
+        #chileCustomerBC!.setFieldSelection(fieldSelection!)
+        
+        fieldSelectionString$ = ""
+        for i=0 to fieldSelection!.size() -1
+            fieldSelectionString$ = fieldSelectionString$ + "," + fieldSelection!.get(i)
+        next i
+        fieldSelectionString$ = fieldSelectionString$(2)
+    
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_FIELDSEL", fieldSelectionString$)
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testMeta()
+        declare DataRow expectedDR!
+        expectedDR! = #chileCustomerBC!.getAttributesRecord()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/_meta")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+
+        Assert.Equals(actualRS!.size(), 1)
+        
+        declare DataRow actualRow!
+        actualRow! = actualRS!.get(0) 
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRow!.toJson(0), expectedDR!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testFilter()
+        declare DataRow filter!
+        filter! = new DataRow()
+        filter!.setFieldValue("CUST_NUM", "000001")
+    
+        #chileCustomerBC!.setFilter(filter!)
+        
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.setParameter("CUST_NUM", filter!.getFieldAsString("CUST_NUM"))
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend   
+    
+    rem @Test
+    method public void testURLExtensionFilter()
+        declare DataRow filter!
+        filter! = new DataRow()
+        filter!.setFieldValue("CUST_NUM", "000001")
+    
+        #chileCustomerBC!.setFilter(filter!)
+        
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/" + filter!.getFieldAsString("CUST_NUM"))
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend 
+    
+    rem @Test
+    rem [[]] parameters
+    method public void testParameterVariables()
+        declare DataRow filter!
+        filter! = new DataRow()
+        filter!.setFieldValue("CUST_NUM", "000002")
+    
+        #chileCustomerBC!.setFilter(filter!)
+        
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.setParameter("CUST_NUM", "[[ID]]")
+        #uriBuilder!.setParameter("[[ID]]", "000002")
+        
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testScope()
+        #chileCustomerBC!.setScope("B")
+    
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_SCOPE", "B")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend   
+    
+    rem @Test
+    method public void testEmptyScope()
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_SCOPE", "")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend 
+    
+    rem @Test
+    method public void testInvalidScope()
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_SCOPE", "Z")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testLookupWithoutFilter()
+        bc! = new ChileCountryBC()
+        expectedRS! = bc!.retrieve()
+        
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/_lookup/COUNTRY")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), expectedRS!.size())
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testLookupWithFilter()
+        filter! = new DataRow()
+        filter!.setFieldValue("ID", "DE")
+        
+        bc! = new ChileCountryBC()
+        bc!.setFilter(filter!)
+        expectedRS! = bc!.retrieve()
+        
+        rem Get the values from the ChileCountryBC to compare the results
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/_lookup/COUNTRY")
+        #uriBuilder!.setParameter("ID",filter!.getFieldAsString("ID"))
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), expectedRS!.size())
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testLookupWithoutField()
+        rem TODO
+    methodend
+    
+    rem @Test
+    method public void testPagging()
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve(10,20-1)
+        
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_PAGE", "2")
+        #uriBuilder!.addParameter("_PER_PAGE", "10")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), expectedRS!.size())
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testPaggingWithInvalidPageValue()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_PAGE", "-1")
+        #uriBuilder!.addParameter("_PER_PAGE", "10")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testPaggingWithInvalidPerPageValue()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_PAGE", "3")
+        #uriBuilder!.addParameter("_PER_PAGE", "-1")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testPaggingWithoutPerPage()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_PAGE", "2")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+        
+    rem @Test
+    method public void testPaggingWithoutPage()
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve(0,10-1)
+        
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_PER_PAGE", "10")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), expectedRS!.size())
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testOffset()
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve(10,24)
+        
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.addParameter("_OFFSET", "10")
+        #uriBuilder!.addParameter("_LIMIT", "15")
+        #uriBuilder!.addParameter("Demo", "1")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        rem the result set shouldn't be null
+        Assert.IsNotNull(actualRS!)
+        Assert.Equals(actualRS!.size(), expectedRS!.size())
+        
+        rem comparing the JSON Strings 
+        Assert.Equals(actualRS!.toJson(0), expectedRS!.toJson(0))
+    methodend
+    
+    rem @Test
+    method public void testAttachment()
+        rem _ATTACHMENT
+        rem TODO - An Attachment must be created by the BC first
+    methodend
+
+classend

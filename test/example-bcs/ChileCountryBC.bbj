@@ -1,0 +1,81 @@
+use com.basiscomponents.bc.SqlTableBC
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+
+use java.util.HashMap
+use java.util.LinkedHashSet
+use java.sql.Connection
+use java.sql.PreparedStatement
+
+
+class public ChileCountryBC
+
+    field private SqlTableBC jbc!
+
+    method public ChileCountryBC()
+        #jbc!=new SqlTableBC("jdbc:basis:localhost?database=ChileCompany&user=admin&password=admin123")
+        #init()
+    methodend
+
+    method public ChileCountryBC(Connection conn!)
+        #jbc!=new SqlTableBC(conn!)
+        #init()
+    methodend
+
+
+    method private void init()
+        #jbc!.setTable("COUNTRY")
+    methodend
+
+    method public DataRow getAttributesRecord()
+        declare auto DataRow ar!
+        ar! = #jbc!.getAttributesRecord()
+        methodret ar! 
+    methodend
+
+    method public DataRow getNewObjectTemplate(DataRow conditions!)
+        declare auto DataRow ot!
+        ot! = #jbc!.getNewObjectTemplate(conditions!)
+        methodret ot! 
+    methodend
+
+    method public void setFilter(DataRow filter!)
+        #jbc!.setFilter(filter!)
+    methodend
+
+    method public ResultSet retrieve()
+        methodret #jbc!.retrieve()
+    methodend
+
+    method public ResultSet retrieve(BBjInt first%, BBjInt last%)
+        methodret #jbc!.retrieve(first%,last%)
+    methodend
+
+    method public void setFieldSelection(BBjVector fieldSelection!)
+        #jbc!.setFieldSelection(fieldSelection!)
+    methodend
+
+    method public void setFieldSelection(DataRow fieldSelection!)
+        #jbc!.setFieldSelection(fieldSelection!)
+    methodend
+
+    method public void setScope(BBjString scope$)
+        #jbc!.setScope(scope$)
+    methodend
+
+    method public ResultSet validateWrite(DataRow dr!)
+        methodret new ResultSet()
+    methodend
+
+    method public DataRow write(DataRow dr!)
+        methodret new DataRow()
+    methodend
+
+    method public ResultSet validateRemove(DataRow dr!)
+        methodret new ResultSet()
+    methodend
+
+    method public void remove(DataRow dr!)
+    methodend
+
+classend
