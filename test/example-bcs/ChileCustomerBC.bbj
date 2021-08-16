@@ -440,7 +440,7 @@ REM         endif
             errorRow!.setFieldValue("FIELD_NAME", "LAST_NAME")
             errorRow!.setFieldValue("MESSAGE", "Missing field: LAST_NAME")
             errorRow!.setFieldValue("TYPE", "ERROR")
-            vecErrors!.addItem("")
+            rs!.add(errorRow!)
         else
             if dr!.getFieldAsString("LAST_NAME").length() > 30 then
                 errorRow!.setFieldValue("FIELD_NAME", "LAST_NAME")
@@ -470,7 +470,8 @@ REM         endif
         if vecErrors!.size() then
             it! = vecErrors!.iterator()
             while it!.hasNext()
-                errormsg$ = errormsg$ + it!.next() + $0a$
+                row! = it!.next()
+                errormsg$ = errormsg$ + row!.getFieldAsString("MESSAGE") + $0a$
             wend
             errormsg$ = errormsg$(1,len(errormsg$)-1)
             throw errormsg$,999
