@@ -1,0 +1,22 @@
+use java.io.File
+
+username! = "admin"
+password! = "admin123"
+
+admin! = BBJAPI().getAdmin(username!, password!)
+context! = admin!.getJettyServerConfig().getRootContextInfo()
+
+path! = bbjapi().getFileSystem().resolvePath("RestBridge/RestBridge.bbj")
+ 
+directory! = new File(path!).getParent()
+bcDir! = new File(directory!, "test/example-bcs/")
+
+config! = context!.addBBjspServlet("RestBridge", "/rest_test/*", path!)
+config!.addParam("REST_TIMEOUT", "100")
+config!.addParam("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
+config!.addParam("REST_WD", bcDir!.getAbsolutePath())
+config!.addParam("REST_PGM_SUFFIX", ".bbj")
+config!.addParam("USE_GET_ALLOWED_FILTER", "true")
+config!.addParam("REST_ADAPTERPGM", new File(directory!, "RestBCAdapter.bbj").getAbsolutePath())
+
+admin!.getJettyServerConfig().saveConfig()
