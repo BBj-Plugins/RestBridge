@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An input handler class was added to modify the incoming data(Request body, parameters and headers).
 - Adding BBj unit test classes to validate the GET, POST and PUT requests.
 - Adding a unit test setup class that creates a new RestBridge mapping for all tests.
+- Adding a Postman collection to demonstrate the structure and also test the HTTP requests(Currently it only contains the DELETE requests).
 
 ### Changed
 - When invoking GET requests, the RestBridge will now always invoke the requested BC's setScope(), setFieldSelection() and setFilter() methods.
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When attempting to invoke a custom BC method with invalid parameters and error 400(BAD REQUEST) is returned.
 - Attempting to invoke a non existing BC results in a 404(NOT FOUND).
 - When performing a lookup request, by default the BusinessComponent's getLookupData() method will be invoked, using the retrieveLookup() as a fallback. The retrieveLookup() method is not defined in the BusinessComponent interface, and will likely be removed in future versions.
+- DELETE Request don't need to have a body when using the correct trailing routes
 
 ### Removed
 
