@@ -26,6 +26,11 @@ class public InputHandler
     rem the allowed filter fields
     field private DataRow allowedFilterFields!
     
+    rem /**
+    rem  * This method returns the BC's primary key fields separated by /
+    rem  * The method is used when creating the HTML output of the result's 
+    rem  * to allow the users to click on the entries to view them separately.
+    rem  */
     method public String getBCPrimaryFieldNameString()
         it! = #attributesRecord!.getFieldNames().iterator()
         while it!.hasNext()
@@ -42,7 +47,7 @@ class public InputHandler
         methodret filterf$
     methodend
     
-    method public BBjVector getURLExtensionList()
+    method public BBjVector getTrailingRoutesList()
         declare BBjVector extensionList!
         extensionList! = new BBjVector()
         
@@ -68,16 +73,14 @@ class public InputHandler
     rem  * The filter coming from the URL extension automatically mapped to the 
     rem  * BC's primary keys
     rem  */
-    method public DataRow getURLExtensionFilter()
+    method public DataRow getTrailingRoutesFilter()
         declare DataRow filter!
         filter! = new DataRow()
         
-        extensionList! = #getURLExtensionList()
+        extensionList! = #getTrailingRoutesList()
         if extensionList!.isEmpty() then
             methodret filter!
         endif
-        
-        rem TODO - Remove the RestBridge special commands from the filter, like the _lookup and the _meta
         
         if #attributesRecord! = null() OR #attributesRecord!.isEmpty() then
             methodret filter!

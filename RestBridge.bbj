@@ -684,6 +684,7 @@ class public RestBridge
             namespace!.removeValue(ses$+"_RESPONSE_SEM")
             namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
             namespace!.removeValue(ses$+"_OUTPUT_HANDLER", err=*next)
+            namespace!.removeValue(ses$+"_INPUT_HANDLER", err=*next)
             
             methodret Boolean.FALSE
         fi
@@ -756,6 +757,21 @@ class public RestBridge
         namespace!.setValue(ses$+"_RESPONSE","")
         namespace!.setValue(ses$+"_SERVLET_PARAMETERS",servletParams!)
         
+        seterr custom_input_handler_error
+            if servletParams!.containsKey("REST_INPUT_HANDLER") then    
+                path$ = BBjAPI().getFileSystem().resolvePath(str(servletParams!.get("REST_INPUT_HANDLER")), err=*next)
+                
+                customOutputHandler! = new File(path$)
+                if customOutputHandler!.exists() AND customOutputHandler!.isFile() then
+                    className! = org.apache.commons.io.FilenameUtils.removeExtension(customOutputHandler!.getName())
+                    outputHandler! = "new ::" + customOutputHandler!.getPath() + "::" + className! + "()"
+                    namespace!.setValue(ses$ + "_INPUT_HANDLER", outputHandler!)
+                endif
+            endif 
+          
+        custom_input_handler_error:
+        seterr 0
+        
         seterr custom_output_handler_error
             if servletParams!.containsKey("REST_OUTPUT_HANDLER") then    
                 path$ = BBjAPI().getFileSystem().resolvePath(str(servletParams!.get("REST_OUTPUT_HANDLER")), err=*next)
@@ -795,7 +811,6 @@ class public RestBridge
         methodret ses$
     methodend
 
-
     method public static HashMap invoke(BBjString ses$, HashMap instructions!)
 
         System.out.println("REST: invoke "+ses$)
@@ -815,6 +830,7 @@ class public RestBridge
             namespace!.removeValue(ses$+"_RESPONSE_SEM")
             namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
             namespace!.removeValue(ses$+"_OUTPUT_HANDLER", err=*next)
+            namespace!.removeValue(ses$+"_INPUT_HANDLER", err=*next)
             
             rem System.out.println("REST: timeout on invoke "+ses$)
             throw "Timeout occurred",0
@@ -962,6 +978,7 @@ class public RestBridge
     rem  *     <li>REST_AUTHPGM</li>
     rem  *     <li>REST_REQUESTLOG</li>
     rem  *     <li>USE_GET_ALLOWED_FILTER</li>
+    rem  *     <li>REST_INPUT_HANDLER</li>
     rem  *     <li>REST_OUTPUT_HANDLER</li>
     rem  *     <li>REST_DEFAULT_CHARSET</li>
     rem  * </ul>
@@ -987,6 +1004,7 @@ class public RestBridge
         parameterNames!.add("REST_REQUESTLOG")
         parameterNames!.add("USE_GET_ALLOWED_FILTER")
         parameterNames!.add("REST_OUTPUT_HANDLER")
+        parameterNames!.add("REST_INPUT_HANDLER")
         parameterNames!.add("REST_DEFAULT_CHARSET")
 
         rem the list of parameter names that must be set as STBL 

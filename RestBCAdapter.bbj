@@ -2,6 +2,8 @@ use java.util.HashMap
 use com.basiscomponents.db.ResultSet
 use com.basiscomponents.db.DataRow
 
+use ::RestBridge/InputHandler.bbj::InputHandler
+
 seterr execerr
 
 debug=num(stbl("DEBUG",err=*next),err=*next)
@@ -102,6 +104,8 @@ main_loop:
         namespace!.removeValue(ses$+"_REQUEST_SEM")
         namespace!.removeValue(ses$+"_RESPONSE_SEM")
         namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
+        namespace!.removeValue(ses$+"_OUTPUT_HANDLER", err=*next)
+        namespace!.removeValue(ses$+"_INPUT_HANDLER", err=*next)
 
         rem Calling the ON_CLEANUP label to perform possible user defined cleanup operations
         call authpgm$+"::ON_CLEANUP",err=*next        
@@ -120,14 +124,22 @@ main_loop:
     if debug then System.out.println("REST: remote session running "+ses$)
     dummy$=STBL("!SESSIONINFO",ses$+" - working "+str(request!))
     
-    rem TODO - InputHandler
-    inputHandler! = new ::RestBridge/InputHandler.bbj::InputHandler()
+    rem Creating the InputHandler to map the Request content to the desired format
+    namespace! = BBjAPI().getGlobalNamespace()
+    handler! = namespace!.getValue(ses$ + "_INPUT_HANDLER", err=*next)
+    if handler! <> null() then
+        inputHandler! = eval(handler!)
+    else
+        inputHandler! = new InputHandler()
+    endif
+        
     inputHandler!.setRequestMethod(request!.get("method"))
     inputHandler!.setRequestBody(request!.get("body"))
     inputHandler!.setRequestURI(request!.get("uri"))
     inputHandler!.setRequestParams(request!.get("params"))
     inputHandler!.setRequestHeaders(request!.get("headers"))
     
+    rem Get the BC name to invoke
     bcName! = inputHandler!.getBCName()  
     
     response! = new HashMap()
@@ -181,6 +193,7 @@ main_loop:
 
         bc! = null()
         ok=0; bc! = eval("new ::" + prefix$ + bcName! + suffix$ + "::" + bcName! + "()", err=*next); ok=1
+        
         if ok=0 then
             statuscode=404
             throw "Missing BC", 12
@@ -199,7 +212,7 @@ main_loop:
     method$ = inputHandler!.getMethod()
     
     urlExtension! = ""
-    urlExtensionList! = inputHandler!.getURLExtensionList()
+    urlExtensionList! = inputHandler!.getTrailingRoutesList()
     it! = urlExtensionList!.iterator()
     while it!.hasNext()
         extension! = it!.next()
@@ -337,7 +350,7 @@ main_loop:
                 throw "The request was not valid", 400; rem BAD REQUEST
             endif
             
-            extensionFilter! = inputHandler!.getURLExtensionFilter()
+            extensionFilter! = inputHandler!.getTrailingRoutesFilter()
             
             rem TODO - write(ResultSet) may exist, use it if it is
             
@@ -386,7 +399,7 @@ main_loop:
                 body! = new ResultSet()
             endif
             
-            extensionList! = inputHandler!.getURLExtensionList()
+            extensionList! = inputHandler!.getTrailingRoutesList()
             rem only merge the url fields into the body if the method is not PUT and the url doesn't contain the ingorekeys extension
             rem TODO - Review: Check if this should also be applied to the DELETE method for consistency
             if method$ <> "PUT" OR extensionList!.size() <> 1 OR cvs(extensionList!.get(0),4) <> "IGNOREKEYS" then
@@ -498,7 +511,27 @@ main_loop:
                     throw "Invalid lookup field value: Empty", 400
                 endif
                 
-                rs! = bc!.getLookupData(field!, filter!)
+                ok=0; rs! = bc!.getLookupData(field!, filter!, err=*next); ok=1
+                if !ok then
+                    if pos("No match for method" = errmes(-1)) > 0 then
+                        errorMessage$ =  "The RestBridge attempted to invoke the non existing getLookupData(String, DataRow) method on the BC: " + bcName! + "."
+                        errorMessage$ = errorMessage$ + "As a fallback the retrieveLookup(String, DataRow) method will be invoked instead which is marked deprecated."
+                        errorMessage$ = errorMessage$ + "Please consider changing the retrieveLookup into the getLookupData method as the retrieveLookup fallback will most likely vanish in futre RestBridge versions"
+                        System.out.println(errorMessage$)
+                    
+                        rem fallback for older BC versions
+                        ok=0; rs! = bc!.retrieveLookup(field!, filter!, err=*next); ok=1
+                        if !ok then
+                            if pos("No match for method" = errmes(-1)) > 0 then
+                                throw "Method not found getLookupData", 500
+                            endif
+                        
+                            throw errmes(-1), 500                       
+                        endif
+                    else
+                        throw errmes(-1), 500
+                    endif 
+                endif
 
                 response!.put("resultset", rs!)
                 response!.put("BC", bcName!)
@@ -508,14 +541,17 @@ main_loop:
             endif
             
             response!.put("single",0)
-            urlExtensionFilter! = inputHandler!.getURLExtensionFilter()
+            urlExtensionFilter! = inputHandler!.getTrailingRoutesFilter()
             
-            rem TODO - Sort out the single field 
-                rem if the link extension matches the primary keys then single = 1
- 
-            rem TODO - Sort out the linkfield field
-                rem when the filter 
-            
+            if !urlExtensionFilter!.isEmpty() then
+                response!.put("linkfield", BCPrimaryKeyString!)
+                
+                fields! = attributesRecord!.getFieldsHavingAttributeValue("EDITABLE", "2")
+                if fields!.getFieldNames().size() = urlExtensionFilter!.getFieldNames().size() then
+                    response!.put("single",1)
+                endif
+            endif
+                        
             rem applying the merged filter (URL Extension fields + Params)
             filter!.mergeRecord(urlExtensionFilter!, Boolean.TRUE)
             bc!.setFilter(filter!)
