@@ -118,23 +118,6 @@ class public TestPUT
     methodend
     
     rem @Test
-    method public void testWithoutBody()                 
-        rem uriBuilder!.addParameter(arg0,arg1)
-        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/"  + #insertRow!.getFieldAsString("CUST_NUM"))
-        
-        declare HttpPut request!
-        request! = #configurator!.getRequestPUT(#uriBuilder!)
-        request!.setHeader("Accept", "application/json")
-        request!.setHeader("Content-Type", "application/json")
-        
-        declare HttpResponse response!
-        response! = #client!.execute(request!)
-        
-        rem verify that the request returned an error 400 --> BAD REQUEST
-        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
-    methodend
-    
-    rem @Test
     method public void testWithoutKeyInURL()
         #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
         
