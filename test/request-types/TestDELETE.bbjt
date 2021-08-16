@@ -11,6 +11,10 @@ use org.apache.http.client.HttpClient
 use org.apache.http.client.utils.URIBuilder
 use org.apache.http.client.methods.HttpDelete
 
+
+rem WARNING - The org.apache.http.methods.HttpDelete doesn't support a body in the request therefore the testing of the DELETE
+rem WARNING - request will be performed on the Postman collection added to this project's test directory  
+
 class public TestDELETE
 
     field private RestBridgeTestConfigurator configurator!
@@ -69,9 +73,5 @@ class public TestDELETE
         rem verify that the request was executed successfully
         Assert.Equals(response!.getStatusLine().getStatusCode(), 204)
     methodend
-    
-    rem @Test
-    method public void testIgnoreKeys()
-    methodend
-    
+        
 classend
