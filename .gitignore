@@ -2,3 +2,5 @@
 .bdtPath
 .buildpath
 .project
+config.bbx
+test/example-bcs/bridgeerrlog.txt
