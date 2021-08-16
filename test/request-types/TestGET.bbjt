@@ -385,6 +385,24 @@ class public TestGET
     methodend
     
     rem @Test
+    method public void testLookupWithoutGetLookupDataMethodInBC()
+        bc! = new ChileCountryBC()
+        expectedRS! = bc!.retrieve()
+        
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCountry/_lookup/Demo")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 500)
+    methodend
+    
+    rem @Test
     method public void testLookupWithFilter()
         filter! = new DataRow()
         filter!.setFieldValue("ID", "DE")
@@ -418,7 +436,32 @@ class public TestGET
     
     rem @Test
     method public void testLookupWithoutField()
-        rem TODO
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/_lookup")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 400)
+    methodend
+    
+    rem @Test
+    method public void testLookupWitUnknownField()
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer/_lookup/Demo")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        rem verify that the request was executed successfully
+        Assert.Equals(response!.getStatusLine().getStatusCode(), 200)
     methodend
     
     rem @Test
