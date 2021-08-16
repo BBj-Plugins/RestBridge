@@ -400,9 +400,9 @@ main_loop:
             endif
             
             extensionList! = inputHandler!.getTrailingRoutesList()
-            rem only merge the url fields into the body if the method is not PUT and the url doesn't contain the ingorekeys extension
-            rem TODO - Review: Check if this should also be applied to the DELETE method for consistency
-            if method$ <> "PUT" OR extensionList!.size() <> 1 OR cvs(extensionList!.get(0),4) <> "IGNOREKEYS" then
+            
+            rem only merge the url fields into the body if the url doesn't contain the ingorekeys extension
+            if extensionList!.size() <> 1 OR cvs(extensionList!.get(0),4) <> "IGNOREKEYS" then
                
                 rem Adding the field from the URL extension to the fields in the body
                 primaryKeysDR! = attributesRecord!.getFieldsHavingAttributeValue("EDITABLE", "2")
@@ -417,24 +417,34 @@ main_loop:
                     throw "Not enough parameters for " + method$, 400; rem BAD REQUEST
                 endif
                 
-                it! = body!.iterator()
-                while it!.hasNext()
-                    row! = it!.next()
-                    
+                rem if there is no body, merge the fields into the body
+                if body!.isEmpty() then
+                    row! = new DataRow()
                     for i=0 to primaryKeyFieldNames!.size() -1
                         primaryKeyFieldName! = primaryKeyFieldNames!.get(i)
-                        
-                        rem adding the URL extension field to the body row if it doesn't already exist in the body row 
-                        if !row!.contains(primaryKeyFieldName!) then
-                            row!.setFieldValue(primaryKeyFieldName!, extensionList!.get(i))
-                            continue
-                        endif
-                        
-                        if row!.getFieldAsString(primaryKeyFieldName!) <> extensionList!.get(i) then
-                            throw "Different resource ID in URL path and request body!", 400; REM BAD REQUEST
-                        endif
+                        row!.setFieldValue(primaryKeyFieldName!, extensionList!.get(i))
                     next i
-                wend 
+                    body!.add(row!)
+                else
+                    it! = body!.iterator()
+                    while it!.hasNext()
+                        row! = it!.next()
+                        
+                        for i=0 to primaryKeyFieldNames!.size() -1
+                            primaryKeyFieldName! = primaryKeyFieldNames!.get(i)
+                            
+                            rem adding the URL extension field to the body row if it doesn't already exist in the body row 
+                            if !row!.contains(primaryKeyFieldName!) then
+                                row!.setFieldValue(primaryKeyFieldName!, extensionList!.get(i))
+                                continue
+                            endif
+                            
+                            if row!.getFieldAsString(primaryKeyFieldName!) <> extensionList!.get(i) then
+                                throw "Different resource ID in URL path and request body!", 400; REM BAD REQUEST
+                            endif
+                        next i
+                    wend
+                endif 
             endif
             
             rem In order to write / delete, the body RS must contain at least one record
@@ -442,13 +452,15 @@ main_loop:
                 throw "Not enough parameters for " + method$, 400; rem BAD REQUEST
             endif
             
+            rem TODO - Check if the BC contains the write(ResultSet) and remove(ResultSet) methods 
+            
             rs! = new ResultSet()
             it! = body!.iterator()
             while it!.hasNext()
                 row! = it!.next()
             
                 if method$ = "PUT" then
-                    dr! = bc!.write(row!,err=*next); ok=1
+                    ok=0; dr! = bc!.write(row!,err=*next); ok=1
                     if !ok then
                         response!.put("statuscode","409")
                         throw errmes(-1),err
@@ -467,8 +479,9 @@ main_loop:
                     
                     rs!.addItem(dr!)
                 else
-                    ok=0; bc!.remove(row!); ok=1
+                    ok=0; bc!.remove(row!, err=*next); ok=1
                     if !ok then
+                        statuscode = 409
                         response!.put("statuscode","409")
                         throw errmes(-1), err
                     endif
@@ -514,10 +527,11 @@ main_loop:
                 ok=0; rs! = bc!.getLookupData(field!, filter!, err=*next); ok=1
                 if !ok then
                     if pos("No match for method" = errmes(-1)) > 0 then
-                        errorMessage$ =  "The RestBridge attempted to invoke the non existing getLookupData(String, DataRow) method on the BC: " + bcName! + "."
-                        errorMessage$ = errorMessage$ + "As a fallback the retrieveLookup(String, DataRow) method will be invoked instead which is marked deprecated."
-                        errorMessage$ = errorMessage$ + "Please consider changing the retrieveLookup into the getLookupData method as the retrieveLookup fallback will most likely vanish in futre RestBridge versions"
-                        System.out.println(errorMessage$)
+                        System.out.println("***********************************")
+                        System.out.println("WARNING: The RestBridge attempted to invoke the non existing getLookupData(String, DataRow) method on the BC: " + bcName! + ".")
+                        System.out.println("WARNING: As a fallback the retrieveLookup(String, DataRow) method will be invoked instead which is marked deprecated.")
+                        System.out.println("WARNING: Please consider changing the retrieveLookup into the getLookupData method as the retrieveLookup fallback will most likely vanish in futre RestBridge versions")
+                        System.out.println("***********************************")
                     
                         rem fallback for older BC versions
                         ok=0; rs! = bc!.retrieveLookup(field!, filter!, err=*next); ok=1
