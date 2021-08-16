@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An input handler class was added to modify the incoming data(Request body, parameters and headers).
 - Adding BBj unit test classes to validate the GET, POST and PUT requests.
 - Adding a unit test setup class that creates a new RestBridge mapping for all tests.
-- Adding a Postman collection to demonstrate the structure and also test the HTTP requests(Currently it only contains the DELETE requests).
+- Adding a Postman collection to demonstrate the structure and also to test the HTTP requests(Currently it only contains the DELETE requests).
 
 ### Changed
 - When invoking GET requests, the RestBridge will now always invoke the requested BC's setScope(), setFieldSelection() and setFilter() methods.
