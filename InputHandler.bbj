@@ -26,27 +26,6 @@ class public InputHandler
     rem the allowed filter fields
     field private DataRow allowedFilterFields!
     
-    rem /**
-    rem  * This method returns the BC's primary key fields separated by /
-    rem  * The method is used when creating the HTML output of the result's 
-    rem  * to allow the users to click on the entries to view them separately.
-    rem  */
-    method public String getBCPrimaryFieldNameString()
-        it! = #attributesRecord!.getFieldNames().iterator()
-        while it!.hasNext()
-            f$ = it!.next()
-            if #attributesRecord!.getFieldAttribute(f$,"EDITABLE")="2" then
-                filterf$=filterf$+"/"+f$
-            fi
-        wend
-        
-        if filterf$ > "" then
-            filterf$ = filterf$(2)
-        endif
-        
-        methodret filterf$
-    methodend
-    
     method public BBjVector getTrailingRoutesList()
         declare BBjVector extensionList!
         extensionList! = new BBjVector()
@@ -175,19 +154,7 @@ class public InputHandler
         
         methodret filter!
     methodend
-    
-    method public DataRow getFieldSelection()
-        declare DataRow row!
-        row! = #getRestBridgeCommands()
         
-        fieldSel! = new DataRow()
-        if row!.contains("_FIELDSEL") then
-            fieldSel! = cast(DataRow, row!.getField("_FIELDSEL").getObject())
-        endif
-        
-        methodret fieldSel!
-    methodend
-    
     method public String getMethod()
         methodret #requestMethod!
     methodend
@@ -239,24 +206,7 @@ class public InputHandler
 
         methodret rs!
     methodend
-    
-    rem /**
-    rem  * Returns the scope to apply to the requested BC.
-    rem  *
-    rem  * @return the URL requested scope
-    rem  */
-    method public String getScope()
-        declare DataRow row!
-        row! = #getRestBridgeCommands()
         
-        scope! = ""
-        if row!.contains("_SCOPE") then
-            scope! = row!.getFieldAsString("_SCOPE")
-        endif
-        
-        methodret scope! 
-    methodend
-    
     rem /**
     rem  * Returns a DataRow with the RestBridge specific commands
     rem  * 
