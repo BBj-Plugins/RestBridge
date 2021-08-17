@@ -351,36 +351,61 @@ main_loop:
             endif
             
             extensionFilter! = inputHandler!.getTrailingRoutesFilter()
-            
-            rem TODO - write(ResultSet) may exist, use it if it is
-            
             it! = body!.iterator()
             while it!.hasNext()
                 row! = it!.next()
-                
-                rem merging the fields from the URL into the body rows
                 row!.mergeRecord(extensionFilter!, Boolean.TRUE)
-                
-                ok=0; dr! = bc!.write(row!,err=*next); ok=1
-                if !ok then
-                    errorOccurred=1
+            wend
 
+            ok=0; rs! = bc!.write(body!,err=*next); ok=1
+            if !ok then
+                if pos("No match for method" = errmes(-1)) = 0 then
                     response!.put("statuscode","409")
                     response!.put("errorcode",str(err))
                     response!.put("errormsg",errmes(-1))
-                else
-                    rs!.addItem(row!)
+                endif
+            else
+                rem Successfull
+                rem TODO - Check the Created field
+REM                 created! = row!.getAttribute("CREATED")
+REM                 if !errorOccurred then
+REM                     if created! <> null() and created!.equals("true") then
+REM                         response!.put("statuscode","201")
+REM                     else
+REM                         response!.put("statuscode","200")
+REM                     endif
+REM                 endif
+
+                response!.put("statuscode","200")
+            endif 
+            
+            if !ok AND pos("No match for method" = errmes(-1)) > 0 then
+                rs! = new ResultSet()
+                it! = body!.iterator()
+                while it!.hasNext()
+                    row! = it!.next()
                     
-                    created! = row!.getAttribute("CREATED")
-                    if !errorOccurred then
-                        if created! <> null() and created!.equals("true") then
-                            response!.put("statuscode","201")
-                        else
-                            response!.put("statuscode","200")
+                    ok=0; dr! = bc!.write(row!,err=*next); ok=1
+                    if !ok then
+                        errorOccurred=1
+    
+                        response!.put("statuscode","409")
+                        response!.put("errorcode",str(err))
+                        response!.put("errormsg",errmes(-1))
+                    else
+                        rs!.addItem(row!)
+                        
+                        created! = row!.getAttribute("CREATED")
+                        if !errorOccurred then
+                            if created! <> null() and created!.equals("true") then
+                                response!.put("statuscode","201")
+                            else
+                                response!.put("statuscode","200")
+                            endif
                         endif
-                    endif
-                endif                   
-            wend
+                    endif                   
+                wend
+            endif
             
             response!.put("resultset",rs!)
             response!.put("request",str(request!))
@@ -452,43 +477,80 @@ main_loop:
                 throw "Not enough parameters for " + method$, 400; rem BAD REQUEST
             endif
             
-            rem TODO - Check if the BC contains the write(ResultSet) and remove(ResultSet) methods 
-            
-            rs! = new ResultSet()
-            it! = body!.iterator()
-            while it!.hasNext()
-                row! = it!.next()
-            
-                if method$ = "PUT" then
-                    ok=0; dr! = bc!.write(row!,err=*next); ok=1
-                    if !ok then
+            rem Attempt to write the whole ResultSet
+            if method$ = "PUT" then
+                ok=0; rs! = bc!.write(body!, err=*next); ok=1
+                if !ok then
+                    if pos("No match for method" = errmes(-1)) = 0 then
                         response!.put("statuscode","409")
                         throw errmes(-1),err
                     endif
-                    
+                else
+                    rem TODO - Check the state of the created field ?
                     created! = dr!.getAttribute("CREATED")
                     if created! <> null() and created!.equals("true") then
                         response!.put("statuscode","201")
                     else
                         response!.put("statuscode","200")
                     endif
-                    
-                    if body!.size() = 1 then
+                
+                    if rs!.size() = 1 then
                         response!.put("single",1)
                     endif
-                    
-                    rs!.addItem(dr!)
-                else
-                    ok=0; bc!.remove(row!, err=*next); ok=1
-                    if !ok then
+                endif
+            else
+                rem DELETE
+                ok=0; bc!.remove(body!, err=*next); ok=1
+                if !ok then
+                    if pos("No match for method" = errmes(-1)) = 0 then
+                        rem Failed to execute the DELETE Request
                         statuscode = 409
                         response!.put("statuscode","409")
                         throw errmes(-1), err
                     endif
-
+                else
                     response!.put("statuscode","204")
                 endif
-            wend
+            endif 
+                        
+            if !ok AND pos("No match for method" = errmes(-1)) > 0 then
+                rem The BC doesn't support the write(ResultSet) method yet, use the default process
+                rs! = new ResultSet()
+                it! = body!.iterator()
+                while it!.hasNext()
+                    row! = it!.next()
+                
+                    if method$ = "PUT" then
+                        ok=0; dr! = bc!.write(row!,err=*next); ok=1
+                        if !ok then
+                            response!.put("statuscode","409")
+                            throw errmes(-1),err
+                        endif
+                        
+                        created! = dr!.getAttribute("CREATED")
+                        if created! <> null() and created!.equals("true") then
+                            response!.put("statuscode","201")
+                        else
+                            response!.put("statuscode","200")
+                        endif
+                        
+                        if body!.size() = 1 then
+                            response!.put("single",1)
+                        endif
+                        
+                        rs!.addItem(dr!)
+                    else
+                        ok=0; bc!.remove(row!, err=*next); ok=1
+                        if !ok then
+                            statuscode = 409
+                            response!.put("statuscode","409")
+                            throw errmes(-1), err
+                        endif
+    
+                        response!.put("statuscode","204")
+                    endif
+                wend
+            endif            
 
             response!.put("resultset",rs!)
             response!.put("request",str(request!))
