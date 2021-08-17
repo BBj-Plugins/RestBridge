@@ -630,15 +630,15 @@ REM                 endif
                         
             rem applying the merged filter (URL Extension fields + Params)
             filter!.mergeRecord(urlExtensionFilter!, Boolean.TRUE)
-            bc!.setFilter(filter!)
+            bc!.setFilter(filter!, err=*next)
 
             rem applying the scope
             scope! = inputHandler!.getScope()
-            bc!.setScope(scope!)
+            bc!.setScope(scope!, err=*next)
 
             rem applying the field selection
             fieldSelection! = inputHandler!.getFieldSelection()
-            bc!.setFieldSelection(fieldSelection!)
+            bc!.setFieldSelection(fieldSelection!, err=*next)
             
             first% = 0
             last% = 0
