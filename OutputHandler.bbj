@@ -246,7 +246,6 @@ class public OutputHandler
             resp_str! = resp_str!+"</table>"
         else
             primaryKey! = #invokeResult!.get("primarykey", err=*next)
-            System.out.println("key: " + primaryKey!)
             links! = null()
             if (primaryKey! <> null() ) then
                 pk$=str(primaryKey!)
