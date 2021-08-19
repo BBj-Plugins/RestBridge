@@ -26,6 +26,12 @@ class public InputHandler
     rem the allowed filter fields
     field private DataRow allowedFilterFields!
     
+    rem the requested custom method
+    field private String requestedCustomMethod!
+    
+    rem the requested custom method return value name
+    field private String requestedCustomMethodReturnValueName!
+    
     method public BBjVector getTrailingRoutesList()
         declare BBjVector extensionList!
         extensionList! = new BBjVector()
@@ -328,6 +334,41 @@ class public InputHandler
     
     method public void setAllowedFilterFields(DataRow allowedFilterFields!)
          #allowedFilterFields! = allowedFilterFields!
+    methodend
+    
+    method public void setRequestedCustomMethod(String customMethod!)
+        #requestedCustomMethod! = customMethod!
+    methodend
+    
+    method public void setRequestedCustomMethodReturnValueName(String returnValueName!)
+        #requestedCustomMethodReturnValueName! = returnValueName!
+    methodend
+    
+    method public String getCustomMethodName()
+        methodret #requestedCustomMethod!
+    methodend
+    
+    method public BBjVector getCustomMethodParams()
+        declare BBjVector params!
+        params! = new BBjVector()
+        
+        rs! = #getBody()
+        if rs! = null() OR rs!.isEmpty() then
+            methodret params!
+        endif
+        
+        row! = rs!.get(0)
+        fieldNames! = row!.getFieldNames()
+        it! = fieldNames!.iterator()
+        while it!.hasNext()
+            params!.add(row!.getField(it!.next()).getObject())
+        wend
+       
+        methodret params! 
+    methodend
+    
+    method public String getCustomMethodReturnValueName()
+        methodret #requestedCustomMethodReturnValueName!
     methodend
 
 classend

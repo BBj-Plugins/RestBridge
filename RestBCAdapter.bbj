@@ -138,6 +138,8 @@ main_loop:
     inputHandler!.setRequestURI(request!.get("uri"))
     inputHandler!.setRequestParams(request!.get("params"))
     inputHandler!.setRequestHeaders(request!.get("headers"))
+    inputHandler!.setRequestedCustomMethod(request!.get("invoke"))
+    inputHandler!.setRequestedCustomMethodReturnValueName(request!.get("retvarname"))
     
     rem Get the BC name to invoke
     bcName! = inputHandler!.getBCName()  
@@ -234,100 +236,95 @@ main_loop:
         BCPrimaryKeyString! = BCPrimaryKeyString!.substring(1)
     endif
     
+    customMethod! = inputHandler!.getCustomMethodName()
+    if customMethod! <> null() AND customMethod! <> "" then
+        methodParams! = inputHandler!.getCustomMethodParams()
+        
+        variableNamePrefix! = new String(user$)
+        variableNamePrefix! = variableNamePrefix!.replaceAll("\W", "_")
+        
+        invokeCommand! = "bc!." + customMethod! + "("
+        if methodParams! <> null() AND !methodParams!.isEmpty() then
+            for i=0 to methodParams!.size() -1
+                variableName! = variableNamePrefix! + "_" + str(i) + "!"
+                execute variableName! + " = methodParams!.get(" + str(i) + ")"
+                
+                parameterList$ = parameterList$ + "," + variableName!
+            next i
+            
+            rem removing the leading ,
+            parameterList$ = parameterList$(2)
+            invokeCommand! = invokeCommand! + parameterList$ + ")"
+        else
+            invokeCommand! = invokeCommand! + ")"
+        endif
+                
+        rem return value
+        returnValue! = inputHandler!.getCustomMethodReturnValueName()
+        if returnValue! <> null() then
+            invokeCommand! = "var! = " + invokeCommand!
+        endif
+                
+        statuscode=400
+        execute invokeCommand!, err=*next
+        statuscode=0
+            
+        if returnValue! <> null() AND returnValue! <> "" then
+            className! = var!.getClass().getName()
+            
+            switch className!
+                case "com.basiscomponents.db.ResultSet"
+                    rs! = var!
+                    break
+                   
+                case "com.basiscomponents.db.DataRow"
+                    rs! = new ResultSet()
+                    rs!.add(var!)
+                    break
+                
+                case "java.util.HashMap"
+                    rs! = new ResultSet()
+                    row! = new DataRow(var!)
+                    rs!.add(row!)
+                    break
+                    
+                case "java.lang.String"
+                case "java.lang.Boolean"
+                    rs! = new ResultSet()
+                    row! = new DataRow()
+                    row!.setFieldValue(returnValue!, var!)
+                    rs!.add(row!)
+                    break
+                    
+                case default
+                    if !className!.contains("BBjNumber") AND !className!.contains("BBjVector") then
+                        rs! = new ResultSet()
+                    endif
+                    
+                    rs! = new ResultSet()
+                    row! = new DataRow()
+                    row!.setFieldValue(returnValue!, var!)
+                    rs!.add(row!)
+                    
+                    break
+            swend 
+
+            response!.put("resultset", rs!)
+        else
+            response!.put("resultset","")
+            response!.put("statuscode","204")
+        endif
+            
+        response!.put("request",str(request!))
+        response!.put("BC",bcName!)
+        response!.put("sel",urlExtension!)
+        response!.put("primarykey",BCPrimaryKeyString!)
+
+        goto send_response
+    endif
+    
     switch method$
         case "POST"
-            if request!.get("invoke") <> null() then
-                invoke$ = request!.get("invoke")
-                
-                if invoke$ = "" then
-                    throw "Invalid ExecuteBCMethod value", 400 
-                endif
-                
-                bodyRS! = inputHandler!.getBody()
-                if !bodyRS!.isEmpty() then 
-                    row! = bodyRS!.get(0)
-                    if row! <> null() and row!.getColumnCount() > 0 then
-                        variableNamePrefix! = new String(user$)
-                        variableNamePrefix! = variableNamePrefix!.replaceAll("\W", "_")
-                    
-                        it! = row!.getFieldNames().iterator()
-                        while it!.hasNext()
-                            fieldName$ = it!.next()
-                            
-                            execute variableNamePrefix! + fieldName$ + "! = row!.getFieldValue(""" + fieldName$ + """)"
-                            
-                            ex$ = ex$ + "," + variableNamePrefix! + fieldName$ + "!"
-                        wend
-                    
-                        ex$ = ex$(2)
-                    endif
-                endif
-                
-                ex$ = "bc!." + invoke$ + "(" + ex$ + ")"
-                
-                rem return value
-                if request!.get("retvarname") <> null() then
-                    returnValue$ = request!.get("retvarname")
-                    ex$ = "var! = " + ex$
-                endif
-                
-                statuscode=400
-                execute ex$,err=*next
-                statuscode=0
-                
-                if returnValue$ <> "" then
-                    className! = var!.getClass().getName()
-                    
-                    switch className!
-                        case "com.basiscomponents.db.ResultSet"
-                            rs! = var!
-                            break
-                           
-                        case "com.basiscomponents.db.DataRow"
-                            rs! = new ResultSet()
-                            rs!.add(var!)
-                            break
-                        
-                        case "java.util.HashMap"
-                            rs! = new ResultSet()
-                            row! = new DataRow(var!)
-                            rs!.add(row!)
-                            break
-                            
-                        case "java.lang.String"
-                        case "java.lang.Boolean"
-                            rs! = new ResultSet()
-                            row! = new DataRow()
-                            row!.setFieldValue(returnValue$, var!)
-                            rs!.add(row!)
-                            break
-                            
-                        case default
-                            if !className!.contains("BBjNumber") AND !className!.contains("BBjVector") then
-                                rs! = new ResultSet()
-                            endif
-                            
-                            rs! = new ResultSet()
-                            row! = new DataRow()
-                            row!.setFieldValue(returnValue$, var!)
-                            rs!.add(row!)
-                            
-                            break
-                    swend 
-
-                    response!.put("resultset", rs!)
-                else
-                    response!.put("resultset","")
-                    response!.put("statuscode","204")
-                endif
-                
-                response!.put("request",str(request!))
-                response!.put("BC",bcName!)
-                response!.put("sel",urlExtension!)
-                response!.put("primarykey",BCPrimaryKeyString!)
-                break
-            endif
-            
             rem normal POST request
             errorOccurred = 0
             
