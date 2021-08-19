@@ -869,12 +869,19 @@ class public RestBridge
         log.QUERY$=str(request!.getQueryString())
 
         h! = request!.getHeaderNames()
-        it! =h!.iterator()
+        it! = h!.iterator()
         while it!.hasNext()
-            hn$=it!.next()
-            h$=h$+hn$+"="+str(request!.getHeader(hn$))+","
+            headerName$ = it!.next()
+            headerValue$ = str(request!.getHeader(headerName$))
+            
+            rem Obfuscating the Authorization headers
+            if headerName$ = "Authorization" then
+                headerValue$ = new String(headerValue$).replaceAll("\s.*", " ************")
+            endif
+            
+            headers$ = headers$ + headerName$ + "=" + headerValue$ + ","
         wend
-        log.HEADERS$=h$
+        log.HEADERS$ = headers$
 
         p! = request!.getParameterNames()
         it! =p!.iterator()

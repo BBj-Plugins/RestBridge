@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When performing a lookup request, by default the BusinessComponent's getLookupData() method will be invoked, using the retrieveLookup() as a fallback. The retrieveLookup() method is not defined in the BusinessComponent interface, and will likely be removed in future versions.
 - DELETE Request don't need to have a body when using the correct trailing routes
 - The RestBridge attempts to invoke the write(ResultSet) / remove(ResultSet) for the POST, PUT and DELETE requests and falls back to the write(DataRow) / remove(DataRow) methods if they do not exist
+- Obfuscating the Authorization header when saving it in the REQUESTLOG file(issue #23)
 
 ### Removed
 
