@@ -557,7 +557,7 @@ class public TestPOST
         endif
         
         if param! <> "123456" then
-            Assert.Fail("The custom method was executed by the parameter was not processed correctly")
+            Assert.Fail("The custom method was executed but the parameter was not processed correctly")
         endif
     methodend
     
