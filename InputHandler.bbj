@@ -6,31 +6,31 @@ use com.basiscomponents.db.ResultSet
 class public InputHandler
     
     rem the request's HTTP method  
-    field private String requestMethod!
+    field protected String requestMethod!
     
     rem the request's body as string
-    field private String requestBody!
+    field protected String requestBody!
     
     rem the request's URI
-    field private String requestURI!
+    field protected String requestURI!
     
     rem the request's Parameters
-    field private HashMap requestParams!
+    field protected HashMap requestParams!
     
     rem the request headers
-    field private HashMap requestHeaders!
+    field protected HashMap requestHeaders!
     
     rem the requested BC's attribute record used for the filtering
-    field private DataRow attributesRecord!
+    field protected DataRow attributesRecord!
     
     rem the allowed filter fields
-    field private DataRow allowedFilterFields!
+    field protected DataRow allowedFilterFields!
     
     rem the requested custom method
-    field private String requestedCustomMethod!
+    field protected String requestedCustomMethod!
     
     rem the requested custom method return value name
-    field private String requestedCustomMethodReturnValueName!
+    field protected String requestedCustomMethodReturnValueName!
     
     method public BBjVector getTrailingRoutesList()
         declare BBjVector extensionList!
