@@ -5,7 +5,9 @@ VERSION "4.0"
 WINDOW 101 "REST Endpoint Configuration" 200 200 800 464
 BEGIN
     EVENTMASK 0
+    NOT MAXIMIZABLE
     NAME "Window101"
+    NOT SIZABLE
     STATICTEXT 100, "Mapping:", 375, 25, 115, 25
     BEGIN
         NAME "Static Text100"
@@ -204,13 +206,6 @@ BEGIN
         NOT WORDWRAP
     END
 
-    LISTBUTTON 129, "default\nUS-ASCII\nISO-8859-1\nUTF-8\nUTF-16BE\nUTF-16LE\nUTF-16\n", 500, 140, 150, 150
-    BEGIN
-        GROUP
-        NAME "lbDefaultCharset"
-        SELECTIONHEIGHT 25
-    END
-
     STATICTEXT 130, "Adapter Term: ", 375, 175, 115, 25
     BEGIN
         NAME "Static Text105"
@@ -271,6 +266,14 @@ BEGIN
     TREE 139, 20, 20, 320, 385
     BEGIN
         NAME "treeContext"
+    END
+
+    LISTEDIT 140, "", 500, 140, 150, 150
+    BEGIN
+        NAME "leDefaultCharset"
+        SELECTIONHEIGHT 25
+        SPELLCHECKED
+        NOT DRAGENABLED
     END
 
 END

@@ -1,5 +1,8 @@
 use java.io.File
 use java.util.HashMap
+use java.util.Scanner
+use java.io.FileWriter
+use com.basiscomponents.db.constants.SimpleConstantsResolver
 
 use ::RestBridge/cfg/ContextNameInputWindow.bbj::ContextNameInputWindow
 use ::RestBridge/cfg/RestBridgeConfigurator.bbj::RestBridgeConfigurator
@@ -45,7 +48,7 @@ class public RestBridgeConfigurationWindow
     field private BBjButton btnBrowseInputHandler!
     field private BBjButton btnBrowseOutputHandler!
 
-    field private BBjListButton lbDefaultCharset!
+    field private BBjListEdit leDefaultCharset!
     
     field private BBjAdmin admin!
 
@@ -153,7 +156,8 @@ class public RestBridgeConfigurationWindow
         #btnRemoveBridge!.setCallback(BBjButton.ON_BUTTON_PUSH,#this!,"removeBridge")
         #btnRemoveBridge!.setEnabled(0)
 
-        #lbDefaultCharset! = #window!.getListButton("lbDefaultCharset")
+        #leDefaultCharset! = #window!.getListEdit("leDefaultCharset")
+        #fillListEdit()
         
         #treeContext! = #window!.getTree("treeContext")
         #treeContext!.setSelectionMode(BBjTree.SINGLE_TREE_SELECTION)
@@ -164,6 +168,18 @@ class public RestBridgeConfigurationWindow
         #window!.setCallback(BBjAPI.ON_CLOSE, #this!, "closeWindow")
 
         #updateUI()
+    methodend
+    
+    method public void fillListEdit()
+        #leDefaultCharset!.addItem(INFO(1,2))
+        #leDefaultCharset!.addItem("US-ASCII")
+        #leDefaultCharset!.addItem("ISO-8859-1")
+        #leDefaultCharset!.addItem("UTF-8")
+        #leDefaultCharset!.addItem("UTF-16BE")
+        #leDefaultCharset!.addItem("UTF-16LE")
+        #leDefaultCharset!.addItem("UTF-16")
+        
+        #leDefaultCharset!.selectIndex(0)
     methodend
 
     method public void show()
@@ -244,7 +260,7 @@ class public RestBridgeConfigurationWindow
         #btnBrowseInputHandler!.setEnabled(enable!)
         #btnBrowseOutputHandler!.setEnabled(enable!)
         #inpeAdapterTerm!.setEnabled(enable!)
-        #lbDefaultCharset!.setEnabled(enable!)
+        #leDefaultCharset!.setEnabled(enable!)
         #chbUseGetAllowedFilters!.setEnabled(enable!)
         #btnSave!.setEnabled(enable!)
     methodend
@@ -270,6 +286,11 @@ class public RestBridgeConfigurationWindow
             #setAuthProgramPath(servlet!.getParameter("REST_AUTHPGM"))
             #setRequestLogPath(servlet!.getParameter("REST_REQUESTLOG"))
             #setConfigFilePath(servlet!.getConfig())
+            ?"Servlet Config: "+ str(servlet!.getConfig())
+            #setInputHandlerPath(servlet!.getParameter("REST_INPUT_HANDLER"))
+            #setOutputHandlerPath(servlet!.getParameter("REST_OUTPUT_HANDLER"))
+            #setAdapterTerm(servlet!.getParameter("REST_ADAPTERTERM"))
+            #setCharset(servlet!.getParameter("REST_DEFAULT_CHARSET"))
 
             error = 1; #setUseGetAllowedFilters(num(servlet!.getParameter("USE_GET_ALLOWED_FILTER")),err=*next); error = 0
             if error = 1 then #setUseGetAllowedFilters(0)
@@ -602,8 +623,8 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method public void previewCode(BBjButtonPushEvent e!)
-
-        #prevWindow! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), #window!.getX(), #window!.getY(),#window!.getWidth()+100,#window!.getHeight(), "Codepreview", $00000002$)
+        #prevWindow! = #sysGui!.addWindow(#sysGui!.getAvailableContext(), #window!.getX(), #window!.getY(),#window!.getWidth()+100,#window!.getHeight(), "Codepreview")
+        #prevWindow!.setCallback(#prevWindow!.ON_RESIZE, #this!, "onPreviewResize")
         #opend! = Boolean.TRUE
         #prevWindow!.setCallback(BBjWindow.ON_KEYPRESS,#this!,"windowKeypressEvent")
         #window!.setEnabled(0)
@@ -625,75 +646,45 @@ class public RestBridgeConfigurationWindow
 
         #prevWindow!.setCallback(BBjAPI.ON_CLOSE, #this!,"closePrevWindow")
 
-        #previewField!.setText(#assembleCode())
+        #previewField!.setText(#getConfigCode())
+    methodend
+    
+    method public void onPreviewResize(BBjResizeEvent ev!)
+        #previewField!.setSize(ev!.getWidth(), ev!.getHeight() - 45)
     methodend
 
-    method private String assembleCode()
-        declare java.lang.StringBuilder builder!
-        builder! = new java.lang.StringBuilder()
-
-        builder!.append("use java.io.File"+$0A$+$0A$)
-        builder!.append("declare File restBridgeFile!"+$0A$)
-        builder!.append("declare File directory!"+$0A$)
-        builder!.append("declare File adapterProgram!"+$0A$)
-        builder!.append("declare BBjAdmin admin!"+$0A$)
-        builder!.append("declare BBjJettyContextConfiguration contextConf!"+$0A$)
-        builder!.append("declare BBjJettyServerConfiguration serverconfig!"+$0A$)
-        builder!.append("declare BBjspServletConfiguration bridgeConf!"+$0A$+$0A$)
-        builder!.append("declare String user!"+$0A$)
-        builder!.append("declare String password!"+$0A$)
-        builder!.append("declare String contextName!"+$0A$)
-        builder!.append("declare String bridgeName!"+$0A$)
-        builder!.append("declare String configFilePath!"+$0A$)
-        builder!.append("declare String timeOut!"+$0A$)
-        builder!.append("declare String workingDirectory!"+$0A$)
-        builder!.append("declare String authPgm!"+$0A$)
-        builder!.append("declare String preffix!"+$0A$)
-        builder!.append("declare String suffix!"+$0A$)
-        builder!.append("declare String useGetAllowedFilter!"+$0A$)
-        builder!.append("declare String requestLogPath!"+$0A$+$0A$)
-        builder!.append("user! = """"" +$0A$)
-        builder!.append("password! = """""+$0A$)
-        builder!.append("contextName! = """+#selected!.getName()+""""+$0A$)
-        builder!.append("bridgeName! = """+#selectedBridge!.getMapping()+""""+$0A$)
-        builder!.append("configFilePath! = """+#getConfigFilePath()+""""+$0A$)
-        builder!.append("timeOut! = """+str(#getTimeout())+""""+$0A$)
-        builder!.append("workingDirectory! = """+#getWorkingDirectoryPath()+""""+$0A$)
-        builder!.append("authPgm! = """+#getAuthProgramPath()+""""+$0A$)
-        builder!.append("preffix! = """+#getProgramPrefix()+""""+$0A$)
-        builder!.append("suffix! = """+#getProgramSuffix()+""""+$0A$)
-        builder!.append("useGetAllowedFilter! = """+str(#useGetAllowedFilters())+""""+$0A$)
-        builder!.append("requestLogPath! = """+#getRequestLogPath()+""""+$0A$+$0A$)
-        builder!.append("inputHandler! = """+#getInputHandler()+""""+$0A$)
-        builder!.append("outputHandler! = """+#getOutputHandler()+""""+$0A$)
-        builder!.append("adapterTerm! = """+#getAdapterTerm()+""""+$0A$)
-        builder!.append("charset! = """+#getCharset()+""""+$0A$)
-        builder!.append("admin! = BBjAPI().getAdmin(user!,password!)"+$0A$)
-        builder!.append("serverConfig! = admin!.getJettyServerConfig()"+$0A$)
-        builder!.append("directory! = new File(dsk("""") + dir(""""))"+$0A$+$0A$)
-        builder!.append("REM Creating a new Context with default DocBase and a WelcomeFile"+$0A$)
-        builder!.append("contextConf! = serverConfig!.createCustomContext(contextName!)"+$0A$)
-        builder!.append("contextConf!.setDocBase(""$basis_home/htdocs"")"+$0A$)
-        builder!.append("contextConf!.addWelcomeFile(""index.html"")"+$0A$)
-        builder!.append("contextConf!.setPath(""/"" + contextName!)"+$0A$)
-        builder!.append("serverConfig!.saveConfig()"+$0A$+$0A$)
-        builder!.append("restBridgeFile! = new File(directory!.getParentFile(),""RestBridge.bbj"")"+$0A$)
-        builder!.append("bridgeConf! = contextConf!.addBBjspServlet(""RestBridge"",bridgeName!,restBridgeFile!.getAbsolutePath())"+$0A$+$0A$)
-        builder!.append("bridgeConf!.setConfig(configFilePath!)"+$0A$)
-        builder!.append("adapterProgram! = new File(directory!.getParentFile(),""RestBCAdapter.bbj"")"+$0A$+$0A$)
-        builder!.append("REM Here you can add Parameter to your Birdge."+$0A$)
-        builder!.append("bridgeConf!.addParam(""REST_ADAPTERPGM"", adapterProgram!.getAbsolutePath())"+$0A$)
-        builder!.append("bridgeConf!.addParam(""REST_ADAPTERTERM"", ""IO"")"+$0A$)
-        builder!.append("bridgeConf!.addParam(""REST_TIMEOUT"",timeOut!)"+$0A$)
-        builder!.append("bridgeConf!.addParam(""REST_WD"",workingDirectory!)"+$0A$)
-        builder!.append("bridgeConf!.addParam(""REST_AUTHPGM"",authpgm!)"+$0A$)
-        builder!.append("bridgeConf!.addParam(""REST_PGM_PREFIX"",preffix!)"+$0A$)
-        builder!.append("bridgeConf!.addParam(""REST_PGM_SUFFIX"",suffix!)"+$0A$)
-        builder!.append("bridgeConf!.addParam(""USE_GET_ALLOWED_FILTER"",useGetAllowedFilter!)"+$0A$)
-        builder!.append("bridgeConf!.addParam(""REST_REQUESTLOG"",requestLogPath!)"+$0A$)
-        builder!.append("serverConfig!.saveConfig()"+$0A$)
-
-        methodret builder!.toString()
+    method private String getConfigCode()
+        declare File file!
+        file! = new File(DIR("") + "RestBridge/res/ConfigFile.txt")
+        
+        declare Scanner scan!
+        scan! = new Scanner(file!)
+        
+        string! = ""
+        while(scan!.hasNextLine())
+            string! = string! + scan!.nextLine() + System.getProperty("line.separator")
+        wend
+        
+        declare SimpleConstantsResolver scr!
+        scr! = new SimpleConstantsResolver()
+        scr!.put("CONTEXTNAME", #selected!.getName())
+        scr!.put("BRIDGENAME", #selectedBridge!.getMapping())
+        scr!.put("CONFIGFILEPATH", #getConfigFilePath())
+        scr!.put("TIMEOUT",str(#getTimeout()))
+        scr!.put("WORKINGDIRECTORYPATH", #getWorkingDirectoryPath())
+        scr!.put("AUTHPROGRAMPATH",#getAuthProgramPath())
+        scr!.put("PREFIX", #getProgramPrefix())
+        scr!.put("SUFFIX", #getProgramSuffix())
+        scr!.put("USEGETALLOWEDFILTERS", str(#useGetAllowedFilters()))
+        scr!.put("REQUESTLOGPATH", #getRequestLogPath())
+        scr!.put("INPUTHANDLER", #getInputHandler())
+        scr!.put("OUTPUTHANDLER", #getOutputHandler())
+        scr!.put("ADAPTERTERM", #getAdapterTerm())
+        scr!.put("CHARSET", #getCharset())
+        
+        declare String res!
+        res! = scr!.resolveConstants(string!)
+        methodret res!
     methodend
 
     method public void okOnClick(BBjButtonPushEvent e!)
@@ -710,7 +701,15 @@ class public RestBridgeConfigurationWindow
     methodend
     
     method public void onClickSaveAs(BBjButtonPushEvent e!)
-        FILE_NAME$=FILESAVE("Save File","","Restconfig","txt",FILTER$)
+        FILE_NAME$=FILESAVE("Save File As...",DIR(""),"Restconfig","bbj")
+
+        declare File file!
+        file! = new File(FILE_NAME$)
+
+        declare FileWriter fw!
+        fw! = new FileWriter(FILE_NAME$)
+        fw!.write(#previewField!.getText())
+        fw!.close()
     methodend
     
     rem /**
@@ -734,7 +733,7 @@ class public RestBridgeConfigurationWindow
     method public void setMapping(String mapping!)
         #inpeMapping!.setText(mapping!)
     methodend
-
+    
     method public String getProgramPrefix()
         methodret #inpeProgramPrefix!.getText()
     methodend
@@ -763,12 +762,12 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method public void setConfigFilePath(String path!)
-        if (path! = null()) then
-            path! = ""
+        if (path! = "") then
+            path! = BBjAPI().getConfig().getConfigFileName()
         endif
         #inpeConfigFile!.setText(path!)
     methodend
-
+    
     method public String getWorkingDirectoryPath()
         methodret #inpeWorkingDirectory!.getText()
     methodend
@@ -786,12 +785,55 @@ class public RestBridgeConfigurationWindow
 
     method public void setAuthProgramPath(String path!)
         if (path! = null()) then
-            path! = ""
+            path! = dsk("") + DIR("") + "RestBridge/res/ConfigFile.txt"
         endif
 
         #inpeAuthProgram!.setText(path!)
     methodend
+    
+    method public void setInputHandlerPath(String path!)
+        if (path! = null()) then
+            path! = ""
+        endif
+        
+        #inpeInputHandler!.setText(path!)
+    methodend
+    
+    method public void setOutputHandlerPath(String path!)
+        if (path! = null()) then
+            path! = ""
+        endif
 
+        #inpeOutputHandler!.setText(path!)
+    methodend
+    
+    method public void setAdapterTerm(String string!)
+        if (string! = null()) then
+            string! = ""
+        endif
+        
+        #inpeAdapterTerm!.setText(string!)
+    methodend
+    
+    method public void setCharset(String charset!)
+        if (charset! = null()) then
+            charset! = ""
+            #leDefaultCharset!.selectIndex(0)
+            methodret
+        endif
+        
+        i% = 0
+        WHILE (i% < #leDefaultCharset!.getAllItems().size() - 1)
+            if (#leDefaultCharset!.getItemAt(i%) = charset!) then
+                break
+            endif
+            
+            i% = i% + 1
+        WEND
+        
+        #leDefaultCharset!.selectIndex(i%)
+    methodend
+    
     method public Boolean useGetAllowedFilters()
         methodret #chbUseGetAllowedFilters!.isSelected()
     methodend
@@ -821,7 +863,7 @@ class public RestBridgeConfigurationWindow
     methodend
     
     method public String getCharset()
-        methodret #lbDefaultCharset!.getText()
+        methodret #leDefaultCharset!.getText()
     methodend
     
     method public void setRequestLogPath(String path!)
