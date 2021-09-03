@@ -73,8 +73,9 @@ class public RestBridgeConfigurationWindow
 
     method private void init()
         #sysGui! = BBjAPI().openSysGui("X0")
-        resID = #sysGui!.resOpen("RestBridge/res/RestBridge.arc")
+        resID = #sysGui!.resOpen("RestBridge/cfg/RestBridge.arc")
         #window! = #sysGui!.createTopLevelWindow(resID, 101)
+        #window!.setEnterAsTab(1)
 
         #inpeMapping! = #window!.getInputE("inpeMapping")
         #inpeMapping!.setEnabled(0)
@@ -286,7 +287,6 @@ class public RestBridgeConfigurationWindow
             #setAuthProgramPath(servlet!.getParameter("REST_AUTHPGM"))
             #setRequestLogPath(servlet!.getParameter("REST_REQUESTLOG"))
             #setConfigFilePath(servlet!.getConfig())
-            ?"Servlet Config: "+ str(servlet!.getConfig())
             #setInputHandlerPath(servlet!.getParameter("REST_INPUT_HANDLER"))
             #setOutputHandlerPath(servlet!.getParameter("REST_OUTPUT_HANDLER"))
             #setAdapterTerm(servlet!.getParameter("REST_ADAPTERTERM"))
@@ -452,17 +452,23 @@ class public RestBridgeConfigurationWindow
             name! = name!.replaceAll(" ","")
 
             buffer! = System.getProperty("basis.BBjHome") + "\plugins\RestBridge\authenticate.bbj"
+
             bbjHome! = new File(buffer!)
-            auth! = bbjHome!.getAbsolutePath().replaceAll("\\|\/", java.io.File.separator,err=*next)
+            auth! = bbjHome!.getAbsolutePath().replaceAll("\|/", java.io.File.separator,err=*next)
 
             params! = new HashMap()
             params!.put("REST_TIMEOUT","1000")
             params!.put("REST_WD", "")
+
             params!.put("REST_AUTHPGM",auth!)
             params!.put("REST_PGM_PREFIX","")
             params!.put("REST_PGM_SUFFIX",".bbj")
             params!.put("USE_GET_ALLOWED_FILTER","0")
             params!.put("REST_REQUESTLOG","")
+            params!.put("REST_INPUT_HANDLER", "")
+            params!.put("REST_OUTPUT_HANDLER", "")
+            params!.put("REST_ADAPTERTERM", "IO")
+            params!.put("REST_DEFAULT_CHARSET", INFO(1,2))
 
             if (#selected!.getBridge(name!) = null()) then
                 #configurate!.configureRestBridge(#selected!.getName(),name!,params!,"")
@@ -655,7 +661,7 @@ class public RestBridgeConfigurationWindow
 
     method private String getConfigCode()
         declare File file!
-        file! = new File(DIR("") + "RestBridge/res/ConfigFile.txt")
+        file! = new File(DIR("") + "RestBridge/cfg/ConfigFile.txt")
         
         declare Scanner scan!
         scan! = new Scanner(file!)
@@ -694,22 +700,33 @@ class public RestBridgeConfigurationWindow
 
         BBjAPI().postCustomEvent("CloseWindowEvent", "")
     methodend
-
+    
+    rem /**
+    rem  * Copy Config Code to Clipboard.
+    rem  */
     method public void onClickCopy(BBjButtonPushEvent e!)
         CLIPFROMSTR 1, #previewField!.getText()
-        methodret
     methodend
     
+    rem /** 
+    rem  * Saves the Code as an actual Config to run.
+    rem  */
     method public void onClickSaveAs(BBjButtonPushEvent e!)
         FILE_NAME$=FILESAVE("Save File As...",DIR(""),"Restconfig","bbj")
 
         declare File file!
-        file! = new File(FILE_NAME$)
+        file! = new File(FILE_NAME!)
 
         declare FileWriter fw!
-        fw! = new FileWriter(FILE_NAME$)
+        fw! = new FileWriter(FILE_NAME!)
+        
+        setErr Error
         fw!.write(#previewField!.getText())
         fw!.close()
+        M=MSGBOX("Save successfull. admin! und user! have to be set before launching the Code!")
+        
+        Error:
+            M=MSGBOX("Error occured. File couldn't be saved to " + FILE_NAME!.replace("Restconfig.bbj", ""))
     methodend
     
     rem /**
@@ -724,8 +741,7 @@ class public RestBridgeConfigurationWindow
     method public void setTimeout(BBjInt timeout%)
         #inpnTimeout!.setValue(timeout%)
     methodend
-
-
+    
     method public String getMapping()
         methodret #inpeMapping!.getText()
     methodend
@@ -785,9 +801,13 @@ class public RestBridgeConfigurationWindow
 
     method public void setAuthProgramPath(String path!)
         if (path! = null()) then
-            path! = dsk("") + DIR("") + "RestBridge/res/ConfigFile.txt"
+            buffer! = System.getProperty("basis.BBjHome") + "\plugins\RestBridge\authenticate.bbj"
+            
+            declare File bbjHome!
+            bbjHome! = new File(buffer!)
+            
+            path! = bbjHome!.getAbsolutePath().replaceAll("\|/", java.io.File.separator,err=*next)
         endif
-
         #inpeAuthProgram!.setText(path!)
     methodend
     
@@ -873,5 +893,4 @@ class public RestBridgeConfigurationWindow
 
         #inpeRequestLog!.setText(path!)
     methodend
-
 classend
