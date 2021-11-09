@@ -22,19 +22,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When performing a lookup request, by default the BusinessComponent's getLookupData() method will be invoked, using the retrieveLookup() as a fallback. The retrieveLookup() method is not defined in the BusinessComponent interface, and will likely be removed in future versions.
 - DELETE Request don't need to have a body when using the correct trailing routes
 - The RestBridge attempts to invoke the write(ResultSet) / remove(ResultSet) for the POST, PUT and DELETE requests and falls back to the write(DataRow) / remove(DataRow) methods if they do not exist
-- Obfuscating the Authorization header when saving it in the REQUESTLOG file(issue #23)
+- Replacing the auth0jwt.jar usage with the nimbus.jar shipped with BBj.
 
 ### Removed
+
+### Deprecated
+
+### Fixed
+
+### Security 
+- Obfuscating the Authorization header when saving it in the REQUESTLOG file(issue #23)
 
 ## [1.10] - 2020-06-10
 
 ### Added
-- Adding **/Ping** endpoint
+- Adding **/Ping** endpoint to verify that the Endpoint is indeed reachable
 - Adding an OutputHandler class to handle the responses created by the RestBridge
 - Implementing the HMAC authentication 
 
 ### Changed
-- The RestBridge now uses UTF-8 by default
+- The RestBridge now uses the UTF-8 charset by default
 - Improved the charset conversion 
 
 ### Removed
+
+### Deprecated
+
+### Fixed
+
+### Security 
