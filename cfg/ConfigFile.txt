@@ -1,0 +1,74 @@
+use java.io.File
+declare File restBridgeFile!
+declare File directory!
+declare File adapterProgram!
+declare BBjAdmin admin!
+declare BBjJettyContextConfiguration contextConf!
+declare BBjJettyServerConfiguration serverconfig!
+declare BBjspServletConfiguration bridgeConf!
+
+user! = ""
+password! = ""
+
+if (user! = "") then
+  if (password! = "") then
+    M=MSGBOX("No Username and Password set.")
+  	bye
+  else
+    M=MSGBOX("No Username set.")
+    bye
+  endif
+else
+  if (password! = "") then
+    M=MSGBOX("No Password and Password set.")
+    bye
+  endif
+endif
+
+contextName! = "[[CONTEXTNAME]]"
+bridgeName! = "[[BRIDGENAME]]"
+configFilePath! = "[[CONFIGFILEPATH]]"
+timeOut! = "[[TIMEOUT]]"
+workingDirectory! = "[[WORKINGDIRECTORYPATH]]"
+authPgm! = "[[AUTHPROGRAMPATH]]"
+prefix! = "[[PREFIX]]"
+suffix! = "[[SUFFIX]]"
+useGetAllowedFilters! = [[USEGETALLOWEDFILTERS]]
+requestLogPath! = "[[REQUESTLOGPATH]]"
+inputHandler! = "[[INPUTHANDLER]]"
+outputHandler! = "[[OUTPUTHANDLER]]"
+adapterTerm! = "[[ADAPTERTERM]]"
+charset! = "[[CHARSET]]"
+
+admin! = BBjAPI().getAdmin(user!,password!)
+
+serverConfig! = admin!.getJettyServerConfig()
+directory! = new File(dsk("") + dir(""))
+
+REM Creating a new Context with default DocBase and a WelcomeFile
+contextConf! = serverConfig!.createCustomContext(contextName!)
+contextConf!.setDocBase("$basis_home/htdocs")
+contextConf!.addWelcomeFile("index.html")
+contextConf!.setPath("/" + contextName!)
+
+serverConfig!.saveConfig()
+
+restBridgeFile! = new File(directory!.getParentFile(),"RestBridge.bbj")
+
+bridgeConf! = contextConf!.addBBjspServlet("RestBridge",bridgeName!,restBridgeFile!.getAbsolutePath())
+bridgeConf!.setConfig(configFilePath!)
+
+adapterProgram! = new File(directory!.getParentFile(),"RestBCAdapter.bbj")
+
+REM Here you can add Parameter to your Bridge.
+bridgeConf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+bridgeConf!.addParam("REST_ADAPTERTERM", "IO")
+bridgeConf!.addParam("REST_TIMEOUT",timeOut!)
+bridgeConf!.addParam("REST_WD",workingDirectory!)
+bridgeConf!.addParam("REST_AUTHPGM",authpgm!)
+bridgeConf!.addParam("REST_PGM_PREFIX",prefix!)
+bridgeConf!.addParam("REST_PGM_SUFFIX",suffix!)
+bridgeConf!.addParam("USE_GET_ALLOWED_FILTER",useGetAllowedFilter!)
+bridgeConf!.addParam("REST_REQUESTLOG",requestLogPath!)
+
+serverConfig!.saveConfig()
