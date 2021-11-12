@@ -61,14 +61,56 @@ bridgeConf!.setConfig(configFilePath!)
 adapterProgram! = new File(directory!.getParentFile(),"RestBCAdapter.bbj")
 
 REM Here you can add Parameter to your Bridge.
-bridgeConf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
-bridgeConf!.addParam("REST_ADAPTERTERM", "IO")
-bridgeConf!.addParam("REST_TIMEOUT",timeOut!)
-bridgeConf!.addParam("REST_WD",workingDirectory!)
-bridgeConf!.addParam("REST_AUTHPGM",authpgm!)
-bridgeConf!.addParam("REST_PGM_PREFIX",prefix!)
-bridgeConf!.addParam("REST_PGM_SUFFIX",suffix!)
-bridgeConf!.addParam("USE_GET_ALLOWED_FILTER",useGetAllowedFilter!)
-bridgeConf!.addParam("REST_REQUESTLOG",requestLogPath!)
+if !timeOut!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_TIMEOUT",timeOut!.trim())
+endif
+
+if !workingDirectory!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_WD",workingDirectory!.trim())
+endif
+
+if !authpgm!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_AUTHPGM",authpgm!)
+endif
+
+if !prefix!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_PGM_PREFIX",prefix!)
+endif
+
+if !suffix!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_PGM_SUFFIX",suffix!)
+endif
+
+if !useGetAllowedFilter!.trim().isEmpty() then
+	bridgeConf!.addParam("USE_GET_ALLOWED_FILTER",useGetAllowedFilter!)
+endif
+
+if !requestLogPath!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_REQUESTLOG",requestLogPath!.trim())
+endif
+
+if !requestLogPath!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_REQUESTLOG",requestLogPath!.trim())
+endif
+
+if !inputHandler!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_REQUESTLOG",inputHandler!.trim())
+endif
+
+if !outputHandler!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_REQUESTLOG",outputHandler!.trim())
+endif
+
+if !adapterTerm!.trim().isEmpty() then
+	bridgeConf!.addParam("REST_ADAPTERTERM", adapterTerm!.trim())
+endif
+
+if !charset!.trim().isEmpty then
+	bridgeConf!.addParam("REST_DEFAULT_CHARSET", charset!.trim())
+endif
+
+if adapterProgram!.exists() then
+	bridgeConf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+endif
 
 serverConfig!.saveConfig()

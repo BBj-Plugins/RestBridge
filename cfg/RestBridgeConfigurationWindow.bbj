@@ -678,16 +678,16 @@ class public RestBridgeConfigurationWindow
         scr! = new SimpleConstantsResolver()
         scr!.put("CONTEXTNAME", #selected!.getName())
         scr!.put("BRIDGENAME", #selectedBridge!.getMapping())
-        scr!.put("CONFIGFILEPATH", #getConfigFilePath())
+        scr!.put("CONFIGFILEPATH", #getConfigFilePath().replace("\", "\\"))
         scr!.put("TIMEOUT",str(#getTimeout()))
-        scr!.put("WORKINGDIRECTORYPATH", #getWorkingDirectoryPath())
-        scr!.put("AUTHPROGRAMPATH",#getAuthProgramPath())
+        scr!.put("WORKINGDIRECTORYPATH", #getWorkingDirectoryPath().replace("\", "\\"))
+        scr!.put("AUTHPROGRAMPATH",#getAuthProgramPath().replace("\", "\\"))
         scr!.put("PREFIX", #getProgramPrefix())
         scr!.put("SUFFIX", #getProgramSuffix())
         scr!.put("USEGETALLOWEDFILTERS", str(#useGetAllowedFilters()))
-        scr!.put("REQUESTLOGPATH", #getRequestLogPath())
-        scr!.put("INPUTHANDLER", #getInputHandler())
-        scr!.put("OUTPUTHANDLER", #getOutputHandler())
+        scr!.put("REQUESTLOGPATH", #getRequestLogPath().replace("\", "\\"))
+        scr!.put("INPUTHANDLER", #getInputHandler().replace("\", "\\"))
+        scr!.put("OUTPUTHANDLER", #getOutputHandler().replace("\", "\\"))
         scr!.put("ADAPTERTERM", #getAdapterTerm())
         scr!.put("CHARSET", #getCharset())
         
@@ -715,7 +715,7 @@ class public RestBridgeConfigurationWindow
     rem  * Saves the Code as an actual Config to run.
     rem  */
     method public void onClickSaveAs(BBjButtonPushEvent e!)
-        FILE_NAME$=FILESAVE("Save File As...",DIR(""),"Restconfig","bbj")
+        FILE_NAME!=FILESAVE("Save File As...",DIR(""),"Restconfig","bbj")
 
         declare File file!
         file! = new File(FILE_NAME!)
@@ -727,6 +727,8 @@ class public RestBridgeConfigurationWindow
         fw!.write(#previewField!.getText())
         fw!.close()
         M=MSGBOX("Save successfull. admin! und user! have to be set before launching the Code!")
+        
+        methodret
         
         Error:
             M=MSGBOX("Error occured. File couldn't be saved to " + FILE_NAME!.replace("Restconfig.bbj", ""))
