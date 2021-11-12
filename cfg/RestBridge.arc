@@ -20,7 +20,6 @@ BEGIN
         NAME "inpeMapping"
         PADCHARACTER 32
         NOT TABTRAVERSABLE
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -50,7 +49,6 @@ BEGIN
         GROUP
         NAME "inpeProgramPrefix"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -65,7 +63,6 @@ BEGIN
         GROUP
         NAME "inpeProgramSuffix"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -80,7 +77,6 @@ BEGIN
         GROUP
         NAME "inpeAdapterTerm"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -94,7 +90,6 @@ BEGIN
     BEGIN
         NAME "leDefaultCharset"
         SELECTIONHEIGHT 25
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -115,7 +110,6 @@ BEGIN
         GROUP
         NAME "inpeConfigFile"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -136,7 +130,6 @@ BEGIN
         GROUP
         NAME "inpeWorkingDirectory"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -157,7 +150,6 @@ BEGIN
         GROUP
         NAME "inpeAuthProgram"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -178,7 +170,6 @@ BEGIN
         GROUP
         NAME "inpeRequestLog"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -199,7 +190,6 @@ BEGIN
         GROUP
         NAME "inpeInputHandler"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -220,7 +210,6 @@ BEGIN
         GROUP
         NAME "inpeOutputHandler"
         PADCHARACTER 32
-        SPELLCHECKED
         NOT DRAGENABLED
     END
 
@@ -278,4 +267,3 @@ BEGIN
     END
 
 END
-
