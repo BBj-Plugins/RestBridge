@@ -58,7 +58,7 @@ BEGIN
         NOT WORDWRAP
     END
 
-    INPUTE 108, "", 500, 110, 150, 25
+    INPUTE 108, "", 500, 111, 150, 25
     BEGIN
         GROUP
         NAME "inpeProgramSuffix"
@@ -66,30 +66,30 @@ BEGIN
         NOT DRAGENABLED
     END
 
-    STATICTEXT 109, "Adapter Term: ", 375, 175, 115, 25
+    STATICTEXT 109, "Default Charset:", 375, 145, 115, 25
     BEGIN
         NAME "Static Text105"
         NOT WORDWRAP
     END
 
-    INPUTE 110, "", 500, 170, 150, 25
+    LISTEDIT 110, "", 500, 140, 150, 150
+    BEGIN
+        NAME "leDefaultCharset"
+        SELECTIONHEIGHT 25
+        NOT DRAGENABLED
+    END
+
+    STATICTEXT 111, "Adapter Term: ", 375, 175, 115, 25
+    BEGIN
+        NAME "Static Text105"
+        NOT WORDWRAP
+    END
+
+    INPUTE 112, "", 500, 170, 150, 25
     BEGIN
         GROUP
         NAME "inpeAdapterTerm"
         PADCHARACTER 32
-        NOT DRAGENABLED
-    END
-
-    STATICTEXT 111, "Default Charset:", 375, 145, 115, 25
-    BEGIN
-        NAME "Static Text105"
-        NOT WORDWRAP
-    END
-
-    LISTEDIT 112, "", 500, 140, 150, 150
-    BEGIN
-        NAME "leDefaultCharset"
-        SELECTIONHEIGHT 25
         NOT DRAGENABLED
     END
 
@@ -267,3 +267,4 @@ BEGIN
     END
 
 END
+
