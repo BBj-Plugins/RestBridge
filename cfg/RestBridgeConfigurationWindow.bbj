@@ -670,6 +670,7 @@ class public RestBridgeConfigurationWindow
         while(scan!.hasNextLine())
             string! = string! + scan!.nextLine() + System.getProperty("line.separator")
         wend
+        scan!.close()
         
         declare SimpleConstantsResolver scr!
         scr! = new SimpleConstantsResolver()
