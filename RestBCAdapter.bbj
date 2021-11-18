@@ -388,9 +388,9 @@ REM                 endif
                         response!.put("errorcode",str(err))
                         response!.put("errormsg",errmes(-1))
                     else
-                        rs!.addItem(row!)
+                        rs!.addItem(dr!)
                         
-                        created! = row!.getAttribute("CREATED")
+                        created! = dr!.getAttribute("CREATED")
                         if !errorOccurred then
                             if created! <> null() and created!.equals("true") then
                                 response!.put("statuscode","201")
