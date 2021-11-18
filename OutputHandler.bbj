@@ -30,20 +30,20 @@ rem  */
 class public OutputHandler
 
     rem defines whether the RESTBridge is running in Debug mode
-    field private BBjNumber debug
+    field protected BBjNumber debug
     
-    field private String charset!
+    field protected String charset!
     
     rem The ResultSet to be converted
-    field private ResultSet rs!
+    field protected ResultSet rs!
     
-    field private HashMap invokeResult!
+    field protected HashMap invokeResult!
     
     rem The actual request object which contains infromation about the client request
-    field private BBjspWebRequest request!
+    field protected BBjspWebRequest request!
     
     rem The actual response object used to write the response  
-    field private BBjspWebResponse response!
+    field protected BBjspWebResponse response!
 
     rem /**
     rem  * The default constructor used to create an instance of the OutputHandler.
