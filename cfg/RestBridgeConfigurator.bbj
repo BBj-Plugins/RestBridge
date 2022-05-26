@@ -157,9 +157,15 @@ class public RestBridgeConfigurator
 
         declare File adapterProgram!
         adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
-        conf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
-        conf!.addParam("REST_ADAPTERTERM", "IO")
-
+        
+        if params!.get("REST_ADAPTERPGM") = null() then
+            conf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+        endif
+        
+        if params!.get("REST_ADAPTERTERM") = null() then
+            conf!.addParam("REST_ADAPTERTERM", "IO")
+        endif 
+         
         declare Iterator it!
         it! = params!.entrySet().iterator()
         while(it!.hasNext())
