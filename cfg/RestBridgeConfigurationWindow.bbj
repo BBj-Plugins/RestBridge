@@ -297,11 +297,11 @@ class public RestBridgeConfigurationWindow
 
     methodend
 
-    method private BBjspServletConfiguration reciveBridgeInformation()
-        declare BBjspServletConfiguration servlet!
+    method private BBxServlet reciveBridgeInformation()
+        declare BBxServlet servlet!
 
         if (!(#selectedBridge! = null()) AND !(#selected! = null())) then
-            servlet! = #configurate!.getBBjspServlet(#selected!.getName(),#selectedBridge!.getMapping())
+            servlet! = #configurate!.getBBxServlet(#selected!.getName(),#selectedBridge!.getMapping())
         else
             methodret null()
         endif
@@ -331,7 +331,7 @@ class public RestBridgeConfigurationWindow
     methodend
 
     method private void updateUI()
-        declare BBjspServletConfiguration servlet!
+        declare BBxServlet servlet!
 
         servlet! = #reciveBridgeInformation()
         if (servlet! <> null()) then
@@ -575,7 +575,7 @@ class public RestBridgeConfigurationWindow
     method public void loadTree()
         declare BBjVector vector!
         declare BBjVector vector2!
-        declare BBjspServletConfiguration bbjspServletConfiguration!
+        declare BBxServlet bbxServletConfiguration!
 
         #contexts!.clear()
 
@@ -590,16 +590,16 @@ class public RestBridgeConfigurationWindow
 
             #treeContext!.addExpandableNode(#node!,parent,vector!.getItem(i).toString())
             #contexts!.add(new Context(vector!.getItem(i).toString(),#node!))
-            vector2! = #admin!.getJettyServerConfig().getCustomContext(vector!.getItem(i).toString()).getBBjspServlets()
+            vector2! = #admin!.getJettyServerConfig().getCustomContext(vector!.getItem(i).toString()).getBBxServlets()
             branch_node! = #node!
             if vector2!.size() > 0 then
                 for y=0 to vector2!.size()-1
-                    bbjspServletConfiguration! = cast(BBjspServletConfiguration ,vector2!.getItem(y))
-                    if bbjspServletConfiguration!.getClassName() = "RestBridge" then
+                    bbxServletConfiguration! = cast(BBxServlet ,vector2!.getItem(y))
+                    if bbxServletConfiguration!.getClassName() = "RestBridge" then
                         #node! = #node!+1
-                        #treeContext!.addNode(#node!,branch_node!,bbjspServletConfiguration!.getMapping())
+                        #treeContext!.addNode(#node!,branch_node!,bbxServletConfiguration!.getMapping())
                         buffer! = cast(Context,#contexts!.get(i))
-                        buffer!.addBridge(new Bridge(bbjspServletConfiguration!.getMapping(),#node!))
+                        buffer!.addBridge(new Bridge(bbxServletConfiguration!.getMapping(),#node!))
                     endif
                 next y
             endif
@@ -696,7 +696,7 @@ class public RestBridgeConfigurationWindow
         builder!.append("declare BBjAdmin admin!"+$0A$)
         builder!.append("declare BBjJettyContextConfiguration contextConf!"+$0A$)
         builder!.append("declare BBjJettyServerConfiguration serverconfig!"+$0A$)
-        builder!.append("declare BBjspServletConfiguration bridgeConf!"+$0A$+$0A$)
+        builder!.append("declare BBxServlet bridgeConf!"+$0A$+$0A$)
         builder!.append("declare String user!"+$0A$)
         builder!.append("declare String password!"+$0A$)
         builder!.append("declare String contextName!"+$0A$)
@@ -731,7 +731,7 @@ class public RestBridgeConfigurationWindow
         builder!.append("contextConf!.setPath(""/"" + contextName!)"+$0A$)
         builder!.append("serverConfig!.saveConfig()"+$0A$+$0A$)
         builder!.append("restBridgeFile! = new File(directory!.getParentFile(),""RestBridge.bbj"")"+$0A$)
-        builder!.append("bridgeConf! = contextConf!.addBBjspServlet(""RestBridge"",bridgeName!,restBridgeFile!.getAbsolutePath())"+$0A$+$0A$)
+        builder!.append("bridgeConf! = contextConf!.addBBxServlet(""RestBridge"",bridgeName!,restBridgeFile!.getAbsolutePath())"+$0A$+$0A$)
         builder!.append("bridgeConf!.setConfig(configFilePath!)"+$0A$)
         builder!.append("adapterProgram! = new File(directory!.getParentFile(),""RestBCAdapter.bbj"")"+$0A$+$0A$)
         builder!.append("REM Here you can add Parameter to your Birdge."+$0A$)

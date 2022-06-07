@@ -61,7 +61,7 @@ class public RestBridgeTest
         
         #mapping! = "/rest" + str(System.currentTimeMillis()) + "/"
         
-        config! = context!.addBBjspServlet("RestBridge", #mapping! + "*", path!)
+        config! = context!.addBBxServlet("RestBridge", #mapping! + "*", path!)
         config!.addParam("REST_TIMEOUT", "100")
         config!.addParam("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
         config!.addParam("REST_WD", bcDir!.getAbsolutePath())
@@ -75,7 +75,7 @@ class public RestBridgeTest
     method public void cleanUpRestBridge()
         admin! = BBJAPI().getAdmin(#username!, #password!)
         context! = admin!.getJettyServerConfig().getRootContextInfo()
-        context!.removeBBjspServlet(#mapping! + "*")
+        context!.removeBBxServlet(#mapping! + "*")
         admin!.getJettyServerConfig().saveConfig()
     methodend
 

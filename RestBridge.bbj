@@ -18,9 +18,9 @@ class public RestBridge
 
     field public static BBjString LOGTPL$="ID:C(16*),METHOD:C(1*),START:N(1*),END:N(1*),DURATION:N(1*),ADDR:C(1*),URL:C(1*),URI:C(1*),QUERY:C(1*),HEADERS:C(1*),PARAMS:C(1*),STATUS:C(1*)"
 
-    METHOD PUBLIC void service(BBjspServletContext context!)
-        declare BBjspWebRequest request!
-        declare BBjspWebResponse response!
+    METHOD PUBLIC void service(BBxServletContext context!)
+        declare BBxServletRequest request!
+        declare BBxServletResponse response!
         
         request! = context!.getRequest()
         response! = context!.getResponse()
@@ -847,7 +847,7 @@ class public RestBridge
 
     methodend
 
-    method private BBjString logRequest(BBjspWebRequest request!)
+    method private BBjString logRequest(BBxServletRequest request!)
 
         rlog$=stbl("REST_REQUESTLOG",err=skip)
         System.out.println("Logging request into "+rlog$)
@@ -901,7 +901,7 @@ class public RestBridge
 
     methodend
 
-    method private void logResponse(BBjString id$, BBjspWebResponse response!)
+    method private void logResponse(BBjString id$, BBxServletResponse response!)
 
         if id$="" then
             methodret
@@ -931,7 +931,7 @@ class public RestBridge
 
     methodend
 
-    method private HashMap getRequestLog(BBjspWebRequest request!)
+    method private HashMap getRequestLog(BBxServletRequest request!)
 
         answer! = new HashMap()
         rs! = new ResultSet()
@@ -996,7 +996,7 @@ class public RestBridge
     rem  * @param context! The servlet context used to read the parameters defined for the RestBridge servlet
     rem  * @return a HashMap with the RestBridge parameters(=options) currenlty set.
     rem  */
-    method private static HashMap getServletParameters(BBjspServletContext context!)
+    method private static HashMap getServletParameters(BBxServletContext context!)
 
         rem the list of available parameter names
         declare BBjVector parameterNames!

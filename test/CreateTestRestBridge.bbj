@@ -11,7 +11,7 @@ path! = bbjapi().getFileSystem().resolvePath("RestBridge/RestBridge.bbj")
 directory! = new File(path!).getParent()
 bcDir! = new File(directory!, "test/example-bcs/")
 
-config! = context!.addBBjspServlet("RestBridge", "/rest_test/*", path!)
+config! = context!.addBBxServlet("RestBridge", "/rest_test/*", path!)
 config!.addParam("REST_TIMEOUT", "100")
 config!.addParam("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
 config!.addParam("REST_WD", bcDir!.getAbsolutePath())
