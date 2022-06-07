@@ -48,7 +48,7 @@ class public RestBridgeConfigurator
                     bbxServletConfiguration! = cast(BBxServlet ,bbjspConfigurationIterator!.next())
 
                     className! = bbxServletConfiguration!.getClassName()
-                    sourceName! = bbxServletConfiguration!.getSourceName()
+                    sourceName! = bbxServletConfiguration!.getSourceFile()
 
                     if(className! = "RestBridge" AND sourceName! = restBridgeFile!.getAbsolutePath()) then
                         restBridgeConfigurations!.add(contextName!)
@@ -131,7 +131,7 @@ class public RestBridgeConfigurator
             methodret
         endif
 
-        conf!.setConfig(configFilePath!)
+        conf!.setConfigFile(configFilePath!)
 
         rem Clearing the parameters
         rem This is actually a work-around for the 
@@ -140,7 +140,7 @@ class public RestBridgeConfigurator
         if ok then
             rem remove the servlet parameters
             while !conf!.getParameterNames().isEmpty()
-                conf!.clearParams()
+                conf!.clearParameters()
             wend
         endif
 
@@ -150,22 +150,22 @@ class public RestBridgeConfigurator
         if ok then
             rem remove the servlet parameters
             while !conf!.getParamaterNames().isEmpty()
-                conf!.clearParams()
+                conf!.clearParameters()
             wend
         endif
 
 
         declare File adapterProgram!
         adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
-        conf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
-        conf!.addParam("REST_ADAPTERTERM", "IO")
+        conf!.addParameter("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+        conf!.addParameter("REST_ADAPTERTERM", "IO")
 
         declare Iterator it!
         it! = params!.entrySet().iterator()
         while(it!.hasNext())
             entry! = it!.next()
             if(entry!.getValue() <> "") then
-                conf!.addParam(entry!.getKey(), entry!.getValue())
+                conf!.addParameter(entry!.getKey(), entry!.getValue())
             endif
         wend
 
@@ -203,21 +203,21 @@ class public RestBridgeConfigurator
 
         rem ClassName, Mapping, Source, Config(Optional)
         rem http://documentation.basis.com/BASISHelp/WebHelp/gridmethods4/bbjjettycontextconfiguration_addbbjspservlet.htm
-        configuration! = contextConfig!.addBBxServlet("RestBridge", mapping!, restBridgeFile!.getAbsolutePath())
+        configuration! = contextConfig!.addBBxServlet(mapping!, restBridgeFile!.getAbsolutePath(), "RestBridge", "service")
 
-        configuration!.setConfig(configFilePath!)
+        configuration!.setConfigFile(configFilePath!)
 
         declare File adapterProgram!
         adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
-        configuration!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
-        configuration!.addParam("REST_ADAPTERTERM", "IO")
+        configuration!.addParameter("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+        configuration!.addParameter("REST_ADAPTERTERM", "IO")
 
         declare Iterator it!
         it! = params!.entrySet().iterator()
         while(it!.hasNext())
             entry! = it!.next()
             if(entry!.getValue() <> "") then
-                configuration!.addParam(entry!.getKey(), entry!.getValue())
+                configuration!.addParameter(entry!.getKey(), entry!.getValue())
             endif
         wend
 
@@ -277,7 +277,7 @@ class public RestBridgeConfigurator
         it! = bbxServlets!.iterator()
         while(it!.hasNext())
             conf! = cast(BBxServlet, it!.next())
-            if(conf!.getClassName().equals("RestBridge") AND conf!.getSourceName().equals(sourceFile!.getAbsolutePath())) then
+            if(conf!.getClassName().equals("RestBridge") AND conf!.getSourceFile().equals(sourceFile!.getAbsolutePath())) then
                 restBridgeMappings!.addItem(conf!.getMapping())
             endif
         wend
