@@ -40,10 +40,10 @@ class public OutputHandler
     field protected HashMap invokeResult!
     
     rem The actual request object which contains infromation about the client request
-    field protected BBjspWebRequest request!
+    field protected BBxServletRequest request!
     
     rem The actual response object used to write the response  
-    field protected BBjspWebResponse response!
+    field protected BBxServletResponse response!
 
     rem /**
     rem  * The default constructor used to create an instance of the OutputHandler.
@@ -460,20 +460,20 @@ class public OutputHandler
     methodend
     
     rem /**
-    rem  * Set the BBjspWebRequest object to use when handling the output.
+    rem  * Set the BBxServletRequest object to use when handling the output.
     rem  * 
     rem  * @param request! The request object to use.
     rem  */
-    method public void setRequest(BBjspWebRequest request!)
+    method public void setRequest(BBxServletRequest request!)
         #request! = request!
     methodend
     
     rem /**
-    rem  * Set the BBjspWebResponse object to use when handling the output.
+    rem  * Set the BBxServletResponse object to use when handling the output.
     rem  * 
     rem  * @param response! The response object to use.
     rem  */
-    method public void setResponse(BBjspWebResponse response!)
+    method public void setResponse(BBxServletResponse response!)
         #response! = response!
     methodend
     

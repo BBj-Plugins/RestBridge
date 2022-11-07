@@ -48,20 +48,20 @@ class public RestBridgeTestConfigurator
         
         #mapping! = "/rest" + str(System.currentTimeMillis()) + "/"
         
-        config! = context!.addBBjspServlet("RestBridge", #mapping! + "*", path!)
-        config!.addParam("REST_TIMEOUT", "100")
-        config!.addParam("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
-        config!.addParam("REST_WD", bcDir!.getAbsolutePath())
-        config!.addParam("REST_PGM_SUFFIX", ".bbj")
-        config!.addParam("USE_GET_ALLOWED_FILTER", "true")
-        config!.addParam("REST_ADAPTERPGM", new File(directory!, "RestBCAdapter.bbj").getAbsolutePath())
+        config! = context!.addBBxServlet(#mapping! + "*", path!, "RestBridge", "service")
+        config!.addParameter("REST_TIMEOUT", "100")
+        config!.addParameter("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
+        config!.addParameter("REST_WD", bcDir!.getAbsolutePath())
+        config!.addParameter("REST_PGM_SUFFIX", ".bbj")
+        config!.addParameter("USE_GET_ALLOWED_FILTER", "true")
+        config!.addParameter("REST_ADAPTERPGM", new File(directory!, "RestBCAdapter.bbj").getAbsolutePath())
         admin!.getJettyServerConfig().saveConfig()
     methodend
     
     method public void removeTestRestBridge()
         admin! = BBJAPI().getAdmin(#username!, #password!)
         context! = admin!.getJettyServerConfig().getRootContextInfo()
-        context!.removeBBjspServlet(#mapping! + "*")
+        context!.removeBBxServlet(#mapping! + "*")
         admin!.getJettyServerConfig().saveConfig()
     methodend
     

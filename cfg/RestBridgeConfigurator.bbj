@@ -23,9 +23,9 @@ class public RestBridgeConfigurator
         declare BBjVector contextNames!
         declare Iterator contextNameIterator!
         declare Iterator bbjspConfigurationIterator!
-        declare BBjVector bbjspServletConfigurations!
+        declare BBjVector bbxServletConfigurations!
         declare BBjJettyContextConfiguration contextConfiguration!
-        declare BBjspServletConfiguration bbjspServletConfiguration!
+        declare BBxServlet bbxServletConfiguration!
 
         declare BBjVector restBridgeConfigurations!
         restBridgeConfigurations! = new BBjVector()
@@ -40,15 +40,15 @@ class public RestBridgeConfigurator
             contextName! = str(contextNameIterator!.next())
             contextConfiguration! = #serverConfig!.getCustomContext(contextName!)
 
-            bbjspServletConfigurations! = contextConfiguration!.getBBjspServlets()
-            if(bbjspServletConfigurations! <> null() AND !bbjspServletConfigurations!.isEmpty()) then
+            bbxServletConfigurations! = contextConfiguration!.getBBxServlets()
+            if(bbxServletConfigurations! <> null() AND !bbxServletConfigurations!.isEmpty()) then
 
-                bbjspConfigurationIterator! = bbjspServletConfigurations!.iterator()
+                bbjspConfigurationIterator! = bbxServletConfigurations!.iterator()
                 while(bbjspConfigurationIterator!.hasNext())
-                    bbjspServletConfiguration! = cast(BBjspServletConfiguration ,bbjspConfigurationIterator!.next())
+                    bbxServletConfiguration! = cast(BBxServlet ,bbjspConfigurationIterator!.next())
 
-                    className! = bbjspServletConfiguration!.getClassName()
-                    sourceName! = bbjspServletConfiguration!.getSourceName()
+                    className! = bbxServletConfiguration!.getClassName()
+                    sourceName! = bbxServletConfiguration!.getSourceFile()
 
                     if(className! = "RestBridge" AND sourceName! = restBridgeFile!.getAbsolutePath()) then
                         restBridgeConfigurations!.add(contextName!)
@@ -71,7 +71,7 @@ class public RestBridgeConfigurator
         methodret authenticationProgramFile!.getAbsolutePath()
     methodend
 
-    method public BBjspServletConfiguration getBBjspServlet(String contextName!, String mapping!)
+    method public BBxServlet getBBxServlet(String contextName!, String mapping!)
         declare BBjJettyContextConfiguration contextConf!
         contextConf! = #serverConfig!.getCustomContext(contextName!)
 
@@ -87,7 +87,7 @@ class public RestBridgeConfigurator
             methodret null()
         endif
 
-        methodret contextConf!.getBBjspServlet(mapping!)
+        methodret contextConf!.getBBxServlet(mapping!)
     methodend
 
     rem /**
@@ -100,13 +100,13 @@ class public RestBridgeConfigurator
         declare BBjJettyContextConfiguration contextConfiguration!
         contextConfiguration! = #serverConfig!.getCustomContext(contextName!)
 
-        declare BBjspServletConfiguration bbjspServlet!
-        bbjspServlet! = contextConfiguration!.getBBjspServlet(mapping!)
-        if(bbjspServlet! = null()) then
+        declare BBxServlet bbxServlet!
+        bbxServlet! = contextConfiguration!.getBBxServlet(mapping!)
+        if(bbxServlet! = null()) then
             methodret
         endif
 
-        contextConfiguration!.removeBBjspServlet(mapping!)
+        contextConfiguration!.removeBBxServlet(mapping!)
         #serverConfig!.saveConfig()
     methodend
 
@@ -124,14 +124,14 @@ class public RestBridgeConfigurator
     REM  * @param params! The HashMap with the Rest Bridge Parameters 
     REM  */
     method public void editRestBridgeConfiguration(String contextName!, String mapping!, HashMap params!, String configFilePath!)
-        declare BBjspServletConfiguration conf!
-        conf! = #getBBjspServlet(contextName!, mapping!)
+        declare BBxServlet conf!
+        conf! = #getBBxServlet(contextName!, mapping!)
 
         if(conf! = null()) then
             methodret
         endif
 
-        conf!.setConfig(configFilePath!)
+        conf!.setConfigFile(configFilePath!)
 
         rem Clearing the parameters
         rem This is actually a work-around for the 
@@ -140,7 +140,7 @@ class public RestBridgeConfigurator
         if ok then
             rem remove the servlet parameters
             while !conf!.getParameterNames().isEmpty()
-                conf!.clearParams()
+                conf!.clearParameters()
             wend
         endif
 
@@ -150,22 +150,22 @@ class public RestBridgeConfigurator
         if ok then
             rem remove the servlet parameters
             while !conf!.getParamaterNames().isEmpty()
-                conf!.clearParams()
+                conf!.clearParameters()
             wend
         endif
 
 
         declare File adapterProgram!
         adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
-        conf!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
-        conf!.addParam("REST_ADAPTERTERM", "IO")
+        conf!.addParameter("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+        conf!.addParameter("REST_ADAPTERTERM", "IO")
 
         declare Iterator it!
         it! = params!.entrySet().iterator()
         while(it!.hasNext())
             entry! = it!.next()
             if(entry!.getValue() <> "") then
-                conf!.addParam(entry!.getKey(), entry!.getValue())
+                conf!.addParameter(entry!.getKey(), entry!.getValue())
             endif
         wend
 
@@ -191,7 +191,7 @@ class public RestBridgeConfigurator
         endif
 
         rem check that the mapping is not already used by another program
-        if(contextConfig!.getBBjspServletMappings().contains(mapping!)) then
+        if(contextConfig!.getBBxServletMappings().contains(mapping!)) then
             a = msgbox("Mapping already exists!")
             methodret
         endif
@@ -199,25 +199,25 @@ class public RestBridgeConfigurator
         declare File restBridgeFile!
         restBridgeFile! = new File(#pluginDirectory!, "RestBridge.bbj")
 
-        declare BBjspServletConfiguration configuration!
+        declare BBxServlet configuration!
 
         rem ClassName, Mapping, Source, Config(Optional)
         rem http://documentation.basis.com/BASISHelp/WebHelp/gridmethods4/bbjjettycontextconfiguration_addbbjspservlet.htm
-        configuration! = contextConfig!.addBBjspServlet("RestBridge", mapping!, restBridgeFile!.getAbsolutePath())
+        configuration! = contextConfig!.addBBxServlet(mapping!, restBridgeFile!.getAbsolutePath(), "RestBridge", "service")
 
-        configuration!.setConfig(configFilePath!)
+        configuration!.setConfigFile(configFilePath!)
 
         declare File adapterProgram!
         adapterProgram! = new File(#pluginDirectory!, "RestBCAdapter.bbj")
-        configuration!.addParam("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
-        configuration!.addParam("REST_ADAPTERTERM", "IO")
+        configuration!.addParameter("REST_ADAPTERPGM", adapterProgram!.getAbsolutePath())
+        configuration!.addParameter("REST_ADAPTERTERM", "IO")
 
         declare Iterator it!
         it! = params!.entrySet().iterator()
         while(it!.hasNext())
             entry! = it!.next()
             if(entry!.getValue() <> "") then
-                configuration!.addParam(entry!.getKey(), entry!.getValue())
+                configuration!.addParameter(entry!.getKey(), entry!.getValue())
             endif
         wend
 
@@ -258,9 +258,9 @@ class public RestBridgeConfigurator
     method public BBjVector getRestBridgeMappingsForContext(String contextName!)
         declare Iterator it!
         declare File sourceFile!
-        declare BBjVector bbjspServlets!
+        declare BBjVector bbxServlets!
         declare BBjVector restBridgeMappings!
-        declare BBjspServletConfiguration conf!
+        declare BBxServlet conf!
         declare BBjJettyContextConfiguration contextConfiguration!
 
         rem get the custom context for the given context name
@@ -272,12 +272,12 @@ class public RestBridgeConfigurator
         restBridgeMappings! = new BBjVector()
 
         rem retrieve the BBJSP servlets for the custom context
-        bbjspServlets! = contextConfiguration!.getBBjspServlets()
+        bbxServlets! = contextConfiguration!.getBBxServlets()
 
-        it! = bbjspServlets!.iterator()
+        it! = bbxServlets!.iterator()
         while(it!.hasNext())
-            conf! = cast(BBjspServletConfiguration, it!.next())
-            if(conf!.getClassName().equals("RestBridge") AND conf!.getSourceName().equals(sourceFile!.getAbsolutePath())) then
+            conf! = cast(BBxServlet, it!.next())
+            if(conf!.getClassName().equals("RestBridge") AND conf!.getSourceFile().equals(sourceFile!.getAbsolutePath())) then
                 restBridgeMappings!.addItem(conf!.getMapping())
             endif
         wend
