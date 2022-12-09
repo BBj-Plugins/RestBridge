@@ -768,8 +768,11 @@ REM                 endif
         fi
 
         BBjAPI().getGlobalNamespace().setValue(ses$+"_RESPONSE",response!)
-        responseSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE_SEM")
-        responseSemaphore!.release()
+        responseSemaphore! = null()
+        responseSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE_SEM",err=*next)
+        if responseSemaphore! <> null() then
+            responseSemaphore!.release()
+        fi
 
         wait 10; rem FIN_WAIT
 
