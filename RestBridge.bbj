@@ -849,7 +849,11 @@ class public RestBridge
         rem here's the remote session active
 
         if !responseSemaphore!.tryAcquire(1,60,java.util.concurrent.TimeUnit.SECONDS) then
-            rem System.out.println("Bridge: Timeout waiting on "+ses$)
+        
+            if debug then
+                System.out.println("Bridge: Timeout waiting on "+ses$)
+            fi
+            
             namespace!.removeValue(ses$+"_REQUEST")
             namespace!.removeValue(ses$+"_RESPONSE")
             namespace!.removeValue(ses$+"_REQUEST_SEM")
@@ -857,8 +861,6 @@ class public RestBridge
             namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
             namespace!.removeValue(ses$+"_OUTPUT_HANDLER", err=*next)
             namespace!.removeValue(ses$+"_INPUT_HANDLER", err=*next)
-            
-            rem System.out.println("REST: timeout on invoke "+ses$)
             throw "Timeout occurred",0
         fi
 
