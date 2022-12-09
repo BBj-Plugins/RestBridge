@@ -373,8 +373,12 @@ class public RestBridge
         errorcode$ = str(answer!.get("errorcode"))
 
         blobdata$=str(params!.get("_BLOBDATA"))
-        System.out.println(params!)
-        System.out.println("BLOBDATA : "+blobdata$)
+       
+        if debug then
+            System.out.println(params!)
+            System.out.println("BLOBDATA : "+blobdata$)
+        fi
+        
         if blobdata$<>"null" then
             rs! = answer!.get("resultset",err=*next)
             if rs! = null() or rs!.size() = 0 or !rs!.getItem(0).getFieldNames().contains(blobdata$) then
@@ -455,9 +459,16 @@ class public RestBridge
             ch=unt
             open (ch,err=filenotfund)file$
             close (ch)
-            System.out.println(file$)
+                   
+            if debug then
+                System.out.println(file$)
+            fi
+            
             fullPath$ = BBjAPI().getFileSystem().resolvePath(file$)
-            System.out.println(fullPath$)
+            
+            if debug then
+                System.out.println(fullPath$)
+            fi
 
             filename$=fullPath$
             if (pos("/"=filename$)>0) then
@@ -482,8 +493,9 @@ class public RestBridge
             goto done_file
 
             filenotfund:
-            System.out.println("not found")
-
+            if debug then
+                System.out.println("file not found")
+            fi 
             response!.getOutputStream().write("file not found!")
             response!.setStatus(404)
 
@@ -551,7 +563,9 @@ class public RestBridge
             s! = response!.getOutputStream()
             s!.write(str(answer!))
             response!.setHeader("Reason-Phrase",str(errormsg!))
-            System.out.println("REST: error 500 "+str(errormsg!))
+            if debug then
+                System.out.println("REST: error 500 "+str(errormsg!))
+            fi
             response!.sendError(500,str(errormsg!))
             #logResponse(req_id$,response!)
             methodret
@@ -662,7 +676,9 @@ class public RestBridge
             response!.setContentType("text/plain")
             s! = response!.getOutputStream()
             s!.write("stbl not set up correctly!")
-            System.out.println("REST: error 500 STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
+            if debug then
+                System.out.println("REST: error 500 STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
+            fi
             response!.sendError(500,"STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
             #logResponse(req_id$,response!)
     methodend
@@ -743,6 +759,7 @@ class public RestBridge
 
     method public static BBjString newSession(BBjString auth$, HashMap servletParams!)
         namespace! = BBjAPI().getGlobalNamespace()
+        debug = num(stbl("DEBUG",err=*next),err=*next)
 
         rem create a new session
         while 1
@@ -752,7 +769,9 @@ class public RestBridge
             break
         wend
         
-        System.out.println("REST: create "+ses$)
+        if debug then
+            System.out.println("REST: create "+ses$)
+        fi
         namespace!.setValue(ses$+"_REQUEST","")
         namespace!.setValue(ses$+"_RESPONSE","")
         namespace!.setValue(ses$+"_SERVLET_PARAMETERS",servletParams!)
@@ -805,7 +824,9 @@ class public RestBridge
         endif
 
         scmd$="bbj -q "+ t$ + cfg$ + cp$ + wd$ + pgm$ + " - " + ses$ + " " + auth$ + " &"
-        System.out.println("REST: create "+scmd$)
+        if debug then
+            System.out.println("REST: create "+scmd$)
+        fi
         a=scall(scmd$)
 
         methodret ses$
@@ -813,7 +834,12 @@ class public RestBridge
 
     method public static HashMap invoke(BBjString ses$, HashMap instructions!)
 
-        System.out.println("REST: invoke "+ses$)
+        debug = num(stbl("DEBUG",err=*next),err=*next)
+        
+        if debug then
+            System.out.println("REST: invoke "+ses$)
+        fi
+        
         requestSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_REQUEST_SEM",err=noSes)
         responseSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE_SEM")
 
@@ -837,8 +863,10 @@ class public RestBridge
         fi
 
         response! = namespace!.getValue(ses$+"_RESPONSE",err=*next)
-
-        System.out.println("REST: invoke done "+ses$)
+        if debug then
+            System.out.println("REST: invoke done "+ses$)
+        fi
+        
         methodret response!
 
 
@@ -850,7 +878,7 @@ class public RestBridge
     method private BBjString logRequest(BBxServletRequest request!)
 
         rlog$=stbl("REST_REQUESTLOG",err=skip)
-        System.out.println("Logging request into "+rlog$)
+        
         id$=""
 
         ch=unt
@@ -914,9 +942,7 @@ class public RestBridge
 
         dim log$:#LOGTPL$
         log.id$=id$
-        System.out.println("------------------------")
-        System.out.println(log.id$)
-        System.out.println("------------------------")
+
         read record (ch,dom=skip,key=log.id$)log$
         log.END=System.currentTimeMillis()
         log.DURATION = log.END-log.START
