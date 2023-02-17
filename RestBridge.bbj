@@ -1039,6 +1039,10 @@ class public RestBridge
         parameterNames!.add("REST_OUTPUT_HANDLER")
         parameterNames!.add("REST_INPUT_HANDLER")
         parameterNames!.add("REST_DEFAULT_CHARSET")
+        
+        parameterNames!.add("GRANT_TYPE")
+        parameterNames!.add("USERNAME")
+        parameterNames!.add("PASSWORD")
 
         rem the list of parameter names that must be set as STBL 
         declare BBjVector parameterNamesToSetAsSTBL!
