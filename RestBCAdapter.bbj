@@ -719,7 +719,6 @@ REM                 endif
     
     send_response:
         usecount=usecount+1
-        usecount=usecount+1
         BBjAPI().getGlobalNamespace().setValue(ses$+"_RESPONSE",response!)
         responseSemaphore!.release()
         if debug then System.out.println("REST: remote session done "+ses$)
