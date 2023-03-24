@@ -186,7 +186,7 @@ class public RestBridge
                 auth$=str(request!.getHeader("authorization",err=*next))
             fi   
         
-            if cvs(request!.getParameter("grant_type"),4) = "PASSWORD" then
+            if cvs(str(request!.getParameter("grant_type")),4) = "PASSWORD" then
                 user$=request!.getParameter("username")
                 password$=request!.getParameter("password")
                 auth$="Basic "+java.util.Base64.getEncoder().encode(user$+":"+password$)
@@ -1035,6 +1035,8 @@ class public RestBridge
         parameterNames!.add("REST_ADAPTERPGM")
         parameterNames!.add("REST_ADAPTERTERM")
         parameterNames!.add("REST_TIMEOUT")
+        parameterNames!.add("REST_SERVLET_TIMEOUT")
+        parameterNames!.add("REST_MAX_WORKER_RECYCLECOUNT")
         parameterNames!.add("REST_AUTHPGM")
         parameterNames!.add("REST_REQUESTLOG")
         parameterNames!.add("USE_GET_ALLOWED_FILTER")

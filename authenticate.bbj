@@ -144,7 +144,7 @@ PRE_AUTHENTICATION:
         auth$ = str(request!.getHeader("authorization", err=*next))
     fi   
 
-    if cvs(request!.getParameter("grant_type"), 4) = "PASSWORD" then
+    if cvs(str(request!.getParameter("grant_type")), 4) = "PASSWORD" then
         user$ = request!.getParameter("username")
         password$ = request!.getParameter("password")
         auth$="Basic "+java.util.Base64.getEncoder().encode(user$+":"+password$)
@@ -153,7 +153,7 @@ PRE_AUTHENTICATION:
         rem so that the "usual" login can be used to check the credentials
     fi
     
-    if cvs(servletParams!.get("GRANT_TYPE",err=*endif),4) = "PASSWORD" then 
+    if cvs(str(servletParams!.get("GRANT_TYPE",err=*endif)),4) = "PASSWORD" then 
         user$ = str(servletParams!.get("USERNAME"),err=*next)
         password$ = str(servletParams!.get("PASSWORD"),err=*next)
         if user$>"" and password$>"" then 
