@@ -152,6 +152,15 @@ PRE_AUTHENTICATION:
         rem we're using the Basic authentication way to pass username and password to the Adapter
         rem so that the "usual" login can be used to check the credentials
     fi
+    
+    if cvs(servletParams!.get("GRANT_TYPE",err=*endif),4) = "PASSWORD" then 
+        user$ = str(servletParams!.get("USERNAME"),err=*next)
+        password$ = str(servletParams!.get("PASSWORD"),err=*next)
+        if user$>"" and password$>"" then 
+            auth$="Basic "+java.util.Base64.getEncoder().encode(user$+":"+password$)
+            System.out.println("Debug: "+auth$)
+        endif 
+    endif
         
     exit
 
