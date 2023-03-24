@@ -1076,7 +1076,10 @@ class public RestBridge
             endif
         next i
 
+        System.out.println(str(parameterMap!))
+
         methodret parameterMap!
+        
     methodend
 
 classend

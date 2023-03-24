@@ -7,7 +7,7 @@ use ::RestBridge/InputHandler.bbj::InputHandler
 seterr execerr
 
 debug=num(stbl("DEBUG",err=*next),err=*next)
-debug=1
+
 
 if debug then System.out.println("REST: new remote session ")
 
@@ -84,9 +84,16 @@ if servletParams!.containsKey("REST_TIMEOUT") then
     timeout=num(servletParams!.get("REST_TIMEOUT").toString(),err=*next)
 endif
 
+
+REST_MAX_WORKER_RECYCLECOUNT=0
+if servletParams!.containsKey("REST_MAX_WORKER_RECYCLECOUNT") then
+    REST_MAX_WORKER_RECYCLECOUNT=num(servletParams!.get("REST_MAX_WORKER_RECYCLECOUNT").toString(),err=*next)
+endif
+
+
 main_loop:
 
-    CLEAR EXCEPT user$, password$, ses$, requestSemaphore!, responseSemaphore!, ses!, authenticated, timeout, usecount, debug, authpgm$, servletParams!
+    CLEAR EXCEPT user$, password$, ses$, requestSemaphore!, responseSemaphore!, ses!, authenticated, timeout, usecount, debug, authpgm$, servletParams!, REST_MAX_WORKER_RECYCLECOUNT
 
 
     seterr execerr
@@ -721,7 +728,21 @@ REM                 endif
         usecount=usecount+1
         BBjAPI().getGlobalNamespace().setValue(ses$+"_RESPONSE",response!)
         responseSemaphore!.release()
-        if debug then System.out.println("REST: remote session done "+ses$)
+        System.out.println("debug="+str(debug))
+        if debug then 
+            System.out.println("REST: remote session done"+ses$)
+            System.out.println("REST_MAX_WORKER_RECYCLECOUNT: "+str(REST_MAX_WORKER_RECYCLECOUNT))
+            System.out.println("CYCLES: "+str(usecount))
+        fi
+        
+        IF REST_MAX_WORKER_RECYCLECOUNT>0 AND usecount >= REST_MAX_WORKER_RECYCLECOUNT THEN
+            if debug then 
+                System.out.println("max cycles reached - releasing worker")
+            fi
+            call authpgm$+"::ON_CLEANUP",err=*next  
+            RELEASE
+        FI
+        
         goto main_loop
 
 
