@@ -17,6 +17,7 @@ use java.nio.charset.Charset
 class public RestBridge
 
     field public static BBjString LOGTPL$="ID:C(16*),METHOD:C(1*),START:N(1*),END:N(1*),DURATION:N(1*),ADDR:C(1*),URL:C(1*),URI:C(1*),QUERY:C(1*),HEADERS:C(1*),PARAMS:C(1*),STATUS:C(1*)"
+    field private HashMap parameterMap!
 
     METHOD PUBLIC void service(BBxServletContext context!)
         declare BBxServletRequest request!
@@ -723,7 +724,7 @@ class public RestBridge
     rem  * @param charset! The character Set to use for the VARCHAR fields
     rem  *
     rem  */
-    method private static void setCharacterSet(ResultSet resultSet!, String charset!)
+    method private void setCharacterSet(ResultSet resultSet!, String charset!)
         charsetIsSupported! = Boolean.FALSE
         charsetIsSupported! = Charset.isSupported(charset!, err=*next)
         if !charsetIsSupported! then
@@ -757,7 +758,7 @@ class public RestBridge
         wend
     methodend
 
-    method public static BBjString newSession(BBjString auth$, HashMap servletParams!)
+    method public BBjString newSession(BBjString auth$, HashMap servletParams!)
         namespace! = BBjAPI().getGlobalNamespace()
         debug = num(stbl("DEBUG",err=*next),err=*next)
 
@@ -832,7 +833,7 @@ class public RestBridge
         methodret ses$
     methodend
 
-    method public static HashMap invoke(BBjString ses$, HashMap instructions!)
+    method public HashMap invoke(BBjString ses$, HashMap instructions!)
 
         debug = num(stbl("DEBUG",err=*next),err=*next)
         
@@ -847,8 +848,16 @@ class public RestBridge
         namespace!.setValue(ses$+"_REQUEST",instructions!)
         requestSemaphore!.release()
         rem here's the remote session active
+        
+        REST_SERVLET_TIMEOUT = 60
+        REST_SERVLET_TIMEOUT = NUM(STR(#parameterMap!.get("REST_SERVLET_TIMEOUT")))
+        
+        if debug then
+            System.out.println("REST_SERVLET_TIMEOUT is "+str(REST_SERVLET_TIMEOUT))
+        fi
+        
 
-        if !responseSemaphore!.tryAcquire(1,60,java.util.concurrent.TimeUnit.SECONDS) then
+        if !responseSemaphore!.tryAcquire(1,REST_SERVLET_TIMEOUT,java.util.concurrent.TimeUnit.SECONDS) then
         
             if debug then
                 System.out.println("Bridge: Timeout waiting on "+ses$)
@@ -1024,7 +1033,11 @@ class public RestBridge
     rem  * @param context! The servlet context used to read the parameters defined for the RestBridge servlet
     rem  * @return a HashMap with the RestBridge parameters(=options) currenlty set.
     rem  */
-    method private static HashMap getServletParameters(BBxServletContext context!)
+    method private HashMap getServletParameters(BBxServletContext context!)
+
+        if #parameterMap!<>NULL() then
+            methodret #parameterMap!
+        fi
 
         rem the list of available parameter names
         declare BBjVector parameterNames!
@@ -1055,30 +1068,29 @@ class public RestBridge
         parameterNamesToSetAsSTBL!.add("REST_ADAPTERPGM")
         parameterNamesToSetAsSTBL!.add("REST_REQUESTLOG")
 
-        declare HashMap parameterMap!
+        
         declare BBjString parameterValue!
 
         rem the map to fill with the parameter names and values
-        parameterMap! = new HashMap()
+        #parameterMap! = new HashMap()
         for i=0 to parameterNames!.size() -1
             parameterName! = parameterNames!.get(i)
             parameterValue! = context!.getInitParameter(parameterName!)
 
             if parameterValue! <> null() then
-                parameterMap!.put(parameterName!,parameterValue!)
+                #parameterMap!.put(parameterName!,parameterValue!)
 
                 rem Setting the parameter as STBL
                 if parameterNamesToSetAsSTBL!.contains(parameterName!) then
                     void$ = stbl(parameterName!,parameterValue!)
                 endif
             else
-                parameterMap!.put(parameterName!,stbl(parameterName!,err=*next))
+                #parameterMap!.put(parameterName!,stbl(parameterName!,err=*next))
             endif
         next i
 
-        System.out.println(str(parameterMap!))
 
-        methodret parameterMap!
+        methodret #parameterMap!
         
     methodend
 
