@@ -218,6 +218,13 @@ class public RestBridge
             ses_list! = BBjAPI().getGlobalNamespace().getValue(uid$+"_list")
         endif
 
+        running_list! = BBjAPI().getGlobalNamespace().getValue(uid$+"_running_list",err=*next)
+        if running_list! = null() then
+            BBjAPI().getGlobalNamespace().setValue(uid$+"_running_list",new java.util.HashSet())
+            running_list! = BBjAPI().getGlobalNamespace().getValue(uid$+"_running_list")
+        endif
+
+
         while 1
             if (ses_list!.empty())
                 servletParams! = #getServletParameters(context!)
@@ -229,6 +236,33 @@ class public RestBridge
                     goto setup_err
                 endif
 
+                if servletParams!.containsKey("REST_MAX_WORKER_COUNT") then
+
+                    REST_MAX_WORKER_COUNT = NUM(STR(servletParams!.get("REST_MAX_WORKER_COUNT")))
+
+                    if (debug) then
+                        System.out.println("REST: Checking for REST_MAX_WORKER_COUNT="+str(REST_MAX_WORKER_COUNT))
+                        System.out.println("REST: "+str(running_list!.size())+" running.")
+                    fi
+
+                    if running_list!.size() >=  REST_MAX_WORKER_COUNT then
+
+                            rem first try to see if they're really all busy
+                            ks! = running_list!.clone().iterator()
+                            while ks!.hasNext()
+                                s$ = ks!.next()
+                                if (!#checkSession(s$)) then
+                                    running_list!.remove(s$)
+                                    System.out.println("****CLEAN OUT FROM RUNNING LIST: "+s$)
+                                fi
+                            wend
+                    fi
+
+                    if running_list!.size() >=  REST_MAX_WORKER_COUNT then
+                            goto too_many_workers_err
+                    fi
+                fi
+
                 ses$ = #newSession(auth$,servletParams!)
                 break
             else
@@ -238,6 +272,8 @@ class public RestBridge
                 endif
             endif
         wend
+
+        running_list!.add(ses$)
 
         params! = new HashMap()
         it! = request!.getParameterNames().iterator()
@@ -326,6 +362,8 @@ class public RestBridge
         else
             answer! = #invoke(ses$,req!)
         fi
+        
+        running_list!.remove(ses$)
         ses_list!.push(ses$)
 
         accept$=str(params!.get("_ACCEPT"))
@@ -682,6 +720,20 @@ class public RestBridge
             fi
             response!.sendError(500,"STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
             #logResponse(req_id$,response!)
+            methodret
+
+        too_many_workers_err:
+            response!.setContentType("text/plain")
+            s! = response!.getOutputStream()
+            s!.write("Too many workers!")
+            if debug then
+                System.out.println("REST: too many workers!" )
+            fi
+            response!.sendError(429,"Too many requests!" )
+            #logResponse(req_id$,response!)
+            methodret
+
+
     methodend
 
 
@@ -882,11 +934,11 @@ class public RestBridge
                 fi
             fi
 
-            namespace!.removeValue(ses$+"_REQUEST")
-            namespace!.removeValue(ses$+"_RESPONSE")
-            namespace!.removeValue(ses$+"_REQUEST_SEM")
-            namespace!.removeValue(ses$+"_RESPONSE_SEM")
-            namespace!.removeValue(ses$+"_SERVLET_PARAMETERS")
+            namespace!.removeValue(ses$+"_REQUEST", err=*next)
+            namespace!.removeValue(ses$+"_RESPONSE", err=*next)
+            namespace!.removeValue(ses$+"_REQUEST_SEM", err=*next)
+            namespace!.removeValue(ses$+"_RESPONSE_SEM", err=*next)
+            namespace!.removeValue(ses$+"_SERVLET_PARAMETERS", err=*next)
             namespace!.removeValue(ses$+"_OUTPUT_HANDLER", err=*next)
             namespace!.removeValue(ses$+"_INPUT_HANDLER", err=*next)
             namespace!.removeValue(ses$+"_THREAD", err=*next)
@@ -899,7 +951,6 @@ class public RestBridge
         fi
         
         methodret response!
-
 
         noSes:
             throw  "Session invalid",11
@@ -1070,8 +1121,8 @@ class public RestBridge
         parameterNames!.add("REST_TIMEOUT")
         parameterNames!.add("REST_SERVLET_TIMEOUT")
         parameterNames!.add("REST_KILL_WORKER_AT_TIMEOUT")
-        parameterNames!.add("REST_WORKER_IDLEOUT")
         parameterNames!.add("REST_MAX_WORKER_RECYCLECOUNT")
+        parameterNames!.add("REST_MAX_WORKER_COUNT")
         parameterNames!.add("REST_AUTHPGM")
         parameterNames!.add("REST_REQUESTLOG")
         parameterNames!.add("USE_GET_ALLOWED_FILTER")
