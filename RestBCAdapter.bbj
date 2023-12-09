@@ -79,9 +79,9 @@ responseSemaphore! = BBjAPI().getGlobalNamespace().getValue(ses$+"_RESPONSE_SEM"
 done_login:
 
 
-timeout=60
-if servletParams!.containsKey("REST_TIMEOUT") then
-    timeout=num(servletParams!.get("REST_TIMEOUT").toString(),err=*next)
+REST_WORKER_IDLEOUT=60
+if servletParams!.containsKey("REST_WORKER_IDLEOUT") then
+    REST_WORKER_IDLEOUT=num(servletParams!.get("REST_WORKER_IDLEOUT").toString(),err=*next)
 endif
 
 
@@ -93,7 +93,7 @@ endif
 
 main_loop:
 
-    CLEAR EXCEPT user$, password$, ses$, requestSemaphore!, responseSemaphore!, ses!, authenticated, timeout, usecount, debug, authpgm$, servletParams!, REST_MAX_WORKER_RECYCLECOUNT
+    CLEAR EXCEPT user$, password$, ses$, requestSemaphore!, responseSemaphore!, ses!, authenticated, REST_WORKER_IDLEOUT, usecount, debug, authpgm$, servletParams!, REST_MAX_WORKER_RECYCLECOUNT
 
 
     seterr execerr
@@ -101,7 +101,7 @@ main_loop:
     dummy$=STBL("!SESSIONINFO",ses$+" - idle "+str(usecount))
 
     rem requestSemaphore!.acquire()
-    if !requestSemaphore!.tryAcquire(1,timeout,java.util.concurrent.TimeUnit.SECONDS) then
+    if !requestSemaphore!.tryAcquire(1,REST_WORKER_IDLEOUT,java.util.concurrent.TimeUnit.SECONDS) then
         rem a timeout has occurred while trying to acquire the semaphore
 
         rem remove the sessions' namespace values

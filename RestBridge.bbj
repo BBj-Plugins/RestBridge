@@ -1049,6 +1049,7 @@ class public RestBridge
         parameterNames!.add("REST_ADAPTERTERM")
         parameterNames!.add("REST_TIMEOUT")
         parameterNames!.add("REST_SERVLET_TIMEOUT")
+        parameterNames!.add("REST_WORKER_IDLEOUT")
         parameterNames!.add("REST_MAX_WORKER_RECYCLECOUNT")
         parameterNames!.add("REST_AUTHPGM")
         parameterNames!.add("REST_REQUESTLOG")

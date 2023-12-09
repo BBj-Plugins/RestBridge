@@ -26,7 +26,9 @@ in the Context Configuration:
 | REST_WD                       |  The working directory to be set for every request |
 | REST_ADAPTERPGM               |  The adapter, typically RestBCAdapter.bbj |
 | REST_ADAPTERTERM              |  The terminal to set, e.g. IO or Tx |
-| REST_TIMEOUT                  |  The timeout after which idle background workers terminate. Default: 60 seconds. | 
+| REST_TIMEOUT                  |  The timeout after which idle background workers terminate. Default: 60 seconds. | Timeout after which a timeout is sent as response if the worker did not return in this moment. |
+| REST_WORKER_IDLEOUT | The timeout after which idle background workers terminate. Default: 60 seconds. |
+| REST_MAX_WORKER_RECYCLECOUNT | The number of rounds a worker is re-used before it ends itself and cleans up |
 | REST_AUTHPGM                  | The authentication program handling custom authentication rules. Default: authenticate.bbj |
 | REST_REQUESTLOG               |  Optional: path to a VKeyed file that will log every request |
 | USE_GET_ALLOWED_FILTER        |  If set to 1, the BC can optionally implement the method "getAllowedFilter" to determine which fields are allowed as query fields. | 
