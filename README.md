@@ -14,6 +14,27 @@ If set to 1 (default), the toJson method will always include the metadata used f
 
 If set to 1 (default), the RestBridge tries to serve gzip content when the according "Accept-Encoding" header contains the tag "gzip". Note that only gzip is supported by the plug-in. If you do never wish to deliver compressed content, e.g. for compatibility reasons or for debugging purpose, set this toggle to "0".
 
+## Servlet Parameters
+
+The follwing Parameters are accepted in the configuration of the BBx Servlet
+in the Context Configuration:
+
+| Prameter                      | Purpose               |
+|-------------------------------|-----------------------|
+| REST_PGM_PREFIX               | General prefix added to the beginning of the program name when searching for a class based on the URL. |
+| REST_PGM_SUFFIX               | General suffix added to the end of the program name when searching for a class source file based on the URL. Typically .bbj |
+| REST_WD                       |  The working directory to be set for every request |
+| REST_ADAPTERPGM               |  The adapter, typically RestBCAdapter.bbj |
+| REST_ADAPTERTERM              |  The terminal to set, e.g. IO or Tx |
+| REST_TIMEOUT                  |  The timeout after which idle background workers terminate. Default: 60 seconds. | 
+| REST_AUTHPGM                  | The authentication program handling custom authentication rules. Default: authenticate.bbj |
+| REST_REQUESTLOG               |  Optional: path to a VKeyed file that will log every request |
+| USE_GET_ALLOWED_FILTER        |  If set to 1, the BC can optionally implement the method "getAllowedFilter" to determine which fields are allowed as query fields. | 
+| REST_INPUT_HANDLER            | Path to a custom input handler |
+| REST_OUTPUT_HANDLER           | Path to a custom output handler | 
+| REST_DEFAULT_CHARSET          | The charset for transport. Defaults to UTF-8 |
+
+
 ## Output Handling
 
 The data conversion of the RestBridge has been extracted into a separate class called <code>OutputHandler</code>. This class evaluates the accept header of the client request and converts the ResultSet returned by the BC into the requested type. Currently, the class can convert the data into the following types:
