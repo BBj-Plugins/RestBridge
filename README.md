@@ -27,6 +27,7 @@ in the Context Configuration:
 | REST_ADAPTERPGM               |  The adapter, typically RestBCAdapter.bbj |
 | REST_ADAPTERTERM              |  The terminal to set, e.g. IO or Tx |
 | REST_TIMEOUT                  |  The timeout after which idle background workers terminate. Default: 60 seconds. |
+| REST_TRACE                    |  The path of a directory to write a SETTRACE of the servlet and the BC Adapter. The directory must exist and be writable. Else the parameter will be ignored | 
 | REST_SERVLET_TIMEOUT | Timeout after which a timeout is sent as response if the worker did not return in this moment. |
 | REST_KILL_WORKER_AT_TIMEOUT | If set to 1 the worker will be killed when the servlet observes a timeout. If not set or 0, the worker will continue to run, potentially for a long time if the request was bad and leads to long code execution. |
 | REST_MAX_WORKER_COUNT | The maximum number of parallel workers per user |

@@ -34,6 +34,18 @@ class public RestBridge
             System.out.println("REST request end -----------------------")
         fi
 
+        servletParams! = #getServletParameters(context!)
+
+        if servletParams!.get("REST_TRACE") <> null() then
+            tracedir$ = servletParams!.get("REST_TRACE").toString()
+            tracedir! = new File(tracedir$,err=*endif)
+            if tracedir!.exists() AND tracedir!.isDirectory()  then
+                TRACE_CH=UNT
+                OPEN (TRACE_CH,MODE="O_CREATE,O_TRUNC")tracedir$+"/RestBridge_"+str(System.currentTimeMillis())+"_"+str(dec(INFO(3,1)))+".trace"
+                SETTRACE (TRACE_CH)
+            endif
+        endif
+
         param! = context!.getInitParameter("REST_REQUESTLOG")
         if param! <> null() then
             void$ = stbl("REST_REQUESTLOG",param!)
@@ -151,7 +163,7 @@ class public RestBridge
             break
         swend
         
-        servletParams! = #getServletParameters(context!) 
+        
         
         rem The authentication program might be relative to the WD but not to any directory in the prefix
         rem therefore switch to the WD for the authentication program call
@@ -702,6 +714,13 @@ class public RestBridge
                         
             response!.setStatus(200)
             #logResponse(req_id$,response!)
+
+            IF TRACE_CH >0 THEN
+                ENDTRACE
+                CLOSE (TRACE_CH)
+                TRACE_CH=0
+            FI 
+
             methodret
         
         output_creation_error:
@@ -709,6 +728,14 @@ class public RestBridge
             response!.setContentType("text/plain")
             response!.sendError(500, "Failed to create the request output type: " + errmes(-1))
             #logResponse(req_id$,response!)
+
+
+            IF TRACE_CH >0 THEN
+                ENDTRACE
+                CLOSE (TRACE_CH)
+                TRACE_CH=0
+            FI 
+
             methodret
 
         setup_err:
@@ -720,6 +747,14 @@ class public RestBridge
             fi
             response!.sendError(500,"STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
             #logResponse(req_id$,response!)
+
+
+            IF TRACE_CH >0 THEN
+                ENDTRACE
+                CLOSE (TRACE_CH)
+                TRACE_CH=0
+            FI 
+
             methodret
 
         too_many_workers_err:
@@ -731,6 +766,14 @@ class public RestBridge
             fi
             response!.sendError(429,"Too many requests!" )
             #logResponse(req_id$,response!)
+
+
+            IF TRACE_CH >0 THEN
+                ENDTRACE
+                CLOSE (TRACE_CH)
+                TRACE_CH=0
+            FI 
+
             methodret
 
 
@@ -1129,6 +1172,7 @@ class public RestBridge
         parameterNames!.add("REST_OUTPUT_HANDLER")
         parameterNames!.add("REST_INPUT_HANDLER")
         parameterNames!.add("REST_DEFAULT_CHARSET")
+        parameterNames!.add("REST_TRACE")
         
         parameterNames!.add("GRANT_TYPE")
         parameterNames!.add("USERNAME")

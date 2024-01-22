@@ -1,4 +1,5 @@
 use java.util.HashMap
+use java.io.File
 use com.basiscomponents.db.ResultSet
 use com.basiscomponents.db.DataRow
 
@@ -24,6 +25,17 @@ BBjAPI().getGlobalNamespace().setValue(ses$+"_THREAD",Thread.currentThread())
 
 servletParams! = new HashMap()
 servletParams! = BBjAPI().getGlobalNamespace().getValue(ses$+"_SERVLET_PARAMETERS",err=*next)
+
+if servletParams!.get("REST_TRACE") <> null() then
+    tracedir$ = servletParams!.get("REST_TRACE").toString()
+    tracedir! = new File(tracedir$,err=*endif)
+    if tracedir!.exists() AND tracedir!.isDirectory()  then
+        TRACE_CH=UNT
+        OPEN (TRACE_CH,MODE="O_CREATE,O_TRUNC")tracedir$+"/RestBCAdapter_"+ses$+str(System.currentTimeMillis())+"_"+str(dec(INFO(3,1)))+".trace"
+        SETTRACE (TRACE_CH)
+    endif
+endif
+
 
 if debug then System.out.println("Got auth header: "+authtype$+" "+auth$)
 authtype$=cvs(authtype$,4)
