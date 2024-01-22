@@ -700,6 +700,7 @@ class public RestBridge
                 outputHandler! = new OutputHandler()
             endif
             
+            outputHandler!.setSession(ses$)
             outputHandler!.setResultSet(rs!)
             outputHandler!.setInvokeResult(answer!)
             

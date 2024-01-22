@@ -45,6 +45,10 @@ class public OutputHandler
     rem The actual response object used to write the response  
     field protected BBxServletResponse response!
 
+    rem The session handle string
+    field protected String Session!
+
+
     rem /**
     rem  * The default constructor used to create an instance of the OutputHandler.
     rem  * The debug value passed to this constructor indicates whether the RESTBridge
@@ -74,7 +78,7 @@ class public OutputHandler
     rem  */
     method public void createOutput(String accept!)
         content! = #createContent(accept!, err=*next)
-        
+
         if content! = null() then
             methodret
         endif
@@ -485,6 +489,15 @@ class public OutputHandler
     rem  */
     method public void setInvokeResult(HashMap invokeResult!)
         #invokeResult! = invokeResult!
+    methodend
+
+    rem /**
+    rem  * Sets the Session handle variable
+    rem  * 
+    rem  * @param Session String
+    rem  */
+    method public void setSession(String ses!)
+        #Session! = ses!
     methodend
     
 classend
