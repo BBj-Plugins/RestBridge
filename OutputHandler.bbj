@@ -404,6 +404,11 @@ class public OutputHandler
 
         restbridge_opt_jsonmeta=1
         restbridge_opt_jsonmeta=int(num(stbl("RESTBRIDGE_OPT_JSONMETA",err=*next),err=*next))
+
+        if #request!.getHeaderNames().contains("nometa") then
+            restbridge_opt_jsonmeta=0
+        fi
+
         ResultSetExporter.writeJSON(#rs!, writer!, restbridge_opt_jsonmeta)
         
         writer!.flush()
