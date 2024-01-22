@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<metadata-definition>
+	<definition type="database">
+		<property CATEGORY="Database Location" CHOOSER_TYPE="2"
+			DESCRIPTION="Location of the primary data files for the database.  Tables using the global (DATA) use this value to resolve their path."
+			DISPLAY_NAME="DATA Location" NAME="DATA" NULLABLE="true" READ_ONLY="false"
+			TYPE="STRING" />
+		<property CATEGORY="Database Location" CHOOSER_TYPE="2"
+			DESCRIPTION="Location of the data dictionary files."
+			DISPLAY_NAME="DICTIONARY Location" NAME="DICTIONARY" NULLABLE="true"
+			READ_ONLY="false" TYPE="STRING" />
+			
+		<property CATEGORY="Data Dictionary Access" CHOOSER_TYPE="0"
+            DESCRIPTION="Type of access to use when accessing the data dictionary files."
+            DISPLAY_NAME="Dictionary Access User Type" NAME="DD_ACCESS_USER_TYPE" NULLABLE="true"
+            READ_ONLY="false" TYPE="STRING">
+            <value DISPLAY_VALUE="BBjServices User" TYPE="STRING" VALUE="BBJSERVICES" />
+            <value DISPLAY_VALUE="Connected User" TYPE="STRING" VALUE="CONNECTED" />
+            <value DISPLAY_VALUE="Specific User" TYPE="STRING" VALUE="SPECIFIC" />
+        </property> 
+        <property CATEGORY="Data Dictionary Access" CHOOSER_TYPE="0"
+            DESCRIPTION="Specific user to use when accessing the data dictionary files (optional)."
+            DISPLAY_NAME="Dictionary Access User" NAME="DD_ACCESS_USER" NULLABLE="true"
+            READ_ONLY="false" TYPE="STRING" />
+            
+        <property CATEGORY="Date Handling" CHOOSER_TYPE="0"
+            DESCRIPTION="Threshold to use to determine which 2 digit year values should be considered 19xx or 20xx on date formats that use 2 digit years."
+            DISPLAY_NAME="Y2K Window (For 2-Digit Year Date Formats)" NAME="Y2KWINDOW" NULLABLE="true" READ_ONLY="false"
+            TYPE="INTEGER" />
+			
+		<property CATEGORY="Characters/Ordering/Case Sensitivity"
+			CHOOSER_TYPE="0"
+			DESCRIPTION="Character set to use for encoding/decoding values in the database."
+			DISPLAY_NAME="Encoding Character Set" NAME="CHARSET" NULLABLE="true"
+			READ_ONLY="false" TYPE="STRING" DYNAMIC_VALID_VALUES="true" />
+		<property CATEGORY="Characters/Ordering/Case Sensitivity"
+			CHOOSER_TYPE="0" DESCRIPTION="Type of ordering to use when sorting and grouping."
+			DISPLAY_NAME="Ordering Type" NAME="ORDERING" NULLABLE="true"
+			READ_ONLY="false" TYPE="BOOLEAN">
+			<value DISPLAY_VALUE="Byte Ordering" TYPE="BOOLEAN" VALUE="true" />
+			<value DISPLAY_VALUE="Collation Ordering" TYPE="BOOLEAN" VALUE="false" />
+		</property>
+		<property CATEGORY="Characters/Ordering/Case Sensitivity"
+			CHOOSER_TYPE="0"
+			DESCRIPTION="Use case insensitive keys on XKEYED and VKEYED files.  Requires recreating the file."
+			DISPLAY_NAME="Case Insensitive Keys" NAME="CASE_INSENSITIVE"
+			NULLABLE="true" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Characters/Ordering/Case Sensitivity"
+			CHOOSER_TYPE="0" DESCRIPTION="Use collation on ESQL files."
+			DISPLAY_NAME="ESQL Collation" NAME="ESQL_COLLATE" NULLABLE="true"
+			READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="CREATE TABLE Related" CHOOSER_TYPE="0"
+			DESCRIPTION="Type of data file to create by default and when using CREATE TABLE."
+			DISPLAY_NAME="CREATE TABLE Type" NAME="CREATETABLETYPE" NULLABLE="true"
+			READ_ONLY="false" TYPE="STRING" DYNAMIC_VALID_VALUES="true" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Open a console window on the server when a SPROC is executed to allow for dot-step debugging."
+			DISPLAY_NAME="SPROC Debugging" NAME="SPROC_DEBUG" NULLABLE="true"
+			READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+            DESCRIPTION="True to have BBj SQL assume variable length terminated column values right-padded with spaces are equivalent to those without the padding."
+            DISPLAY_NAME="Legacy Handle Variable Right-Padded" NAME="HANDLE_VARIABLE_LENGTH_PADDED_VALUES"
+            NULLABLE="true" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Pad VARCHAR values with VARCHAR Pad Character to the length defined in the table definition."
+			DISPLAY_NAME="Consistent Fixed Length Padding" NAME="CONSISTENT_PADDING"
+			NULLABLE="true" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Pad character to use if Consistent Fixed Length Padding is also enabled."
+			DISPLAY_NAME="Pad Character" NAME="PAD_CHARACTER" NULLABLE="true"
+			READ_ONLY="false" TYPE="INTEGER" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Truncate character based values if they are longer than the length defined in the data dictionary."
+			DISPLAY_NAME="Truncate If Too Long" NAME="TRUNCATEIFTOOLONG"
+			NULLABLE="true" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Automatically analyzed tables when they have not been analyzed or need reanalysis based on structural changes to the data file."
+			DISPLAY_NAME="Auto Analyze Tables" NAME="AUTO_ANALYZE_TABLES"
+			NULLABLE="true" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Use optimization on equality comparison on type NUMERIC values.  Does not apply to ESQL which always optimizes on these values."
+			DISPLAY_NAME="Equality Optimize NUMERIC" NAME="EQOPTIMIZENUMERICS"
+			NULLABLE="true" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+            DESCRIPTION="For NUMERIC columns on keyed files, if the data is an empty string in the record, SQL will return zero instead of null if this setting is true."
+            DISPLAY_NAME="NUMERIC Empty String As Zero" NAME="NUMERIC_EMPTY_STRING_AS_ZERO"
+            NULLABLE="false" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Database is read only regardless of user permissions."
+			DISPLAY_NAME="Read Only" NAME="READONLY" NULLABLE="true" READ_ONLY="false"
+			TYPE="BOOLEAN" />
+		<property CATEGORY="CREATE TABLE Related" CHOOSER_TYPE="0"
+			DESCRIPTION="When creating a table, ensure that a primary key is explicitly defined."
+			DISPLAY_NAME="Strict Key Checking" NAME="STRICTKEYCHECKING" NULLABLE="true"
+			READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="CREATE TABLE Related" CHOOSER_TYPE="0"
+			DESCRIPTION="The type definition to use when creating a table and specifying a DATE type column."
+			DISPLAY_NAME="Default Date Type Definition" NAME="DEFAULT_DATE_TYPEDEF"
+			NULLABLE="true" READ_ONLY="false" TYPE="STRING" DYNAMIC_VALID_VALUES="true" />
+		<property CATEGORY="CREATE TABLE Related" CHOOSER_TYPE="0"
+			DESCRIPTION="The date format to use when creating a table and specifying a DATE type column.  Used in conjunction with Default Date Type Definition."
+			DISPLAY_NAME="Default Date Format" NAME="DEFAULT_DATE_FORMAT"
+			NULLABLE="true" READ_ONLY="false" TYPE="STRING" DYNAMIC_VALID_VALUES="true" />
+		<property CATEGORY="Custom Functionality" CHOOSER_TYPE="0"
+            DESCRIPTION="BBjSQLFactory Implementation Class" 
+            DISPLAY_NAME="BBjSQLFactory Implementation" NAME="SQL_FACTORY"
+            NULLABLE="true" READ_ONLY="false" TYPE="STRING" />
+        <property CATEGORY="Custom Functionality" CHOOSER_TYPE="0"
+            DESCRIPTION="Custom scalar/group function SSCP" 
+            DISPLAY_NAME="Scalar/Group Function SSCP" NAME="SQL_FACTORY_SSCP"
+            NULLABLE="true" READ_ONLY="false" TYPE="STRING" DYNAMIC_VALID_VALUES="true"/>
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Type of database." DISPLAY_NAME="Type" NAME="TYPE"
+			NULLABLE="true" READ_ONLY="true" TYPE="STRING" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="With this enabled, variable length fields will give an error if you try to put a value that exceeds their defined length.  By default, the length in variable length fields is only a guideline.  This was legacy behavior for string templates."
+			DISPLAY_NAME="Enforce VARCHAR Length" NAME="ENFORCE_VARCHAR_LENGTH"
+			NULLABLE="true" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="True if SPROCs should run as the user logged into the database otherwise it uses the user used to start BBjServices."
+			DISPLAY_NAME="SPROC Run As User" NAME="SPROC_RUN_AS_USER" NULLABLE="true"
+			READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Whether SQL should optimize on DATE type columns that contain indexes.  Not all types of raw data will generate correct results.  If you are not sure, set to false."
+			DISPLAY_NAME="Optimize Date Columns" NAME="OPTIMIZEDATECOLUMNS"
+			NULLABLE="true" READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Use advisory locking for all file access in this database."
+			DISPLAY_NAME="Advisory Locking" NAME="ADVISORYLOCKING" NULLABLE="true"
+			READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+			DESCRIPTION="Use auto commit by default if the table type supports transactions (ESQL)."
+			DISPLAY_NAME="Auto Commit ESQL" NAME="AUTOCOMMIT" NULLABLE="true"
+			READ_ONLY="false" TYPE="BOOLEAN" />
+		<property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+            DESCRIPTION="Timeout in milliseconds for file connection operations."
+            DISPLAY_NAME="Timeout (ms)" NAME="TIMEOUT" NULLABLE="false"
+            READ_ONLY="false" TYPE="INTEGER" />
+        <property CATEGORY="Miscellaneous" CHOOSER_TYPE="0"
+            DESCRIPTION="Timeout in seconds for file access operations that occur inside SQL statements such as write, remove, and read."
+            DISPLAY_NAME="Statement Timeout (sec)" NAME="STATEMENT_TIMEOUT" NULLABLE="false"
+            READ_ONLY="false" TYPE="INTEGER" />
+		<property CATEGORY="Miscellaneous"
+            CHOOSER_TYPE="0"
+            DESCRIPTION="Classpath to use when executing SPROCs."
+            DISPLAY_NAME="SPROC Classpath" NAME="SPROC_CLASSPATH" NULLABLE="true"
+            READ_ONLY="false" TYPE="STRING" DYNAMIC_VALID_VALUES="true" />
+		<ignore NAME="DATEFORMAT" />
+		<ignore NAME="DATESUFFIX" />
+		<ignore NAME="DATEFORMAT.1" />
+		<ignore NAME="DATESUFFIX.1" />
+		<ignore NAME="Y2KWINDOW.1" />
+		<ignore NAME="DATEFORMAT.2" />
+		<ignore NAME="DATESUFFIX.2" />
+		<ignore NAME="Y2KWINDOW.2" />
+		<ignore NAME="FULL_FEATURED_CREATE_VIEW" />
+	</definition>
+	<definition type="table">
+	</definition>
+	<definition type="index">
+	</definition>
+	<definition type="view">
+	</definition>
+	<definition type="column">
+	   <property CATEGORY="Special Functionality" CHOOSER_TYPE="0"
+            DESCRIPTION="Alignment setting if this is a NUMERIC type column. Non-NUMERIC type columns ignore this setting."
+            DISPLAY_NAME="NUMERIC Alignment" NAME="ALIGN" NULLABLE="true"
+            READ_ONLY="false" TYPE="STRING">
+            <value DISPLAY_VALUE="No Change" TYPE="STRING" VALUE="LEFT" />
+            <value DISPLAY_VALUE="Right" TYPE="STRING" VALUE="RIGHT" />
+        </property>
+	</definition>
+	<definition type="sproc">
+	</definition>
+</metadata-definition>

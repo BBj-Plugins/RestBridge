@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<java version="17.0.9" class="java.beans.XMLDecoder">
+ <object class="java.util.ArrayList">
+  <void method="add">
+   <object class="com.basis.util.common.settings.Metadata"/>
+  </void>
+  <void method="add">
+   <object class="java.util.HashMap">
+    <void method="put">
+     <string>STATUS</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata0">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>HEADERS</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata1">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>QUERY</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata2">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>METHOD</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata3">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>START</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata4">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>END</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata5">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>ID</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata6">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>PARAMS</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata7">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>URI</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata8">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>DURATION</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata9">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>URL</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata10">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+    <void method="put">
+     <string>ADDR</string>
+     <object class="com.basis.util.common.settings.Metadata" id="Metadata11">
+      <void property="itemMap">
+       <void method="put">
+        <string>ALIGN</string>
+        <object class="com.basis.util.common.settings.MetadataItem">
+         <void property="name">
+          <string>ALIGN</string>
+         </void>
+        </object>
+       </void>
+      </void>
+     </object>
+    </void>
+   </object>
+  </void>
+  <void method="add">
+   <object class="java.util.HashMap"/>
+  </void>
+  <void method="add">
+   <object class="java.util.HashMap"/>
+  </void>
+  <void method="add">
+   <object class="java.util.HashMap"/>
+  </void>
+  <void method="add">
+   <object class="java.util.HashMap"/>
+  </void>
+ </object>
+</java>
