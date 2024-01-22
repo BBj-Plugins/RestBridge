@@ -743,7 +743,7 @@ REM                 endif
         usecount=usecount+1
         BBjAPI().getGlobalNamespace().setValue(ses$+"_RESPONSE",response!)
         responseSemaphore!.release()
-        System.out.println("debug="+str(debug))
+
         if debug then 
             System.out.println("REST: remote session done"+ses$)
             System.out.println("REST_MAX_WORKER_RECYCLECOUNT: "+str(REST_MAX_WORKER_RECYCLECOUNT))
