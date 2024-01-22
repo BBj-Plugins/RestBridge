@@ -561,48 +561,29 @@ class public RestBridge
 
         rem if the status code is not starting with 20, an error occurred
         if statuscode! <> null() and !mask(statuscode!,"20\d") then
-            rem System.out.println("REST: error "+str(statuscode!)+" - "+str(errormsg!))
-            if pos("application/json"=accept$) > 0 then
-                response!.setStatus(num(statuscode!))
-                response!.setContentType("application/json")
-                rs! = answer!.get("resultset",err=*next)
-                if method$ = "POST" and rs! <> null() and rs!.size() > 0 then
-                    wr! = new java.io.StringWriter()
-                    ResultSetExporter.writeJSON(rs!,wr!,restbridge_opt_jsonmeta)
-                    wr!.flush()
-                    wr!.close()
-                    response!.getOutputStream().write(wr!.toString())
-                    #logResponse(req_id$,response!)
-                else
-                    ok = 0; java.lang.Class.forName("org.apache.commons.lang.StringEscapeUtils", err=*next); ok = 1
-                    if ok then
-                        rem BBj 18.21 or older
-                        escapedErrorMessage! = org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(errormsg!)
-                        escapedStacktrace! = org.apache.commons.lang.StringEscapeUtils.escapeJavaScript(stacktrace$)
-                    else
-                        rem BBj 19.00 or newer
-                        escapedErrorMessage! = org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(errormsg!)
-                        escapedStacktrace! = org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(stacktrace$)
-                    endif 
-
-                    e$ = "{""code"":"""+str(errorcode$)+""",""message"":"""+ escapedErrorMessage! +""","
-                    if debug and statuscode! <> "401" then
-                        e$ = e$ + """stacktrace"":"""+ escapedStacktrace! +""","
-                    endif
-                    e$ = e$ + """ses"":"""+ses$+"""}"
-                    response!.getOutputStream().write(e$)
-                endif
+            
+        rem Handling the output format
+        seterr output_creation_error
+            namespace! = BBjAPI().getGlobalNamespace()
+            handler! = namespace!.getValue(ses$ + "_OUTPUT_HANDLER", err=*next)
+            if handler! <> null() then
+                outputHandler! = eval(handler!)
             else
-                response!.setContentType("text/html")
-                s! = response!.getOutputStream()
-                s!.write("<html><head><meta http-equiv=""Content-Type"" content=""text/html; charset=UTF-8""/><title>"+str(errormsg!)+"</title></head>")
-                s!.write("<body><h2>HTTP ERROR "+str(statuscode!)+"</h2><p>Problem accessing "+request!.getRequestURI()+". Reason:<hr><blockquote><pre>!ERROR="+errorcode$+" "+str(errormsg!))
-                if debug and statuscode! <> "401" then
-                    s!.write($0a$+stacktrace$)
-                endif
-                s!.write("</pre></blockquote><hr></p></body></html>")
-                response!.setStatus(num(statuscode!))
+                outputHandler! = new OutputHandler()
             endif
+            
+            outputHandler!.setSession(ses$)
+ 
+            outputHandler!.setInvokeResult(answer!)
+            
+            rem set the charset 
+            outputHandler!.setCharset(usedCharset!)
+            
+            outputHandler!.setResponse(response!)
+            outputHandler!.setRequest(request!)
+            
+            outputHandler!.createErrorOutput(accept$,num(statuscode!),errormsg!,errorcode$, stacktrace$)
+
             rem ToDo: add error output for xml and csv
             #logResponse(req_id$,response!)
             methodret
@@ -701,7 +682,7 @@ class public RestBridge
             endif
             
             outputHandler!.setSession(ses$)
-            outputHandler!.setResultSet(rs!)
+ 
             outputHandler!.setInvokeResult(answer!)
             
             rem set the charset 
@@ -711,6 +692,7 @@ class public RestBridge
             outputHandler!.setRequest(request!)
             
             rem final call
+            outputHandler!.setResultSet(rs!)            
             outputHandler!.createOutput(accept$)
                         
             response!.setStatus(200)
