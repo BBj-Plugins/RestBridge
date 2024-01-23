@@ -46,7 +46,22 @@ class public OutputHandler
     field protected BBxServletResponse response!
 
     rem The session handle string
-    field protected String Session!
+    field public String Session!
+
+    rem the accept header
+    field public String Accept!
+    
+    rem the statuscode to be sent
+    field public String Statuscode! = "200"
+    
+    rem the errormessage propagated from the logic
+    field public String Errormsg! = ""
+    
+    rem the error code propagated from the logic
+    field public String Errorcode! = ""
+    
+    rem the stacktrace provided by the logic
+    field public String Stacktrace!=""
 
 
     rem /**
@@ -67,17 +82,16 @@ class public OutputHandler
     
     rem /**
     rem  * This method gets called by the RestBridge.bbj file and is responsible 
-    rem  * for creating the requested output. The method itself invokes the createContent(String)
+    rem  * for creating the requested output. The method itself invokes the createContent()
     rem  * method and compressed the content returned from that method.
     rem  * 
     rem  * <b>Note: </b> Do not overwrite this method in your custom output handler class,
     rem  * but rather overwrite the createContent(String) method. This method invokes the 
     rem  * createContent(String) method and uses the content String returned from it. 
     rem  * 
-    rem  * @param accept! The accept header of the request
     rem  */
-    method public void createOutput(String accept!)
-        content! = #createContent(accept!, err=*next)
+    method public void createOutput()
+        content! = #createContent(err=*next)
 
         if content! = null() then
             methodret
@@ -121,25 +135,25 @@ class public OutputHandler
     rem  * 
     rem  * @param accept! The accept header of the request
     rem  */
-    method public void createErrorOutput(String accept!, BBjNumber statuscode!, String errormsg!, String errorcode!, String stacktrace!)
+    method public void createErrorOutput()
     
             if #rs! <> null() then   
                 rs_content! = #createContent()
-                rs_content! = new String(content!.getBytes(#charset!))
+                rs_content! = new String(rs_content!.getBytes(#charset!))
             fi
         
             if pos("application/json"=str(accept!)) > 0 then
                 
                 #response!.setContentType("application/json")
 
-                escapedErrorMessage! = org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(errormsg!)
-                escapedStacktrace! = org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(stacktrace!)
+                escapedErrorMessage! = org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(#Errormsg!)
+                escapedStacktrace! = org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(#Stacktrace!)
 
-                content! = "{""code"":"""+str(errorcode!)+""",""message"":"""+ escapedErrorMessage! +""","
-                if #debug and statuscode! <> "401" then
+                content! = "{""code"":"""+#Errorcode!+""",""message"":"""+ escapedErrorMessage! +""","
+                if #debug and #Statuscode! <> "401" then
                     content! = content! + """stacktrace"":"""+ escapedStacktrace! +""","
                 endif
-                content! = content! + """ses"":"""+ses$+"""}"
+                content! = content! + """ses"":"""+#Session!+"""}"
                 if rs_content! <> null() then   
                     content! = content! + rs_content!
                 fi
@@ -149,7 +163,7 @@ class public OutputHandler
 
                 content! = "<html><head><meta http-equiv=""Content-Type"" content=""text/html; charset=UTF-8""/><title>"+str(errormsg!)+"</title></head>"
               
-                content! = content! + "<body><h2>HTTP ERROR "+str(statuscode!)+"</h2><p><blockquote><pre>"+errorcode$+" "+str(errormsg!)
+                content! = content! + "<body><h2>HTTP ERROR "+#Statuscode!+"</h2><p><blockquote><pre>"+#Errorcode!+" "+#Errormsg!
 
                 if #debug and statuscode! <> "401" then
                     content! = content! + $0a$+stacktrace$
@@ -165,7 +179,7 @@ class public OutputHandler
             endif
 
         #response!.setCharacterEncoding(#charset!)
-        #response!.setStatus(num(statuscode!))
+        #response!.setStatus(num(#Statuscode!))
     
         restbridge_opt_enablegzip = 1
         restbridge_opt_enablegzip = int(num(stbl("RESTBRIDGE_OPT_ENABLEGZIP",err=*next),err=*next))
@@ -187,7 +201,6 @@ class public OutputHandler
         outputStream!.write(content!)
         outputStream!.close()
 
-        #response!.setStatus(num(statuscode!))
     methodend
 
     rem /**
@@ -204,39 +217,39 @@ class public OutputHandler
     rem  *         content was returned using a file download for instance.
     rem  * 
     rem  */
-    method public String createContent(String accept!)
+    method public String createContent()
         rem JSON export
-        if pos("application/json" = accept!) > 0 then
+        if pos("application/json" = #Accept!) > 0 then
             methodret #createJSON()
         endif
 
         rem HTML export
-        if pos("text/html"=accept!) > 0 OR pos("*/*"=accept!) > 0  then
+        if pos("text/html"=#Accept!) > 0 OR pos("*/*"=#Accept!) > 0  then
             methodret #createHTML()
         endif
 
         rem XML export
-        if pos("text/xml"=accept!) > 0 or pos("application/xml" = accept!) >0  then
+        if pos("text/xml"=#Accept!) > 0 or pos("application/xml" = #Accept!) >0  then
             methodret #createXML()
         endif
 
         rem TXT export
-        if pos("text/csv" = accept!) > 0 OR pos("text/plain" = accept!) > 0 then
+        if pos("text/csv" = #Accept!) > 0 OR pos("text/plain" = #Accept!) > 0 then
             methodret #createTXT()
         endif
 
         rem Excel export
-        if pos("application/xls" = accept!) > 0 then
+        if pos("application/xls" = #Accept!) > 0 then
             #createXLSX()
             methodret null()
         endif
 
         rem Printing some debug information
-        if pos("debug" = accept!) > 0 then
+        if pos("debug" = #Accept!) > 0 then
             methodret #createDebug()
         endif
 
-        throw "Unsupported content type requested in Accept header: " + accept!, 406
+        throw "Unsupported content type requested in Accept header: " + #Accept!, 406
     methodend
     
     rem /**
@@ -578,13 +591,5 @@ class public OutputHandler
         #invokeResult! = invokeResult!
     methodend
 
-    rem /**
-    rem  * Sets the Session handle variable
-    rem  * 
-    rem  * @param Session String
-    rem  */
-    method public void setSession(String ses!)
-        #Session! = ses!
-    methodend
-    
+
 classend

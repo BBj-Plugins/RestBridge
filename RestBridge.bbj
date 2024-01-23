@@ -581,8 +581,15 @@ class public RestBridge
             
             outputHandler!.setResponse(response!)
             outputHandler!.setRequest(request!)
+
+            outputHandler!.setAccept(accept$)
+            outputHandler!.setStatuscode(statuscode!)
+            outputHandler!.setErrormsg(errormsg!)
+            outputHandler!.setErrorcode(errorcode$)
+            outputHandler!.setStacktrace(stacktrace$)
+
             
-            outputHandler!.createErrorOutput(accept$,num(statuscode!),errormsg!,errorcode$, stacktrace$)
+            outputHandler!.createErrorOutput()
 
             rem ToDo: add error output for xml and csv
             #logResponse(req_id$,response!)
@@ -692,10 +699,16 @@ class public RestBridge
             outputHandler!.setRequest(request!)
             
             rem final call
-            outputHandler!.setResultSet(rs!)            
-            outputHandler!.createOutput(accept$)
-                        
-            response!.setStatus(200)
+            outputHandler!.setResultSet(rs!)
+
+            outputHandler!.setAccept(accept$)
+            outputHandler!.setStatuscode(statuscode!)
+            outputHandler!.setErrormsg(errormsg!)
+            outputHandler!.setErrorcode(errorcode$)
+            outputHandler!.setStacktrace(stacktrace$)
+
+            outputHandler!.createOutput()
+                       
             #logResponse(req_id$,response!)
 
             IF TRACE_CH >0 THEN
