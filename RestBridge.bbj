@@ -613,6 +613,26 @@ class public RestBridge
         if method$ = "PUT" or method$ = "DELETE" then
             response!.setStatus(num(statuscode!))
             if method$ = "DELETE" then
+				namespace! = BBjAPI().getGlobalNamespace()
+				handler! = namespace!.getValue(ses$ + "_OUTPUT_HANDLER", err=*next)
+				if handler! <> null() then
+					outputHandler! = eval(handler!)
+				else
+					outputHandler! = new OutputHandler()
+				endif
+				outputHandler!.setSession(ses$)
+				outputHandler!.setInvokeResult(answer!)
+				rem set the charset 
+				outputHandler!.setCharset(usedCharset!)
+				outputHandler!.setResponse(response!)
+				outputHandler!.setRequest(request!)
+				rem final call
+				outputHandler!.setAccept(accept$)
+				outputHandler!.setStatuscode(statuscode!)
+				outputHandler!.setErrormsg(errormsg!)
+				outputHandler!.setErrorcode(errorcode$)
+				outputHandler!.setStacktrace(stacktrace$)
+				outputHandler!.createOutput()
                 #logResponse(req_id$,response!)
                 methodret
             endif
@@ -622,8 +642,27 @@ class public RestBridge
             if statuscode! <> null() then
                 response!.setStatus(num(statuscode!))
             endif
-            
             if str(rs!) = "" then
+				namespace! = BBjAPI().getGlobalNamespace()
+				handler! = namespace!.getValue(ses$ + "_OUTPUT_HANDLER", err=*next)
+				if handler! <> null() then
+					outputHandler! = eval(handler!)
+				else
+					outputHandler! = new OutputHandler()
+				endif
+				outputHandler!.setSession(ses$)
+				outputHandler!.setInvokeResult(answer!)
+				rem set the charset 
+				outputHandler!.setCharset(usedCharset!)
+				outputHandler!.setResponse(response!)
+				outputHandler!.setRequest(request!)
+				rem final call
+				outputHandler!.setAccept(accept$)
+				outputHandler!.setStatuscode(statuscode!)
+				outputHandler!.setErrormsg(errormsg!)
+				outputHandler!.setErrorcode(errorcode$)
+				outputHandler!.setStacktrace(stacktrace$)
+				outputHandler!.createOutput()
                 #logResponse(req_id$,response!)
                 methodret
             endif

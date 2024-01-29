@@ -32,6 +32,9 @@ class public InputHandler
     rem the requested custom method return value name
     field protected String requestedCustomMethodReturnValueName!
     
+    rem The session handle string
+    field public String Session!
+
     method public BBjVector getTrailingRoutesList()
         declare BBjVector extensionList!
         extensionList! = new BBjVector()

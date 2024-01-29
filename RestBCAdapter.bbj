@@ -162,6 +162,7 @@ main_loop:
     inputHandler!.setRequestHeaders(request!.get("headers"))
     inputHandler!.setRequestedCustomMethod(request!.get("invoke"))
     inputHandler!.setRequestedCustomMethodReturnValueName(request!.get("retvarname"))
+    inputHandler!.setSession(ses$)
     
     rem Get the BC name to invoke
     bcName! = inputHandler!.getBCName()  
@@ -736,6 +737,7 @@ REM                 endif
             response!.put("BC",bcName!)
             response!.put("sel",urlExtension!)
             response!.put("primarykey",BCPrimaryKeyString!)
+            response!.put("statuscode","200")
             break
     swend
     
