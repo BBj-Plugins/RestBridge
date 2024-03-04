@@ -25,7 +25,7 @@ in the Context Configuration:
 | REST_PGM_SUFFIX               | General suffix added to the end of the program name when searching for a class source file based on the URL. Typically .bbj |
 | REST_WD                       |  The working directory to be set for every request |
 | REST_ADAPTERPGM               |  The adapter, typically RestBCAdapter.bbj |
-| REST_ADAPTERTERM              |  The terminal to set, e.g. IO or Tx |
+| REST_ADAPTERTERM              |  The terminal to set, e.g. NIO, IO or Tx. Note: on Windows you might want to set NIO if want to avoid the "BBj.exe" client processes in TaskManager |
 | REST_TIMEOUT                  |  The timeout after which idle background workers terminate. Default: 60 seconds. |
 | REST_TRACE                    |  The path of a directory to write a SETTRACE of the servlet and the BC Adapter. The directory must exist and be writable. Else the parameter will be ignored | 
 | REST_SERVLET_TIMEOUT | Timeout after which a timeout is sent as response if the worker did not return in this moment. |
