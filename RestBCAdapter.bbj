@@ -819,6 +819,9 @@ REM                 endif
         namespace!.removeValue(ses$+"_REQUEST_SEM",err=*next)
         namespace!.removeValue(ses$+"_RESPONSE_SEM",err=*next)
         namespace!.removeValue(ses$+"_SERVLET_PARAMETERS",err=*next)
+        namespace!.removeValue(ses$+"_OUTPUT_HANDLER", err=*next)
+        namespace!.removeValue(ses$+"_INPUT_HANDLER", err=*next)
+        namespace!.removeValue(ses$+"_THREAD", err=*next)
 
         rem Calling the ON_CLEANUP label to perform possible user defined cleanup operations
         call authpgm$+"::ON_CLEANUP",err=*next       
