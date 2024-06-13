@@ -945,22 +945,27 @@ class public RestBridge
         namespace!.setValue(ses$+"_THREAD",null())
 
         cp$=BBjAPI().getConfig().getCurrentCommandLineObject().getOriginalClasspathName()
-        if cp$>"" cp$=" -CP"+cp$
-        wd$= " -WD"+ servletParams!.get("REST_WD").toString()
-        pgm$ = " """ + servletParams!.get("REST_ADAPTERPGM").toString() + """"
+        
+        wd$= servletParams!.get("REST_WD").toString()
 
-
-        cfg$=" -c"+BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()
-        t$=" -t"+BBjAPI().getConfig().getCurrentCommandLineObject().getTerminal()
+        cfg$=BBjAPI().getConfig().getCurrentCommandLineObject().getConfigFile()
+        t$=BBjAPI().getConfig().getCurrentCommandLineObject().getTerminal()
         if servletParams!.containsKey("REST_ADAPTERTERM") then
-            t$=" -t"+servletParams!.get("REST_ADAPTERTERM").toString()
+            t$=servletParams!.get("REST_ADAPTERTERM").toString()
         endif
 
-        scmd$="bbj -q "+ t$ + cfg$ + cp$ + wd$ + pgm$ + " - " + ses$ + " " + auth$ + " &"
-        if debug then
-            System.out.println("REST: create "+scmd$)
+        myCFG! = BBjAPI().getConfig().getCurrentCommandLineObject()
+        myCFG!.setProgramName(servletParams!.get("REST_ADAPTERPGM").toString())
+        myCFG!.setTerminal(t$)
+        if cp$>"" then 
+            myCFG!.setClasspathName(cp$)
         fi
-        a=scall(scmd$)
+        myCFG!.setConfigFile(cfg$)
+        myCFG!.setWorkingDirectory(wd$)
+
+        myCFG!.setProgramArgs(ses$ + " " + auth$)
+
+        x = BBjAPI().newBBjSession(myCFG!)
 
         methodret ses$
     methodend
@@ -982,10 +987,10 @@ class public RestBridge
         rem here's the remote session active
         
         REST_SERVLET_TIMEOUT = 60
-        REST_SERVLET_TIMEOUT = NUM(STR(#parameterMap!.get("REST_SERVLET_TIMEOUT")))
+        REST_SERVLET_TIMEOUT = NUM(STR(#parameterMap!.get("REST_SERVLET_TIMEOUT",err=*next)),err=*next)
 
         REST_KILL_WORKER_AT_TIMEOUT = 0
-        REST_KILL_WORKER_AT_TIMEOUT = NUM(#parameterMap!.get("REST_KILL_WORKER_AT_TIMEOUT"))
+        REST_KILL_WORKER_AT_TIMEOUT = NUM(#parameterMap!.get("REST_KILL_WORKER_AT_TIMEOUT",err=*next),err=*next)
 
         
         if debug then
