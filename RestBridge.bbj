@@ -982,10 +982,10 @@ class public RestBridge
         rem here's the remote session active
         
         REST_SERVLET_TIMEOUT = 60
-        REST_SERVLET_TIMEOUT = NUM(STR(#parameterMap!.get("REST_SERVLET_TIMEOUT")))
+        REST_SERVLET_TIMEOUT = NUM(STR(#parameterMap!.get("REST_SERVLET_TIMEOUT",err=*next),err=*next),err=*next)
 
         REST_KILL_WORKER_AT_TIMEOUT = 0
-        REST_KILL_WORKER_AT_TIMEOUT = NUM(#parameterMap!.get("REST_KILL_WORKER_AT_TIMEOUT"))
+        REST_KILL_WORKER_AT_TIMEOUT = NUM(#parameterMap!.get("REST_KILL_WORKER_AT_TIMEOUT",err=*next),err=*next)
 
         
         if debug then
