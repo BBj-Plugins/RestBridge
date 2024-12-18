@@ -23,6 +23,7 @@ in the Context Configuration:
 |-------------------------------|-----------------------|
 | REST_PGM_PREFIX               | General prefix added to the beginning of the program name when searching for a class based on the URL. |
 | REST_PGM_SUFFIX               | General suffix added to the end of the program name when searching for a class source file based on the URL. Typically .bbj |
+| REST_JAVA_PACKAGE             |  If set, the RestBridge tries to locate a Java BC class first with this package name |
 | REST_WD                       |  The working directory to be set for every request |
 | REST_ADAPTERPGM               |  The adapter, typically RestBCAdapter.bbj |
 | REST_ADAPTERTERM              |  The terminal to set, e.g. NIO, IO or Tx. Note: on Windows you might want to set NIO if want to avoid the "BBj.exe" client processes in TaskManager |
