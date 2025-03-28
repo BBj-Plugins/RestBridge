@@ -257,7 +257,7 @@ class public RestBridge
                         System.out.println("REST: "+str(running_list!.size())+" running.")
                     fi
 
-                    if running_list!.size() >=  REST_MAX_WORKER_COUNT then
+                    if running_list!.size() <=  REST_MAX_WORKER_COUNT then
 
                             rem first try to see if they're really all busy
                             ks! = running_list!.clone().iterator()
