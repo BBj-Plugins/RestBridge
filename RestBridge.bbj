@@ -1193,6 +1193,7 @@ class public RestBridge
         parameterNames! = new BBjVector()
         parameterNames!.add("REST_PGM_PREFIX")
         parameterNames!.add("REST_PGM_SUFFIX")
+        parameterNames!.add("REST_JAVA_PACKAGE")
         parameterNames!.add("REST_WD")
         parameterNames!.add("REST_ADAPTERPGM")
         parameterNames!.add("REST_ADAPTERTERM")

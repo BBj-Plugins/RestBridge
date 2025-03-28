@@ -216,9 +216,24 @@ main_loop:
             void$ = stbl("REST_PGM_SUFFIX", suffix$)
         endif
 
-        bc! = null()
-        ok=0; bc! = eval("new ::" + prefix$ + bcName! + suffix$ + "::" + bcName! + "()", err=*next); ok=1
+        if servletParams!.containsKey("REST_JAVA_PACKAGE") then
+            java_package$ = servletParams!.get("REST_JAVA_PACKAGE")
+            void$ = stbl("REST_JAVA_PACKAGE", java_package$)
+        endif
+
         
+        bc! = null()
+        
+        ok=0
+        
+        if ( java_package$ > "" ) then
+            bc! = eval("new " + java_package$ + "." + bcName! + "()",err=*next); ok=1
+        fi
+
+        if ok=0 then 
+            bc! = eval("new ::" + prefix$ + bcName! + suffix$ + "::" + bcName! + "()", err=*next); ok=1
+        fi
+
         if ok=0 then
             statuscode=404
             throw "Missing BC", 12
