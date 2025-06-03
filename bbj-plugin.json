@@ -3,5 +3,5 @@
 	"description":"This plugin allows you to deploy BBj or Java classes that follow the development paradigm of \"BusinessComponents\" as a RESTful web service. It features GET,POST,PUT,DELETE operations that are automatically translated to read, write and remove methods in your code.",
 	"version":"1.00",
 	"author":"Basis",
-	"bbj_dependency"     : "20.30"
+	"bbj_dependency"     : "24.23"
 }
