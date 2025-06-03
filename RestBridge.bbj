@@ -12,6 +12,7 @@ use java.io.IOException
 use java.util.zip.ZipEntry
 use java.util.zip.ZipOutputStream
 
+use java.io.ByteArrayOutputStream
 use java.nio.charset.Charset
 
 class public RestBridge
@@ -355,15 +356,21 @@ class public RestBridge
         wend
         req!.put("headers", headers!)
         
-        body! = request!.getBody(err=*next)
-        if body! <> null() then     
-            if requestCharSet$ = "" then
-                body! = new String(body!, defaultCharset!).getBytes("ISO-8859-1")           
-                body! = new String(body!, defaultCharset!).getBytes(info(1,2))
-            else
-                body! = new String(body!, requestCharSet$).getBytes(info(1,2))
-            endif           
-            
+        bodyBytes! = #getBody(request!)
+        if (debug) then
+            System.out.println("Body: " + bodyBytes!)
+        fi
+
+        if bodyBytes! <> null() then  
+
+            rem converting the request body into the server's character encoding      
+            body! = new String(bodyBytes!, info(1,2))   
+
+            if (debug) then
+                System.out.println("Server Encoding: " + info(1,2))
+                System.out.println("Encoded Body: " + body!)
+            fi
+
             req!.put("body", body!)
         endif
         
@@ -844,6 +851,25 @@ class public RestBridge
 
     methodend
 
+    method private byte[] getBody(BBxServletRequest request!)
+        declare byte[] bytes!
+        declare ByteArrayOutputStream outputStream!
+        
+        outputStream! = new ByteArrayOutputStream()
+        bytes! = new byte[1024]
+        inputStream! = request!.getHttpServletRequest().getInputStream()
+        while 1
+            length = inputStream!.read(bytes!, err=*break)
+            if length = -1 then
+                break
+            endif
+            
+            outputStream!.write(bytes!, 0, length)
+        wend
+        
+        methodret outputStream!.toByteArray()
+    methodend
+
     rem /**
     rem  * This method converts the VARCHAR and LONGVARCHAR field values 
     rem  * of the given ResultSet to the given charset. 
@@ -881,7 +907,7 @@ class public RestBridge
 
                 fieldType! = dataRow!.getFieldType(fieldName!)
                 if fieldType! = java.sql.Types.VARCHAR OR fieldType! = java.sql.Types.LONGVARCHAR then
-                    body! = dataRow!.getFieldAsString(fieldName!)                   
+                    body! = dataRow!.getFieldAsString(fieldName!)                  
                     body! = new String(new String(body!, info(1,2)).getBytes(charset!), charset!)                    
                     dataRow!.setFieldValue(fieldName!, body!)
                 endif
