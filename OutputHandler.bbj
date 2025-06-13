@@ -86,8 +86,8 @@ class public OutputHandler
     rem  * method and compressed the content returned from that method.
     rem  * 
     rem  * <b>Note: </b> Do not overwrite this method in your custom output handler class,
-    rem  * but rather overwrite the createContent(String) method. This method invokes the 
-    rem  * createContent(String) method and uses the content String returned from it. 
+    rem  * but rather overwrite the createContent() method. This method invokes the 
+    rem  * createContent() method and uses the content String returned from it. 
     rem  * 
     rem  */
     method public void createOutput()
@@ -123,18 +123,6 @@ class public OutputHandler
     methodend
 
 
-
-    rem /**
-    rem  * This method gets called by the RestBridge.bbj file and is responsible 
-    rem  * for creating the requested output. The method itself invokes the createContent(String)
-    rem  * method and compressed the content returned from that method.
-    rem  * 
-    rem  * <b>Note: </b> Do not overwrite this method in your custom output handler class,
-    rem  * but rather overwrite the createContent(String) method. This method invokes the 
-    rem  * createContent(String) method and uses the content String returned from it. 
-    rem  * 
-    rem  * @param accept! The accept header of the request
-    rem  */
     method public void createErrorOutput()
     
             if #rs! <> null() then   
