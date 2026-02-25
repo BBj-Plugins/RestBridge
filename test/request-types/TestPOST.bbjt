@@ -13,6 +13,7 @@ use org.apache.http.client.methods.HttpPost
 
 use org.apache.http.client.entity.EntityBuilder
 use org.apache.http.HttpEntity
+use org.apache.http.entity.ContentType
 
 class public TestPOST
 
