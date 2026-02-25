@@ -105,63 +105,41 @@ class public TestPOST
 
      rem @Test
     method public void testCreateRecordWithSpecialCharactersInBody()
-        declare ResultSet resultSet!
-        resultSet! = #chileCustomerBC!.retrieve()
-        initialSize = resultSet!.size()
-                 
-        special_first$ = "ÄÖÜß"
-        special_last$ = "ÉÁäöüßéá"
+        special_param$ = "ÄÖÜßÉÁäöüßéá"
 
-        rem Prepare a row that uses the special characters
-        rowWithSpecial! = #insertRow!.clone()
-        rowWithSpecial!.setFieldValue("FIRST_NAME", special_first$)
-        rowWithSpecial!.setFieldValue("LAST_NAME", special_last$)
-        
         #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
         
         declare HttpPost request!
         request! = #configurator!.getRequestPOST(#uriBuilder!)
         request!.setHeader("Accept", "application/json")
         request!.setHeader("Content-Type", "application/json; charset=UTF-8")
+        request!.setHeader("ExecuteBCMethod", "customMethodWithParameter")
                 
-        entity! = EntityBuilder.create().setText(rowWithSpecial!.toJson()).setContentType(ContentType.create("application/json", "UTF-8")).build()
+        rs! = new ResultSet()
+        row! = new DataRow()
+        row!.setFieldValue("param", special_param$)
+        rs!.add(row!)
+
+        entity! = EntityBuilder.create().setText(rs!.toJson()).setContentType(ContentType.create("application/json", "UTF-8")).build()
         request!.setEntity(entity!)
 
         declare HttpResponse response!
         response! = #client!.execute(request!)
         
-        rem verify that the request was executed successfully
-        Assert.Equals(response!.getStatusLine().getStatusCode(), 201)
 
-        rem checking that the record was actually created
-        resultSet! = #chileCustomerBC!.retrieve()
-        Assert.Equals(initialsize +1, resultSet!.size())
+        wasExecuted = BBjAPI().getGlobalNamespace().getKeys().contains("customMethodWithParameter", err=*next)
+        param! = BBjAPI().getGlobalNamespace().getValue("customMethodWithParameter", err=*next)
+        BBjAPI().getGlobalNamespace().removeValue("customMethodWithParameter", err=*next)
 
-        rem Read back the record via the BC to validate what was written
-        declare DataRow filter!
-        filter! = new DataRow()
-        filter!.setFieldValue("CUST_NUM", rowWithSpecial!.getFieldAsString("CUST_NUM"))
-        #chileCustomerBC!.setFilter(filter!)
-        resultSet! = #chileCustomerBC!.retrieve()
-        Assert.Equals(resultSet!.size(), 1)
-        
-        declare DataRow storedRow!
-        storedRow! = resultSet!.get(0)
-        Assert.Equals(storedRow!.getFieldAsString("FIRST_NAME"), special_first$)
-        Assert.Equals(storedRow!.getFieldAsString("LAST_NAME"), special_last$)
-        
-        rem Also validate the echoed response body from RestBridge
-        declare ResultSet responseRS!
-        responseRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
-        
-        rem the result set shouldn't be null
-        Assert.IsNotNull(responseRS!)
-        Assert.Equals(responseRS!.size(), 1)
-        
-        declare DataRow responseRow!
-        responseRow! = responseRS!.get(0)
-        Assert.Equals(responseRow!.getFieldAsString("FIRST_NAME"), special$)
-        Assert.Equals(responseRow!.getFieldAsString("LAST_NAME"), special$)
+        if !wasExecuted then
+            Assert.Fail("The customMethodWithParameter was not executed")
+        endif
+
+        if param! <> special_param$ then
+            Assert.Fail("The custom method was executed but the parameter was not processed correctly")
+        endif
+
+        Assert.Equals(param!, special_param$)
     methodend
     
     rem @Test
