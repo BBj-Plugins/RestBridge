@@ -49,7 +49,7 @@ class public RestBridgeTestConfigurator
         #mapping! = "/rest" + str(System.currentTimeMillis()) + "/"
         
         config! = context!.addBBxServlet(#mapping! + "*", path!, "RestBridge", "service")
-        config!.addParameter("REST_TIMEOUT", "100")
+        config!.addParameter("REST_SERVLET_TIMEOUT", "100")
         config!.addParameter("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
         config!.addParameter("REST_WD", bcDir!.getAbsolutePath())
         config!.addParameter("REST_PGM_SUFFIX", ".bbj")
