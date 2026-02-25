@@ -258,7 +258,7 @@ class public RestBridge
                         System.out.println("REST: "+str(running_list!.size())+" running.")
                     fi
 
-                    if running_list!.size() <=  REST_MAX_WORKER_COUNT then
+                    if running_list!.size() >=  REST_MAX_WORKER_COUNT then
 
                             rem first try to see if they're really all busy
                             ks! = running_list!.clone().iterator()
@@ -364,8 +364,20 @@ class public RestBridge
         if bodyBytes! <> null() then  
 
             rem converting the request body into the server's character encoding      
-            body! = new String(bodyBytes!, info(1,2))   
+            if requestCharSet$ = "" then
+                body! = new String(bodyBytes!, defaultCharset!).getBytes("ISO-8859-1")           
+                body! = new String(body!, defaultCharset!).getBytes(info(1,2))
 
+                if (debug) then
+                    System.out.println("Used default charset: " + defaultCharset!)
+                endif
+            else
+                body! = new String(bodyBytes!, requestCharSet$).getBytes(info(1,2))
+                
+                if (debug) then
+                    System.out.println("Used request charset: " + requestCharSet$)
+                endif
+            endif
             if (debug) then
                 System.out.println("Server Encoding: " + info(1,2))
                 System.out.println("Encoded Body: " + body!)
@@ -373,7 +385,8 @@ class public RestBridge
 
             req!.put("body", body!)
         endif
-        
+        req!.put("defaultCharset", defaultCharset!)
+		req!.put("requestCharSet", requestCharSet$)
         req!.put("preferredlocales", request!.getLocales())
 
         if str(uri!)="/admin/requestlog" then
