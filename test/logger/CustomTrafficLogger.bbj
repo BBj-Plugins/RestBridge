@@ -1,0 +1,34 @@
+use ::RestBridge/TrafficLogger.bbj::TrafficLogger
+use java.util.HashMap
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+
+class public CustomTrafficLogger extends TrafficLogger
+
+    field private HashMap logs! = new HashMap()
+
+    method public void logResponse(BBjString id$, BBxServletResponse response!, BBjString session$)
+        id$=str(System.currentTimeMillis())+"_"+str(dec(INFO(3,0)):"000000")
+        #logs!.put(id$, "logged Response for session: " + session$)
+    methodend
+
+    method public BBjString logRequest(BBxServletRequest request!, BBjString session$)
+        id$=str(System.currentTimeMillis())+"_"+str(dec(INFO(3,0)):"000000")
+        #logs!.put(id$, "logged Request for session: " + session$)
+        methodret id$
+    methodend
+
+    method public HashMap getRequestLog(BBxServletRequest request!)
+        answer! = new HashMap()    
+    
+        rs! = new ResultSet()
+        rs!.add(new DataRow(#logs!))
+
+        answer!.put("statuscode","200")
+        answer!.put("resultset", rs!)
+        answer!.put("single",0)
+        
+        methodret answer!
+    methodend
+classend

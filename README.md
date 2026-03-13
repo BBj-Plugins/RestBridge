@@ -123,3 +123,12 @@ The data file used to save the requests currently has the following template:
 
 The saved request information can be viewed using the Enterprise Manager (if configured) or by invoking the **/admin/requestlog** endpoint
 http://MyServer/MyContext/MyMapping/admin/requestlog
+
+### Custom Logging
+
+To enable CustomLogging, you need to extend the TrafficLogger.bbj in the root of the RestBridge and set the **REST_TRAFFIC_LOGGER** in the bridge's servlet parameters.
+
+You can override the <code>logResponselogResponse(id$, response!, session$)</code> and  <code>logRequest(request!, session$)</code>methods to implement custom logging logic, and <code>getRequestLog(request!)</code> so invoking http://MyServer/MyContext/MyMapping/admin/requestlog continues to return all logs.
+
+If you were previously using the request logging, it will continue working as before.
+

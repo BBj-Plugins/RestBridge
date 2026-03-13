@@ -1,0 +1,109 @@
+use ::RestBridge/test/RestBridgeTestConfigurator.bbj::RestBridgeTestConfigurator
+
+use ::RestBridge/test/example-bcs/ChileCustomerBC.bbj::ChileCustomerBC
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+use org.apache.http.HttpResponse
+use org.apache.http.client.HttpClient
+use org.apache.http.client.utils.URIBuilder
+use org.apache.http.client.methods.HttpGet
+
+class public CustomTrafficLogger
+
+    field private RestBridgeTestConfigurator configurator!
+    field private ChileCustomerBC chileCustomerBC!
+
+    field private HttpClient client!
+    field private URIBuilder uriBuilder!
+    field private BBjNumber logSize!
+
+    rem @BeforeClass
+    method public void classSetUp()
+        rem Setup the test RestBridge
+        #configurator! = new RestBridgeTestConfigurator()
+        #configurator!.setupTestRestBridgeWithCustomTrafficLogger()
+    methodend
+    
+    rem @AfterClass
+    method public void classTearDown()
+        rem Remove the test RestBridge
+        #configurator!.removeTestRestBridge()
+    methodend
+
+    rem @Before
+    method public void setup()
+        rem Instantiate the Test BC
+        #chileCustomerBC! = new ChileCustomerBC()
+
+        #client! = #configurator!.getHttpClient()
+        #uriBuilder! = #configurator!.getURIBuilder()
+        
+        #logSize! = #getRequestLogs().size()
+    methodend
+
+    rem @Test
+    method public void checkFields() 
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+    
+        rs! = #getRequestLogs()
+
+        Assert.Equals(#logSize!, rs!.size())
+    methodend
+    
+    rem @Test
+    method public void testRetrieveLog()
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        logrs! = #getRequestLogs()
+
+        Assert.Equals(#logSize!, logrs!.size())        
+    methodend
+
+    method private ResultSet getRequestLogs() 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "admin/requestlog")
+
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+
+        methodret actualRS! 
+    methodend
+classend
+
+
+rem /Users/TimonGeisbauer/bbx/bin/bbj -CPbbj_default -WD/Users/TimonGeisbauer/git/intern/RestBridge/test/request-types/ /Users/TimonGeisbauer/bbx/utils/bbjunittest/BBjUnitTest.bbj - TestGET.bbjt --q
+rem /Users/TimonGeisbauer/bbx/bin/bbj -CPbbj_default -WD/Users/TimonGeisbauer/git/intern/RestBridge/test/logger/ /Users/TimonGeisbauer/bbx/utils/bbjunittest/BBjUnitTest.bbj - TrafficLogger.bbjt --q
