@@ -1,0 +1,157 @@
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use java.util.HashMap
+
+rem /**
+rem  * This class is used to log traffic if logging is configured.
+rem  */
+class public TrafficLogger
+
+    rem The template of the default logging data file
+    field public static BBjString LOGTPL$="ID:C(16*),METHOD:C(1*),START:N(1*),END:N(1*),DURATION:N(1*),ADDR:C(1*),URL:C(1*),URI:C(1*),QUERY:C(1*),HEADERS:C(1*),PARAMS:C(1*),STATUS:C(1*)"
+    
+    rem Path of the logging file, may be null or empty
+    field protected BBjString logFile$
+
+    rem /**
+    rem  * The default constructor used to create an instance of the TrafficLogger.
+    rem  * Tries to read the "REST_REQUESTLOG" stbl to find the path of the logfile.
+    rem  */
+    method public TrafficLogger() 
+        #logFile$ = stbl("REST_REQUESTLOG",err=*next)
+    methodend
+
+    rem /**
+    rem  * This method gets called by the RestBridge.bbj file and is responsible 
+    rem  * for logging the response to a request.
+    rem  * 
+    rem  * Should be overridden to handle custom logic for logging the response.
+    rem  *  
+    rem  *  @param id The id of the request that was already logged.
+    rem  *  @param response The BBxServletResponse response object.
+    rem  *  @param session The session of the response 
+    rem  */
+    method public void logResponse(BBjString id$, BBxServletResponse response!, BBjString session$)
+        if id$ = "" then methodret
+        if #logFile$ = null() or #logFile$ = "" then methodret
+    
+        ch=unt
+        open (ch,err=skip)#logFile$
+
+        dim log$:#LOGTPL$
+        log.id$=id$
+
+        read record (ch,dom=skip,key=log.id$)log$
+        log.END=System.currentTimeMillis()
+        log.DURATION = (log.END - log.START)
+        log.STATUS$=STR(response!.getStatus())
+
+        write record (ch,err=skip)log$
+        close(ch,err=skip)
+        methodret
+
+        skip:
+            System.out.println("logResponse ERROR: " + errmes(-1))
+    methodend
+
+    rem /**
+    rem  * This method gets called by the RestBridge.bbj file and is responsible 
+    rem  * for logging requests.
+    rem  * 
+    rem  * Should be overridden to handle custom logic for logging requests.
+    rem  *  
+    rem  *  @param request The BBxServletRequest request object.
+    rem  *  @param session The session of the response 
+    rem  *  
+    rem  *  @return The id generated to identify the request.
+    rem  */
+    method public BBjString logRequest(BBxServletRequest request!, BBjString session$)
+        id$=""
+        if #logFile$ = null() or #logFile$ = "" then methodret
+        id$=str(System.currentTimeMillis())+"_"+str(dec(INFO(3,0)):"000000")
+
+        ch=unt
+        open (ch,err=skip)#logFile$
+
+        dim log$:#LOGTPL$
+
+        log.id$=id$
+        log.METHOD$=str(request!.getMethod())
+        log.START=System.currentTimeMillis()
+        log.ADDR$=str(request!.getRemoteAddr())
+        log.URI$=str(request!.getRequestURI())
+        log.URL$=str(request!.getRequestURL())
+        log.QUERY$=str(request!.getQueryString())
+
+        h! = request!.getHeaderNames()
+        it! = h!.iterator()
+        while it!.hasNext()
+            headerName$ = it!.next()
+            headerValue$ = str(request!.getHeader(headerName$))
+            
+            rem Obfuscating the Authorization headers
+            if headerName$ = "Authorization" then
+                headerValue$ = new String(headerValue$).replaceAll("\s.*", " ************")
+            endif
+            
+            headers$ = headers$ + headerName$ + "=" + headerValue$ + ","
+        wend
+
+        log.HEADERS$ = headers$
+
+        p! = request!.getParameterNames()
+        it! = p!.iterator()
+        
+        while it!.hasNext()
+            pn$=it!.next()
+            p$=p$+pn$+"="+str(request!.getParameter(pn$))+","
+        wend
+        log.PARAMS$=p$
+
+        write record (ch,err=skip) log$
+
+        close (ch,err=skip)
+        methodret id$
+
+        skip:
+            System.out.println("LOG REQUEST ERROR: " + errmes(-1))
+            methodret id$
+    methodend
+
+    rem /**
+    rem  * This method gets called when the user calls admin/requestlog.
+    rem  * 
+    rem  * <b>Note: </b> The returned Hashmap needs to have the following keys: statuscode, resultset and single.
+    rem  * Status code should be 200 if no errors occurred, the resultset should contain an ResultSet with all the data and single should set to 0. 
+    rem  * 
+    rem  */
+    method public HashMap getRequestLog(BBxServletRequest request!)
+        answer! = new HashMap()
+        rs! = new ResultSet()
+
+        ch=unt
+        open (ch,err=skip)#logFile$
+
+        tpl$=#LOGTPL$
+        dim log$:tpl$
+
+        while 1
+            read record (ch,end=*break)log$
+            dr! = DataRow.fromTemplate(tpl$,log$)
+            rs!.addItem(dr!)
+        wend
+
+        close (ch)
+
+        answer!.put("statuscode","200")
+        answer!.put("resultset",rs!)
+        answer!.put("single",0)
+        methodret answer!
+
+        skip:
+            answer!.put("statuscode","404")
+            answer!.put("errormsg","request logging not enabled")
+            answer!.put("single",0)
+            methodret answer!
+    methodend
+classend

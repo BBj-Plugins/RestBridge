@@ -69,7 +69,7 @@ class public OutputHandler
     rem  * The debug value passed to this constructor indicates whether the RESTBridge
     rem  * is running in the debug mode or not.
     rem  * 
-    rem  * @param debug This value indicated wheter the RESTBridge is running in
+    rem  * @param debug This value indicated whether the RESTBridge is running in
     rem  *              the debug mode or not.
     rem  */
     method public OutputHandler(BBjNumber debug)

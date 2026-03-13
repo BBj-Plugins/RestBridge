@@ -4,6 +4,7 @@ use com.basiscomponents.db.ResultSet
 use com.basiscomponents.db.ResultSetExporter
 
 use ::RestBridge/OutputHandler.bbj::OutputHandler
+use ::RestBridge/TrafficLogger.bbj::TrafficLogger
 
 use java.io.File
 use java.io.FileInputStream
@@ -19,6 +20,8 @@ class public RestBridge
 
     field public static BBjString LOGTPL$="ID:C(16*),METHOD:C(1*),START:N(1*),END:N(1*),DURATION:N(1*),ADDR:C(1*),URL:C(1*),URI:C(1*),QUERY:C(1*),HEADERS:C(1*),PARAMS:C(1*),STATUS:C(1*)"
     field private HashMap parameterMap!
+    field private TrafficLogger logger!
+
 
     METHOD PUBLIC void service(BBxServletContext context!)
         declare BBxServletRequest request!
@@ -37,6 +40,21 @@ class public RestBridge
 
         servletParams! = #getServletParameters(context!)
 
+        seterr custom_traffic_logger_error
+            if servletParams!.containsKey("REST_TRAFFIC_LOGGER") and #logger! = null() then    
+                path$ = BBjAPI().getFileSystem().resolvePath(str(servletParams!.get("REST_TRAFFIC_LOGGER")), err=*next)
+                customTrafficLogger! = new File(path$)
+                if customTrafficLogger!.exists() AND customTrafficLogger!.isFile() then
+                    className! = org.apache.commons.io.FilenameUtils.removeExtension(customTrafficLogger!.getName())
+                    trafficLogger! = "new ::" + customTrafficLogger!.getPath() + "::" + className! + "()"
+                    #logger! = eval(trafficLogger!)
+                endif
+            else
+                #logger! = new TrafficLogger()
+            endif
+        custom_traffic_logger_error:
+        seterr 0
+
         if servletParams!.get("REST_TRACE") <> null() then
             tracedir$ = servletParams!.get("REST_TRACE").toString()
             tracedir! = new File(tracedir$,err=*endif)
@@ -52,7 +70,7 @@ class public RestBridge
             void$ = stbl("REST_REQUESTLOG",param!)
         endif
 
-        req_id$ = #logRequest(request!)
+        req_id$ = #logger!.logRequest(request!, ses$)
 
         if request!.getHeader("Origin") <> null() then
             response!.setHeader("Access-Control-Allow-Origin",request!.getHeader("Origin"))
@@ -118,7 +136,7 @@ class public RestBridge
 
               response!.getOutputStream().write("{"+resp$+"}")
               response!.setStatus(200)
-              #logResponse(req_id$,response!)
+              #logger!.logResponse(req_id$,response!, ses$)
               methodret
            fi
         fi
@@ -133,7 +151,7 @@ class public RestBridge
             case "OPTIONS"
                 response!.setStatus(200)
                 response!.setHeader("Access-Control-Max-Age","600")
-                #logResponse(req_id$,response!)
+                #logger!.logResponse(req_id$,response!, ses$)
                 methodret
             break
             case "DELETE"
@@ -159,12 +177,10 @@ class public RestBridge
                 response!.setContentType("text/plain")
                 s! = response!.getOutputStream()
                 response!.sendError(501,"Unsupported HTTP method """+request!.getMethod()+"""")
-                #logResponse(req_id$,response!)
+                #logger!.logResponse(req_id$,response!,ses$)
                 methodret
             break
         swend
-        
-        
         
         rem The authentication program might be relative to the WD but not to any directory in the prefix
         rem therefore switch to the WD for the authentication program call
@@ -217,7 +233,7 @@ class public RestBridge
             endif
             
             response!.sendError(401, "Authentication required")
-            #logResponse(req_id$, response!)
+            #logger!.logResponse(req_id$, response!, ses$)
             methodret
         endif
                 
@@ -390,7 +406,7 @@ class public RestBridge
         req!.put("preferredlocales", request!.getLocales())
 
         if str(uri!)="/admin/requestlog" then
-            answer! = #getRequestLog(request!)
+            answer! = #logger!.getRequestLog(request!)
         else
             answer! = #invoke(ses$,req!)
         fi
@@ -431,7 +447,7 @@ class public RestBridge
                 System.out.println("REST: error 406 Unsupported content type requested in Accept header: "+atmp$)
             fi
             response!.sendError(406, "Unsupported content type requested in Accept header: "+atmp$)
-            #logResponse(req_id$,response!)
+            #logger!.logResponse(req_id$,response!,ses$)
             methodret
         fi
 
@@ -479,7 +495,7 @@ class public RestBridge
                 response!.setContentType("application/"+ext$)
                 response!.setHeader("Content-Disposition","inline; filename="""+blobname$+"""")
     
-                #logResponse(req_id$,response!)
+                #logger!.logResponse(req_id$,response!,ses$)
             else
               count=0
               tmpfiles! = new BBjVector()
@@ -508,7 +524,7 @@ class public RestBridge
                 response!.setContentType("application/zip")
                 response!.setHeader("Content-Disposition","inline; filename=""files.zip""")
     
-                #logResponse(req_id$,response!)
+                #logger!.logResponse(req_id$,response!,ses$)
 
                 
             fi
@@ -517,7 +533,7 @@ class public RestBridge
             blob_err:
               response!.getOutputStream().write("BLOB not found")
               response!.setStatus(404)
-              #logResponse(req_id$,response!)
+              #logger!.logResponse(req_id$,response!,ses$)
               methodret
         endif
 
@@ -571,7 +587,7 @@ class public RestBridge
             response!.setStatus(404)
 
             done_file:
-            #logResponse(req_id$,response!)
+            #logger!.logResponse(req_id$,response!,ses$)
             methodret
         endif
 
@@ -611,8 +627,8 @@ class public RestBridge
             
             outputHandler!.createErrorOutput()
 
-            rem ToDo: add error output for xml and csv
-            #logResponse(req_id$,response!)
+            rem TODO: add error output for xml and csv
+            #logger!.logResponse(req_id$,response!,ses$)
             methodret
         fi
 
@@ -626,7 +642,7 @@ class public RestBridge
                 System.out.println("REST: error 500 "+str(errormsg!))
             fi
             response!.sendError(500,str(errormsg!))
-            #logResponse(req_id$,response!)
+            #logger!.logResponse(req_id$,response!,ses$)
             methodret
         fi
 
@@ -653,7 +669,7 @@ class public RestBridge
 				outputHandler!.setErrorcode(errorcode$)
 				outputHandler!.setStacktrace(stacktrace$)
 				outputHandler!.createOutput()
-                #logResponse(req_id$,response!)
+                #logger!.logResponse(req_id$,response!,ses$)
                 methodret
             endif
         endif
@@ -683,7 +699,7 @@ class public RestBridge
 				outputHandler!.setErrorcode(errorcode$)
 				outputHandler!.setStacktrace(stacktrace$)
 				outputHandler!.createOutput()
-                #logResponse(req_id$,response!)
+                #logger!.logResponse(req_id$,response!,ses$)
                 methodret
             endif
         endif
@@ -768,7 +784,7 @@ class public RestBridge
 
             outputHandler!.createOutput()
                        
-            #logResponse(req_id$,response!)
+            #logger!.logResponse(req_id$,response!,ses$)
 
             IF TRACE_CH >0 THEN
                 ENDTRACE
@@ -782,7 +798,7 @@ class public RestBridge
             rem Set the output type to plain to display the error message properly
             response!.setContentType("text/plain")
             response!.sendError(500, "Failed to create the request output type: " + errmes(-1))
-            #logResponse(req_id$,response!)
+            #logger!.logResponse(req_id$,response!,ses$)
 
 
             IF TRACE_CH >0 THEN
@@ -801,7 +817,7 @@ class public RestBridge
                 System.out.println("REST: error 500 STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
             fi
             response!.sendError(500,"STBLs not set up correctly! Need REST_WD and REST_ADAPTERPGM in config.bbx" )
-            #logResponse(req_id$,response!)
+            #logger!.logResponse(req_id$,response!,ses$)
 
 
             IF TRACE_CH >0 THEN
@@ -820,7 +836,7 @@ class public RestBridge
                 System.out.println("REST: too many workers!" )
             fi
             response!.sendError(429,"Too many requests!" )
-            #logResponse(req_id$,response!)
+            #logger!.logResponse(req_id$,response!,ses$)
 
 
             IF TRACE_CH >0 THEN
@@ -1074,123 +1090,6 @@ class public RestBridge
 
     methodend
 
-    method private BBjString logRequest(BBxServletRequest request!)
-
-        rlog$=stbl("REST_REQUESTLOG",err=skip)
-        
-        id$=""
-
-        ch=unt
-        open (ch)rlog$
-
-        dim log$:#LOGTPL$
-
-        id$=str(System.currentTimeMillis())+"_"+str(dec(INFO(3,0)):"000000")
-
-        log.id$=id$
-        log.METHOD$=str(request!.getMethod())
-        log.START=System.currentTimeMillis()
-        log.ADDR$=str(request!.getRemoteAddr())
-        log.URI$=str(request!.getRequestURI())
-        log.URL$=str(request!.getRequestURL())
-        log.QUERY$=str(request!.getQueryString())
-
-        h! = request!.getHeaderNames()
-        it! = h!.iterator()
-        while it!.hasNext()
-            headerName$ = it!.next()
-            headerValue$ = str(request!.getHeader(headerName$))
-            
-            rem Obfuscating the Authorization headers
-            if headerName$ = "Authorization" then
-                headerValue$ = new String(headerValue$).replaceAll("\s.*", " ************")
-            endif
-            
-            headers$ = headers$ + headerName$ + "=" + headerValue$ + ","
-        wend
-        log.HEADERS$ = headers$
-
-        p! = request!.getParameterNames()
-        it! =p!.iterator()
-        while it!.hasNext()
-            pn$=it!.next()
-            p$=p$+pn$+"="+str(request!.getParameter(pn$))+","
-        wend
-        log.PARAMS$=p$
-
-        write record (ch)log$
-
-        close (ch)
-
-        skip:
-
-        methodret id$
-
-    methodend
-
-    method private void logResponse(BBjString id$, BBxServletResponse response!)
-
-        if id$="" then
-            methodret
-        fi
-
-        rlog$=stbl("REST_REQUESTLOG",err=skip)
-
-        ch=unt
-        open (ch,err=skip)rlog$
-
-        dim log$:#LOGTPL$
-        log.id$=id$
-
-        read record (ch,dom=skip,key=log.id$)log$
-        log.END=System.currentTimeMillis()
-        log.DURATION = log.END-log.START
-
-        log.STATUS$=STR(response!.getStatus())
-
-        write record (ch)log$
-
-        close (ch)
-
-        skip:
-
-    methodend
-
-    method private HashMap getRequestLog(BBxServletRequest request!)
-
-        answer! = new HashMap()
-        rs! = new ResultSet()
-
-        rlog$=stbl("REST_REQUESTLOG",err=skip)
-
-
-        ch=unt
-        open (ch,err=skip)rlog$
-
-        tpl$=#LOGTPL$
-        dim log$:tpl$
-
-        while 1
-            read record (ch,end=*break)log$
-            dr! = com.basiscomponents.db.DataRow.fromTemplate(tpl$,log$)
-            rs!.addItem(dr!)
-        wend
-
-        close (ch)
-
-        answer!.put("statuscode","200")
-        answer!.put("resultset",rs!)
-        answer!.put("single",0)
-        methodret answer!
-
-        skip:
-            answer!.put("statuscode","404")
-            answer!.put("errormsg","request logging not enabled")
-            answer!.put("single",0)
-            methodret answer!
-
-    methodend
-
     rem /**
     rem  * Returns a HashMap containing the parameter names and values defined for the RestBridge.
     rem  * <br>
@@ -1246,6 +1145,7 @@ class public RestBridge
         parameterNames!.add("USE_GET_ALLOWED_FILTER")
         parameterNames!.add("REST_OUTPUT_HANDLER")
         parameterNames!.add("REST_INPUT_HANDLER")
+        parameterNames!.add("REST_TRAFFIC_LOGGER")
         parameterNames!.add("REST_DEFAULT_CHARSET")
         parameterNames!.add("REST_TRACE")
         

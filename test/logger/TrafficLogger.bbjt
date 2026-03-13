@@ -1,0 +1,175 @@
+use ::RestBridge/test/RestBridgeTestConfigurator.bbj::RestBridgeTestConfigurator
+
+use ::RestBridge/test/example-bcs/ChileCustomerBC.bbj::ChileCustomerBC
+
+use com.basiscomponents.db.DataRow
+use com.basiscomponents.db.ResultSet
+use com.basiscomponents.db.ResultSetExporter
+
+use org.apache.http.HttpResponse
+use org.apache.http.client.HttpClient
+use org.apache.http.client.utils.URIBuilder
+use org.apache.http.client.methods.HttpGet
+
+class public TrafficLogger
+
+    field private RestBridgeTestConfigurator configurator!
+    field private ChileCustomerBC chileCustomerBC!
+
+    field private HttpClient client!
+    field private URIBuilder uriBuilder!
+    field private BBjNumber logSize!
+
+    rem @BeforeClass
+    method public void classSetUp()
+        rem Setup the test RestBridge
+        #configurator! = new RestBridgeTestConfigurator()
+        #configurator!.setupTestRestBridge()
+    methodend
+    
+    rem @AfterClass
+    method public void classTearDown()
+        rem Remove the test RestBridge
+        #configurator!.removeTestRestBridge()
+    methodend
+
+    rem @Before
+    method public void setup()
+        rem Instantiate the Test BC
+        #chileCustomerBC! = new ChileCustomerBC()
+
+        #client! = #configurator!.getHttpClient()
+        #uriBuilder! = #configurator!.getURIBuilder()
+        
+        #clearLogs()
+        #logSize! = #getRequestLogs().size()
+    methodend
+
+    rem @Test
+    method public void checkFields() 
+        #clearLogs()
+
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+    
+        rs! = #getRequestLogs()
+
+        dr! = rs!.get(0)
+
+        Assert.Equals("GET", dr!.getFieldAsString("METHOD"))
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("START").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("END").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("DURATION").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("URL").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("URI").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("QUERY").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("HEADERS").isEmpty())
+        Assert.Equals(Boolean.TRUE, dr!.getFieldAsString("PARAMS").isEmpty())
+        Assert.Equals("200", dr!.getFieldAsString("STATUS"))
+        Assert.Equals("127.0.0.1", dr!.getFieldAsString("ADDR"))
+    methodend
+    
+    rem @Test
+    method public void checkFieldsWithParams() 
+        #clearLogs()
+
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        #uriBuilder!.setParameter("CUST_NUM","000017")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+    
+        Assert.Equals(1, actualRS!.size())
+
+        rs! = #getRequestLogs()
+
+        dr! = rs!.get(0)
+
+        Assert.Equals("GET", dr!.getFieldAsString("METHOD"))
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("START").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("END").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("DURATION").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("URL").isEmpty())
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("URI").isEmpty())
+        Assert.Equals("CUST_NUM=000017", dr!.getFieldAsString("QUERY"))
+        Assert.Equals(Boolean.TRUE, !dr!.getFieldAsString("HEADERS").isEmpty())
+        Assert.Equals("CUST_NUM=000017,", dr!.getFieldAsString("PARAMS"))
+        Assert.Equals("200", dr!.getFieldAsString("STATUS"))
+        Assert.Equals("127.0.0.1", dr!.getFieldAsString("ADDR"))
+    methodend
+
+    rem @Test
+    method public void testRetrieveLog()
+        declare ResultSet expectedRS!
+        expectedRS! = #chileCustomerBC!.retrieve()
+        
+        rem uriBuilder!.addParameter(arg0,arg1)
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+              
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+        
+        logrs! = #getRequestLogs()
+
+        Assert.Equals(#logSize! + 2, logrs!.size())        
+    methodend
+
+    method private ResultSet getRequestLogs() 
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "admin/requestlog")
+
+        declare HttpGet request!
+        request! = #configurator!.getRequest(#uriBuilder!)
+        request!.setHeader("accept", "application/json")
+        
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+
+        declare ResultSet actualRS!
+        actualRS! = ResultSet.fromJson(#configurator!.getResultAsString(response!))
+
+        methodret actualRS! 
+    methodend
+
+    method private void clearLogs() 
+        logFile$ = stbl("REST_REQUESTLOG",err=*next)
+        ch = unt
+        open(ch) logFile$
+
+            while 1
+                remove(ch, key=KEY(ch),err=*break)
+            wend
+        close(ch)
+    methodend
+classend
+
+
+rem /Users/TimonGeisbauer/bbx/bin/bbj -CPbbj_default -WD/Users/TimonGeisbauer/git/intern/RestBridge/test/request-types/ /Users/TimonGeisbauer/bbx/utils/bbjunittest/BBjUnitTest.bbj - TestGET.bbjt --q
+rem /Users/TimonGeisbauer/bbx/bin/bbj -CPbbj_default -WD/Users/TimonGeisbauer/git/intern/RestBridge/test/logger/ /Users/TimonGeisbauer/bbx/utils/bbjunittest/BBjUnitTest.bbj - TrafficLogger.bbjt --q
