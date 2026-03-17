@@ -67,7 +67,7 @@ class public TrafficLogger
     rem  */
     method public BBjString logRequest(BBxServletRequest request!, BBjString session$)
         id$=""
-        if #logFile$ = null() or #logFile$ = "" then methodret
+        if #logFile$ = null() or #logFile$ = "" then methodret ""
         id$=str(System.currentTimeMillis())+"_"+str(dec(INFO(3,0)):"000000")
 
         ch=unt
