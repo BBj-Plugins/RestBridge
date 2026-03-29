@@ -13,6 +13,7 @@ use org.apache.http.client.methods.HttpPost
 
 use org.apache.http.client.entity.EntityBuilder
 use org.apache.http.HttpEntity
+use org.apache.http.entity.ContentType
 
 class public TestPOST
 
@@ -100,6 +101,45 @@ class public TestPOST
         
         rem comparing the JSON Strings 
         Assert.Equals(actualRow!.toJson(0), #insertRow!.toJson(0))
+    methodend
+
+     rem @Test
+    method public void testCreateRecordWithSpecialCharactersInBody()
+        special_param$ = "ÄÖÜßÉÁäöüßéá"
+
+        #uriBuilder!.setPath(#configurator!.getRestBridgeMapping() + "ChileCustomer")
+        
+        declare HttpPost request!
+        request! = #configurator!.getRequestPOST(#uriBuilder!)
+        request!.setHeader("Accept", "application/json")
+        request!.setHeader("Content-Type", "application/json; charset=UTF-8")
+        request!.setHeader("ExecuteBCMethod", "customMethodWithParameter")
+                
+        rs! = new ResultSet()
+        row! = new DataRow()
+        row!.setFieldValue("param", special_param$)
+        rs!.add(row!)
+
+        entity! = EntityBuilder.create().setText(rs!.toJson()).setContentType(ContentType.create("application/json", "UTF-8")).build()
+        request!.setEntity(entity!)
+
+        declare HttpResponse response!
+        response! = #client!.execute(request!)
+        
+
+        wasExecuted = BBjAPI().getGlobalNamespace().getKeys().contains("customMethodWithParameter", err=*next)
+        param! = BBjAPI().getGlobalNamespace().getValue("customMethodWithParameter", err=*next)
+        BBjAPI().getGlobalNamespace().removeValue("customMethodWithParameter", err=*next)
+
+        if !wasExecuted then
+            Assert.Fail("The customMethodWithParameter was not executed")
+        endif
+
+        if param! <> special_param$ then
+            Assert.Fail("The custom method was executed but the parameter was not processed correctly")
+        endif
+
+        Assert.Equals(param!, special_param$)
     methodend
     
     rem @Test

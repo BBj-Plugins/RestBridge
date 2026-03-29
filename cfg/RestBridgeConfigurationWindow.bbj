@@ -336,7 +336,7 @@ class public RestBridgeConfigurationWindow
         servlet! = #reciveBridgeInformation()
         if (servlet! <> null()) then
 
-            error = 1; #setTimeout(num(servlet!.getParameter("REST_TIMEOUT")),err=*next); error = 0
+            error = 1; #setTimeout(num(servlet!.getParameter("REST_SERVLET_TIMEOUT")),err=*next); error = 0
             if error = 1 then #setTimeout(0)
 
             #setMapping(servlet!.getMapping())
@@ -402,7 +402,7 @@ class public RestBridgeConfigurationWindow
         endif
 
         params! = new HashMap()
-        params!.put("REST_TIMEOUT", str(#getTimeout()))
+        params!.put("REST_SERVLET_TIMEOUT", str(#getTimeout()))
         params!.put("REST_WD", #getWorkingDirectoryPath())
         params!.put("REST_AUTHPGM", #getAuthProgramPath())
         params!.put("REST_PGM_PREFIX", #getProgramPrefix())
@@ -507,7 +507,7 @@ class public RestBridgeConfigurationWindow
             auth! = bbjHome!.getAbsolutePath().replaceAll("\\|\/", java.io.File.separator,err=*next)
 
             params! = new HashMap()
-            params!.put("REST_TIMEOUT","1000")
+            params!.put("REST_SERVLET_TIMEOUT","1000")
             params!.put("REST_WD", "")
             params!.put("REST_AUTHPGM",auth!)
             params!.put("REST_PGM_PREFIX","")
@@ -737,7 +737,7 @@ class public RestBridgeConfigurationWindow
         builder!.append("REM Here you can add Parameter to your Birdge."+$0A$)
         builder!.append("bridgeConf!.addParameter(""REST_ADAPTERPGM"", adapterProgram!.getAbsolutePath())"+$0A$)
         builder!.append("bridgeConf!.addParameter(""REST_ADAPTERTERM"", ""IO"")"+$0A$)
-        builder!.append("bridgeConf!.addParameter(""REST_TIMEOUT"",timeOut!)"+$0A$)
+        builder!.append("bridgeConf!.addParameter(""REST_SERVLET_TIMEOUT"",timeOut!)"+$0A$)
         builder!.append("bridgeConf!.addParameter(""REST_WD"",workingDirectory!)"+$0A$)
         builder!.append("bridgeConf!.addParameter(""REST_AUTHPGM"",authpgm!)"+$0A$)
         builder!.append("bridgeConf!.addParameter(""REST_PGM_PREFIX"",preffix!)"+$0A$)

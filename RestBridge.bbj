@@ -1105,7 +1105,7 @@ class public RestBridge
     rem  *     <li>REST_WD</li>
     rem  *     <li>REST_ADAPTERPGM</li>
     rem  *     <li>REST_ADAPTERTERM</li>
-    rem  *     <li>REST_TIMEOUT</li>
+    rem  *     <li>REST_SERVLET_TIMEOUT</li>
     rem  *     <li>REST_AUTHPGM</li>
     rem  *     <li>REST_REQUESTLOG</li>
     rem  *     <li>USE_GET_ALLOWED_FILTER</li>
@@ -1135,7 +1135,6 @@ class public RestBridge
         parameterNames!.add("REST_WD")
         parameterNames!.add("REST_ADAPTERPGM")
         parameterNames!.add("REST_ADAPTERTERM")
-        parameterNames!.add("REST_TIMEOUT")
         parameterNames!.add("REST_SERVLET_TIMEOUT")
         parameterNames!.add("REST_KILL_WORKER_AT_TIMEOUT")
         parameterNames!.add("REST_MAX_WORKER_RECYCLECOUNT")

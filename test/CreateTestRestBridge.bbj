@@ -12,7 +12,7 @@ directory! = new File(path!).getParent()
 bcDir! = new File(directory!, "test/example-bcs/")
 
 config! = context!.addBBxServlet("/rest_test/*", path!, "RestBridge", "service")
-config!.addParameter("REST_TIMEOUT", "100")
+config!.addParameter("REST_SERVLET_TIMEOUT", "100")
 config!.addParameter("REST_AUTHPGM", new File(directory!, "authenticate.bbj").getAbsolutePath())
 config!.addParameter("REST_WD", bcDir!.getAbsolutePath())
 config!.addParameter("REST_PGM_SUFFIX", ".bbj")

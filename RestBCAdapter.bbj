@@ -94,8 +94,8 @@ done_login:
 
 
 REST_TIMEOUT=60
-if servletParams!.containsKey("REST_TIMEOUT") then
-    REST_TIMEOUT=num(servletParams!.get("REST_TIMEOUT").toString(),err=*next)
+if servletParams!.containsKey("REST_SERVLET_TIMEOUT") then
+    REST_TIMEOUT=num(servletParams!.get("REST_SERVLET_TIMEOUT").toString(),err=*next)
 endif
 
 
