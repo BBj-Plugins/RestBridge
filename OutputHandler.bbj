@@ -367,11 +367,11 @@ class public OutputHandler
     methodend
     
     rem /**
-    rem  * Creates the JSON output based on the ResultSet, and sets the response's 
-    rem  * content type header to application/JSON to inform the client that the 
-    rem  * response he's receiving is in the JSON format.
+    rem  * Creates the XML output based on the ResultSet, and sets the response's
+    rem  * content type header to application/XML to inform the client that the
+    rem  * response he's receiving is in the XML format.
     rem  * 
-    rem  * @return the JSON content to return to the client
+    rem  * @return the XML content to return to the client
     rem  */
     method public void createTextXML()
         declare StringWriter writer!
